@@ -1,7 +1,7 @@
 import type { Context, SessionFlavor } from 'grammy'
 import type { I18nContextFlavor, TemplateData } from '@grammyjs/i18n'
 import type { Extra } from './telegram.js'
-import type { Chat, Database, User } from './database.js'
+import type { Chat, Database } from './database.js'
 
 export interface Custom<C extends Context> {
 	text: (
@@ -10,10 +10,7 @@ export interface Custom<C extends Context> {
 		extra?: Extra
 	) => ReturnType<C['reply']>
 
-	entities: {
-		user: User
-		chat: Chat | null
-	}
+	entities: { chat: Chat | null }
 
 	db: Database
 }

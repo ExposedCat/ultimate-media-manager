@@ -1,23 +1,23 @@
 {
-  "name": "ts-tg-bot",
+  "name": "ultimate-media-manager-tg",
   "version": "1.0.0",
-  "description": "Telegram bot template in TypeScript ",
+  "description": "Media downloader & converted as a Telegram Bot",
   "main": "build/index.js",
   "scripts": {
     "compile": "tsc",
     "postcompile": "cp -r src/locales build",
-    "bg:start": "npm run prepare && pm2 start build/index.js --name telegram-bot",
-    "bg:restart": "npm run prepare && pm2 restart telegram-bot",
-    "bg:logs": "pm2 logs telegram-bot --lines 1000 -f",
+    "bg:start": "npm run compile && pm2 start build/index.js --name media",
+    "bg:restart": "npm run compile && pm2 restart media",
+    "bg:logs": "pm2 logs media --lines 1000 -f",
     "start": "npm run compile && node .",
     "lint": "npx prettier --write src"
   },
   "keywords": [
     "telegram",
     "bot",
-    "grammy",
-    "mongodb",
-    "typescript"
+    "instagram",
+    "tiktok",
+    "download"
   ],
   "author": "ExposedCat",
   "license": "GPL-3.0-or-later",

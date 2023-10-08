@@ -1,4 +1,6 @@
 {
-  "start": "[${chatName}] Hi there, ${name}!",
-  "stop": "[${chatName}] Bye, ${name}!"
+  "greeting": "Ultimate Media Manager\n<a href=\"https: //github.com/ExposedCat/ultimate-media-manager\">Source code</a>\nPowered by @ExposedCatDev",
+  "error": {
+    "not_implemented": "\"${featureName}\" feature is under development"
+  }
 }

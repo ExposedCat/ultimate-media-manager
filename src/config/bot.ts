@@ -7,9 +7,9 @@ import type { CustomContext } from '../types/context.js'
 import type { Chat, Database } from '../types/database.js'
 import { initLocaleEngine } from './locale-engine.js'
 import { startController } from '../controllers/start.js'
-import { stopController } from '../controllers/stop.js'
+import { instagramController } from '../controllers/instagram.js'
+import { tiktokController } from '../controllers/tiktok.js'
 import type { Bot } from '../types/telegram.js'
-import { buildName, getOrCreatePlayer } from '../services/user.js'
 import { getOrCreateChat } from '../services/chat.js'
 
 function extendContext(bot: Bot, database: Database) {
@@ -30,14 +30,7 @@ function extendContext(bot: Bot, database: Database) {
 			})
 		}
 
-		ctx.entities = {
-			user: await getOrCreatePlayer({
-				db: database,
-				userId: ctx.from.id,
-				name: buildName(ctx.from.first_name, ctx.from.last_name)
-			}),
-			chat
-		}
+		ctx.entities = { chat }
 
 		await next()
 	})
@@ -51,7 +44,8 @@ function setupMiddlewares(bot: Bot, localeEngine: I18n) {
 
 function setupControllers(bot: Bot) {
 	bot.use(startController)
-	bot.use(stopController)
+	bot.use(tiktokController)
+	bot.use(instagramController)
 }
 
 export async function startBot(database: Database) {

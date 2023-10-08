@@ -1,12 +1,15 @@
 // TODO: Use path aliases
-import { loadEnv } from '../helpers/load-env.js'
+import env from 'dotenv'
 import { validateEnv } from '../helpers/validate-env.js'
 import { startBot } from './bot.js'
 import { connectToDb } from './database.js'
+import { resolvePath } from '../helpers/resolve-path.js'
 
 export async function startApp() {
 	try {
-		loadEnv()
+		env.config({
+			path: resolvePath(import.meta.url, '../../.env')
+		})
 		validateEnv(['TOKEN', 'DB_CONNECTION_STRING'])
 	} catch (error) {
 		console.error('Error occurred while loading environment:', error)
