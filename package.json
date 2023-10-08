@@ -1,0 +1,50 @@
+{
+  "name": "ts-tg-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot template in TypeScript ",
+  "main": "build/index.js",
+  "scripts": {
+    "compile": "tsc",
+    "postcompile": "cp -r src/locales build",
+    "bg:start": "npm run prepare && pm2 start build/index.js --name telegram-bot",
+    "bg:restart": "npm run prepare && pm2 restart telegram-bot",
+    "bg:logs": "pm2 logs telegram-bot --lines 1000 -f",
+    "start": "npm run compile && node .",
+    "lint": "npx prettier --write src"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "grammy",
+    "mongodb",
+    "typescript"
+  ],
+  "author": "ExposedCat",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "@grammyjs/i18n": "^0.5.1",
+    "dotenv": "^16.0.1",
+    "grammy": "^1.10.1",
+    "mongodb": "^4.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.7.4",
+    "@types/pg": "^8.6.5",
+    "@typescript-eslint/parser": "^6.7.3",
+    "eslint": "^8.50.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-functional": "^6.0.0",
+    "eslint-plugin-github": "^4.10.1",
+    "eslint-plugin-import": "^2.28.1",
+    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-sonarjs": "^0.21.0",
+    "prettier": "^3.0.3",
+    "typescript": "^4.7.4"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=4",
+    "npm": ">=2"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "prettier",
+    "react",
+    "import",
+    "@typescript-eslint",
+    "github",
+    "sonarjs",
+    "functional"
+  ],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "rules": {
+    "@typescript-eslint/consistent-type-imports": "error",
+    "quotes": [2, "single", { "avoidEscape": true }],
+    "no-extra-parens": "off",
+    "arrow-parens": "off",
+    "prettier/prettier": 2,
+    "semi": "off"
+  }
+}

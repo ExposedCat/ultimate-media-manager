@@ -1,0 +1,4 @@
+{
+  "start": "[${chatName}] Hi there, ${name}!",
+  "stop": "[${chatName}] Bye, ${name}!"
+}

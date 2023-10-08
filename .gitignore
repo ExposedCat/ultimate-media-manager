@@ -1,0 +1,8 @@
+# Built application
+build
+
+# Built dependencies
+node_modules
+
+# Sensitive data
+.env

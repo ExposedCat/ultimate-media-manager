@@ -1,0 +1,16 @@
+{
+	// TODO: Extend some of https://github.com/tsconfig/bases
+	"compilerOptions": {
+		"target": "es2017",
+		"outDir": "./build",
+		"module": "es2022",
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"moduleResolution": "node",
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"strictPropertyInitialization": false
+	}
+}
