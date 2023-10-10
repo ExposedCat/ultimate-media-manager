@@ -32,7 +32,9 @@ tiktokController.on(
 				const directUrl = await getTikTokDownloadUrl(url)
 				if (directUrl) {
 					try {
-						await ctx.replyWithVideo(directUrl)
+						await ctx.replyWithVideo(directUrl, {
+							caption: ctx.i18n.t('caption')
+						})
 					} catch (error) {
 						console.error('[TTC] Failed to respond with video', { directUrl })
 					}

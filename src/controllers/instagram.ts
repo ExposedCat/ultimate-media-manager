@@ -32,7 +32,9 @@ instagramController.on(
 				const directUrl = await getInstagramReelDownloadUrl(ctx.scrapper, url)
 				if (directUrl) {
 					try {
-						await ctx.replyWithVideo(directUrl)
+						await ctx.replyWithVideo(directUrl, {
+							caption: ctx.i18n.t('caption')
+						})
 					} catch (error) {
 						console.error('[IGC] Failed to respond with video', { directUrl })
 					}

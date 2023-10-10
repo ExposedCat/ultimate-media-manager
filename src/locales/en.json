@@ -1,5 +1,6 @@
 {
-  "greeting": "Ultimate Media Manager\n<a href=\"https: //github.com/ExposedCat/ultimate-media-manager\">Source code</a>\nPowered by @ExposedCatDev",
+  "greeting": "Ultimate Media Manager\n<a href=\"https://github.com/ExposedCat/ultimate-media-manager\">Source code</a>\nPowered by @ExposedCatDev",
+  "caption": "Powered by @ExposedCatDev",
   "error": {
     "not_implemented": "\"${featureName}\" feature is under development"
   }
