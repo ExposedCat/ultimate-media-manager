@@ -1,24 +1,48 @@
 import { Composer } from 'grammy'
 
 import type { CustomContext } from '../types/context.js'
+import { getTikTokDownloadUrl } from '../services/tiktok.js'
 
 const TIKTOK_URL_MATCH = 'tiktok.com/'
 
 export const tiktokController = new Composer<CustomContext>()
 tiktokController.on(
-	[':entities:text_link', ':entities:url'],
+	['message::url', 'message::text_link'],
 	async (ctx, next) => {
-		const entities =
-			ctx.message?.entities ?? ctx.message?.caption_entities ?? []
-		const hasTikTokLink =
-			ctx.message?.text.includes(TIKTOK_URL_MATCH) ||
-			entities.some(
-				entity =>
-					entity.type === 'text_link' && entity.url.includes(TIKTOK_URL_MATCH)
-			)
+		const text = ctx.message.text
+		const entities = ctx.message.entities ?? ctx.message.caption_entities ?? []
 
-		if (hasTikTokLink) {
-			await ctx.text('not_implemented')
+		const matchingEntity = entities.find(
+			entity =>
+				(entity.type === 'text_link' &&
+					entity.url.includes(TIKTOK_URL_MATCH)) ||
+				entity.type === 'url'
+		)
+
+		if (matchingEntity) {
+			let url: string
+			if (matchingEntity.type === 'text_link') {
+				url = matchingEntity.url
+			} else if (text && matchingEntity.type === 'url') {
+				url = text.slice(matchingEntity.offset, matchingEntity.length)
+			} else {
+				return await next()
+			}
+			if (url.includes(TIKTOK_URL_MATCH)) {
+				const directUrl = await getTikTokDownloadUrl(url)
+				if (directUrl) {
+					try {
+						await ctx.replyWithVideo(directUrl)
+					} catch (error) {
+						console.error('[TTC] Failed to respond with video', { directUrl })
+					}
+					try {
+						await ctx.deleteMessage()
+					} catch {
+						// ignore
+					}
+				}
+			}
 		} else {
 			await next()
 		}

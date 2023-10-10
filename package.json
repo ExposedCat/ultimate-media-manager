@@ -25,7 +25,8 @@
     "@grammyjs/i18n": "^0.5.1",
     "dotenv": "^16.0.1",
     "grammy": "^1.10.1",
-    "mongodb": "^4.9.1"
+    "mongodb": "^4.9.1",
+    "puppeteer": "^21.3.8"
   },
   "devDependencies": {
     "@types/node": "^18.7.4",

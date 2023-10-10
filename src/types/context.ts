@@ -2,6 +2,7 @@ import type { Context, SessionFlavor } from 'grammy'
 import type { I18nContextFlavor, TemplateData } from '@grammyjs/i18n'
 import type { Extra } from './telegram.js'
 import type { Chat, Database } from './database.js'
+import type { Browser } from 'puppeteer'
 
 export interface Custom<C extends Context> {
 	text: (
@@ -13,6 +14,7 @@ export interface Custom<C extends Context> {
 	entities: { chat: Chat | null }
 
 	db: Database
+	scrapper: Browser
 }
 
 export type CustomContextMethods = Custom<Context>
