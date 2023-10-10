@@ -18,6 +18,12 @@ async function getVideoId(
 			console.error('[TT] Did not receive full video URL', { postUrl })
 			return null
 		}
+		try {
+			new URL(postUrl)
+		} catch {
+			// URL is invalid - ignore
+			return null
+		}
 		const response = await fetch(postUrl)
 		return getVideoId(response.url, true)
 	}
@@ -35,6 +41,9 @@ export async function getTikTokDownloadUrl(
 ): Promise<string | null> {
 	const headers = getHeaders()
 	const videoId = await getVideoId(postUrl)
+	if (!videoId) {
+		return null
+	}
 	const request = await fetch(`${API_URL}?aweme_id=${videoId}`, {
 		method: 'GET',
 		headers: headers
