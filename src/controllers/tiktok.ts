@@ -42,6 +42,8 @@ tiktokController.on(
 						// ignore
 					}
 				}
+			} else {
+				await next()
 			}
 		} else {
 			await next()
