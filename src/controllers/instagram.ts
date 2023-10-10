@@ -33,7 +33,10 @@ instagramController.on(
 				if (directUrl) {
 					try {
 						await ctx.replyWithVideo(directUrl, {
-							caption: ctx.i18n.t('caption')
+							caption: ctx.i18n.t('captionInstagram', {
+								postUrl: url
+							}),
+							parse_mode: 'HTML'
 						})
 					} catch (error) {
 						console.error('[IGC] Failed to respond with video', { directUrl })

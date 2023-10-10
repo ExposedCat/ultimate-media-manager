@@ -33,7 +33,10 @@ tiktokController.on(
 				if (directUrl) {
 					try {
 						await ctx.replyWithVideo(directUrl, {
-							caption: ctx.i18n.t('caption')
+							caption: ctx.i18n.t('captionTikTok', {
+								postUrl: url
+							}),
+							parse_mode: 'HTML'
 						})
 					} catch (error) {
 						console.error('[TTC] Failed to respond with video', { directUrl })

@@ -1,6 +1,7 @@
 {
   "greeting": "Ultimate Media Manager\n<a href=\"https://github.com/ExposedCat/ultimate-media-manager\">Source code</a>\nPowered by @ExposedCatDev",
-  "caption": "Powered by @ExposedCatDev",
+  "captionInstagram": "<a href=\"${postUrl}\">View on Instagram</a> | Powered by @ExposedCatDev",
+  "captionTikTok": "<a href=\"${postUrl}\">View on TikTok</a> | Powered by @ExposedCatDev",
   "error": {
     "not_implemented": "\"${featureName}\" feature is under development"
   }
