@@ -38,10 +38,12 @@ tiktokController.on(
 					} catch (error) {
 						console.error('[TTC] Failed to respond with video', { directUrl })
 					}
-					try {
-						await ctx.deleteMessage()
-					} catch {
-						// ignore
+					if (text === url) {
+						try {
+							await ctx.deleteMessage()
+						} catch {
+							// ignore
+						}
 					}
 				}
 			} else {
