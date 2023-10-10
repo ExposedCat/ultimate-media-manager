@@ -6,7 +6,8 @@ const USER_AGENT =
 
 export async function initScrapper() {
 	return puppeteer.launch({
-		headless: 'new'
+		headless: 'new',
+		args: ['--no-sandbox']
 	})
 }
 
