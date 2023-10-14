@@ -7,13 +7,12 @@ import type { CustomContext } from '../types/context.js'
 import type { Chat, Database } from '../types/database.js'
 import { initLocaleEngine } from './locale-engine.js'
 import { startController } from '../controllers/start.js'
-import { instagramController } from '../controllers/instagram.js'
-import { tiktokController } from '../controllers/tiktok.js'
 import type { Bot } from '../types/telegram.js'
 import { getOrCreateChat } from '../services/chat.js'
 import { initScrapper } from '../services/instagram.js'
 import { setTimeout } from 'timers/promises'
 import type { Browser } from 'puppeteer'
+import { mediaDownloadController } from '../controllers/media-download.js'
 
 function extendContext(bot: Bot, database: Database, scrapper: Browser) {
 	bot.use(async (ctx, next) => {
@@ -48,8 +47,7 @@ function setupMiddlewares(bot: Bot, localeEngine: I18n) {
 
 function setupControllers(bot: Bot) {
 	bot.use(startController)
-	bot.use(tiktokController)
-	bot.use(instagramController)
+	bot.use(mediaDownloadController)
 }
 
 export async function startBot(database: Database) {

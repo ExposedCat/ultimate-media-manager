@@ -1,12 +1,13 @@
 import { Composer } from 'grammy'
 
 import type { CustomContext } from '../types/context.js'
-import { getTikTokDownloadUrl } from '../services/tiktok.js'
+import { extractDirectUrl } from '../services/direct-url-extractor.js'
 
 const TIKTOK_URL_MATCH = 'tiktok.com/'
+const INSTAGRAM_URL_MATCH = 'instagram.com/reel/'
 
-export const tiktokController = new Composer<CustomContext>()
-tiktokController.on(
+export const mediaDownloadController = new Composer<CustomContext>()
+mediaDownloadController.on(
 	['message::url', 'message::text_link'],
 	async (ctx, next) => {
 		const text = ctx.message.text
@@ -15,7 +16,8 @@ tiktokController.on(
 		const matchingEntity = entities.find(
 			entity =>
 				(entity.type === 'text_link' &&
-					entity.url.includes(TIKTOK_URL_MATCH)) ||
+					entity.url.includes(TIKTOK_URL_MATCH) &&
+					entity.url.includes(INSTAGRAM_URL_MATCH)) ||
 				entity.type === 'url'
 		)
 
@@ -28,8 +30,15 @@ tiktokController.on(
 			} else {
 				return await next()
 			}
-			if (url.includes(TIKTOK_URL_MATCH)) {
-				const directUrl = await getTikTokDownloadUrl(url)
+
+			const urlType = url.includes(TIKTOK_URL_MATCH)
+				? 'tiktok'
+				: url.includes(INSTAGRAM_URL_MATCH)
+				? 'instagram'
+				: null
+
+			if (urlType !== null) {
+				const directUrl = await extractDirectUrl(ctx.scrapper, url, urlType)
 				if (directUrl) {
 					try {
 						await ctx.replyWithVideo(directUrl, {
@@ -38,15 +47,15 @@ tiktokController.on(
 							}),
 							parse_mode: 'HTML'
 						})
+						if (text === url) {
+							try {
+								await ctx.deleteMessage()
+							} catch {
+								// ignore
+							}
+						}
 					} catch (error) {
 						console.error('[TTC] Failed to respond with video', { directUrl })
-					}
-					if (text === url) {
-						try {
-							await ctx.deleteMessage()
-						} catch {
-							// ignore
-						}
 					}
 				}
 			} else {
