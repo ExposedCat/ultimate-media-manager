@@ -1,10 +1,15 @@
 import type { Collection } from 'mongodb'
 
-export interface Chat {
-	chatId: number
-	title: string
+export type Settings = {
+	cleanup: boolean
 }
 
-export interface Database {
+export type Chat = {
+	chatId: number
+	title: string
+	settings: Settings
+}
+
+export type Database = {
 	chat: Collection<Chat>
 }

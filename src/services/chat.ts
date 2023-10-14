@@ -1,3 +1,4 @@
+import type { UpdateResult } from 'mongodb'
 import type { Chat, Database } from '../types/database.js'
 
 async function createChat(args: {
@@ -5,10 +6,13 @@ async function createChat(args: {
 	chatId: number
 	title: string
 }): Promise<Chat> {
-	const chatObject = {
+	const chatObject: Chat = {
 		chatId: args.chatId,
-		title: args.title
-	} as Chat
+		title: args.title,
+		settings: {
+			cleanup: true
+		}
+	}
 
 	await args.db.chat.insertOne(chatObject)
 
@@ -31,4 +35,15 @@ export async function getOrCreateChat(args: {
 	}
 
 	return createChat(args)
+}
+
+export async function setChatCleanup(args: {
+	db: Database
+	chatId: number
+	cleanup: boolean
+}): Promise<UpdateResult> {
+	return args.db.chat.updateOne(
+		{ chatId: args.chatId },
+		{ $set: { 'settings.cleanup': args.cleanup } }
+	)
 }

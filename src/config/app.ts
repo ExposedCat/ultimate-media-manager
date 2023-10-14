@@ -16,18 +16,16 @@ export async function startApp() {
 		process.exit(1)
 	}
 
-	let database
 	try {
-		database = await connectToDb()
+		const { database } = await connectToDb()
+		try {
+			await startBot(database)
+		} catch (error) {
+			console.error('Error occurred while starting the bot:', error)
+			process.exit(3)
+		}
 	} catch (error) {
 		console.error('Error occurred while connecting to the database:', error)
 		process.exit(2)
-	}
-
-	try {
-		await startBot(database)
-	} catch (error) {
-		console.error('Error occurred while starting the bot:', error)
-		process.exit(3)
 	}
 }

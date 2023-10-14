@@ -7,5 +7,5 @@ export async function connectToDb() {
 	const mongoDb = client.db()
 	const chat = mongoDb.collection<Chat>('chat')
 	const database: Database = { chat }
-	return database
+	return { database, client }
 }

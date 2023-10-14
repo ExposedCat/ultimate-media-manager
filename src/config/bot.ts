@@ -13,6 +13,7 @@ import { initScrapper } from '../services/instagram.js'
 import { setTimeout } from 'timers/promises'
 import type { Browser } from 'puppeteer'
 import { mediaDownloadController } from '../controllers/media-download.js'
+import { settingsController } from '../controllers/settings.js'
 
 function extendContext(bot: Bot, database: Database, scrapper: Browser) {
 	bot.use(async (ctx, next) => {
@@ -47,6 +48,7 @@ function setupMiddlewares(bot: Bot, localeEngine: I18n) {
 
 function setupControllers(bot: Bot) {
 	bot.use(startController)
+	bot.use(settingsController)
 	bot.use(mediaDownloadController)
 }
 

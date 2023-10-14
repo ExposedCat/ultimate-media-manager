@@ -1,6 +1,12 @@
 {
-  "greeting": "Ultimate Media Manager\n<a href=\"https://github.com/ExposedCat/ultimate-media-manager\">💻 Source code</a>\nPowered by @ExposedCatDev",
+  "greeting": "Ultimate Media Manager\n<a href=\"https://github.com/ExposedCat/ultimate-media-manager\">💻 Source code</a>\n⚙️ Chat /settings\n\nPowered by @ExposedCatDev",
   "viewOnInstagram": "<a href=\"${postUrl}\">View on Instagram</a>",
   "viewOnTikTok": "<a href=\"${postUrl}\">View on TikTok</a>",
-  "promoCaption": "${viewUrl} | @ExposedCatDev"
+  "promoCaption": "${viewUrl} | @ExposedCatDev",
+  "settings": "Chat settings:\n\n${cleanup} ${cleanupOption} (<code>cleanup</code>)\n\n/settings OPTION yes|no",
+  "unknownOption": "Unknown option \"${option}\"\nSee /settings",
+  "cleanupOption": "Delete links",
+  "settingsUpdated": "\"${option}\" was set to \"${value}\"",
+  "enabled": "🟢",
+  "disabled": "🔴"
 }

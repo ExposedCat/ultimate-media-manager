@@ -50,7 +50,8 @@ mediaDownloadController.on(
 							}),
 							parse_mode: 'HTML'
 						})
-						if (text === url) {
+
+						if (text === url && ctx.entities.chat?.settings.cleanup) {
 							try {
 								await ctx.deleteMessage()
 							} catch {
