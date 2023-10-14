@@ -42,8 +42,11 @@ mediaDownloadController.on(
 				if (directUrl) {
 					try {
 						await ctx.replyWithVideo(directUrl, {
-							caption: ctx.i18n.t('captionTikTok', {
-								postUrl: url
+							caption: ctx.i18n.t('promoCaption', {
+								viewUrl: ctx.i18n.t(
+									urlType === 'tiktok' ? 'viewOnTikTok' : 'viewOnInstagram',
+									{ postUrl: url }
+								)
 							}),
 							parse_mode: 'HTML'
 						})

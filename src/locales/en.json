@@ -1,8 +1,6 @@
 {
-  "greeting": "Ultimate Media Manager\n<a href=\"https://github.com/ExposedCat/ultimate-media-manager\">Source code</a>\nPowered by @ExposedCatDev",
-  "captionInstagram": "<a href=\"${postUrl}\">View on Instagram</a> | Powered by @ExposedCatDev",
-  "captionTikTok": "<a href=\"${postUrl}\">View on TikTok</a> | Powered by @ExposedCatDev",
-  "error": {
-    "not_implemented": "\"${featureName}\" feature is under development"
-  }
+  "greeting": "Ultimate Media Manager\n<a href=\"https://github.com/ExposedCat/ultimate-media-manager\">💻 Source code</a>\nPowered by @ExposedCatDev",
+  "viewOnInstagram": "<a href=\"${postUrl}\">View on Instagram</a>",
+  "viewOnTikTok": "<a href=\"${postUrl}\">View on TikTok</a>",
+  "promoCaption": "${viewUrl} | @ExposedCatDev"
 }
