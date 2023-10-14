@@ -63,6 +63,8 @@ export async function startBot(database: Database) {
 
 	// NOTE: Resolves only when bot is stopped
 	// so give it a second to start instead of `await`
-	bot.start()
+	bot.start({
+		drop_pending_updates: true
+	})
 	return await setTimeout(1_000)
 }
