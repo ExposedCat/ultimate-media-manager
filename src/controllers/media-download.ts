@@ -13,6 +13,10 @@ mediaDownloadController.on(
 		const text = ctx.message.text
 		const entities = ctx.message.entities ?? ctx.message.caption_entities ?? []
 
+		const userName = [ctx.from.first_name, ctx.from.last_name]
+			.filter(Boolean)
+			.join(' ')
+
 		const matchingEntity = entities.find(
 			entity =>
 				(entity.type === 'text_link' &&
@@ -45,7 +49,11 @@ mediaDownloadController.on(
 							caption: ctx.i18n.t('promoCaption', {
 								viewUrl: ctx.i18n.t(
 									urlType === 'tiktok' ? 'viewOnTikTok' : 'viewOnInstagram',
-									{ postUrl: url }
+									{
+										postUrl: url,
+										userName,
+										userId: ctx.from.id
+									}
 								)
 							}),
 							parse_mode: 'HTML'
@@ -59,7 +67,10 @@ mediaDownloadController.on(
 							}
 						}
 					} catch (error) {
-						console.error('[TTC] Failed to respond with video', { directUrl })
+						console.error('[TTC] Failed to respond with video', {
+							directUrl,
+							error
+						})
 					}
 				}
 			} else {
