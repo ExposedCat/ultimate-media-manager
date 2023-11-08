@@ -1,7 +1,10 @@
-import { Composer } from 'grammy'
+import type { GrammyError } from 'grammy'
+import { Composer, InputFile } from 'grammy'
 
 import type { CustomContext } from '../types/context.js'
 import { extractDirectUrl } from '../services/direct-url-extractor.js'
+import { downloadFile } from '../helpers/fetch.js'
+import { deleteFile } from '../helpers/fs.js'
 
 const TIKTOK_URL_MATCH = 'tiktok.com/'
 const INSTAGRAM_URL_MATCH = 'instagram.com/reel/'
@@ -41,38 +44,63 @@ mediaDownloadController.on(
 				? 'instagram'
 				: null
 
+			const send = (source: string | InputFile) =>
+				ctx.replyWithVideo(source, {
+					caption: ctx.i18n.t('promoCaption', {
+						viewUrl: ctx.i18n.t(
+							urlType === 'tiktok' ? 'viewOnTikTok' : 'viewOnInstagram',
+							{
+								postUrl: url,
+								userName,
+								userId: ctx.from.id
+							}
+						)
+					}),
+					parse_mode: 'HTML',
+					reply_to_message_id:
+						ctx.message.reply_to_message?.message_id ?? undefined
+				})
+
+			const throwError = (error: Error, source: string) =>
+				console.error('[TTC] Failed to respond with video', {
+					source,
+					error
+				})
+
 			if (urlType !== null) {
 				const directUrl = await extractDirectUrl(ctx.scrapper, url, urlType)
 				if (directUrl) {
-					try {
-						await ctx.replyWithVideo(directUrl, {
-							caption: ctx.i18n.t('promoCaption', {
-								viewUrl: ctx.i18n.t(
-									urlType === 'tiktok' ? 'viewOnTikTok' : 'viewOnInstagram',
-									{
-										postUrl: url,
-										userName,
-										userId: ctx.from.id
-									}
-								)
-							}),
-							parse_mode: 'HTML',
-							reply_to_message_id:
-								ctx.message.reply_to_message?.message_id ?? undefined
-						})
+					let downloaded = false
 
-						if (text === url && ctx.entities.chat?.settings.cleanup) {
+					try {
+						await send(directUrl)
+					} catch (object) {
+						const error = object as GrammyError
+						if (error.message.includes('failed to get HTTP URL content')) {
+							const filepath = `/tmp/ummrobot-${Date.now()}-${ctx.from.id}.mp4`
 							try {
-								await ctx.deleteMessage()
-							} catch {
-								// ignore
+								await downloadFile(directUrl, filepath)
+								await send(new InputFile(filepath))
+								downloaded = true
+								await deleteFile(filepath)
+							} catch (error) {
+								throwError(error as Error, filepath)
 							}
+						} else {
+							throwError(error, directUrl)
 						}
-					} catch (error) {
-						console.error('[TTC] Failed to respond with video', {
-							directUrl,
-							error
-						})
+					}
+
+					if (
+						downloaded &&
+						text === url &&
+						ctx.entities.chat?.settings?.cleanup
+					) {
+						try {
+							await ctx.deleteMessage()
+						} catch {
+							// ignore
+						}
 					}
 				}
 			} else {
