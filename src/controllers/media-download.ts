@@ -56,7 +56,9 @@ mediaDownloadController.on(
 									}
 								)
 							}),
-							parse_mode: 'HTML'
+							parse_mode: 'HTML',
+							reply_to_message_id:
+								ctx.message.reply_to_message?.message_id ?? undefined
 						})
 
 						if (text === url && ctx.entities.chat?.settings.cleanup) {
