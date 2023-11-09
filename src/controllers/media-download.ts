@@ -25,7 +25,8 @@ mediaDownloadController.on(
 			entity =>
 				(entity.type === 'text_link' &&
 					(entity.url.includes(TIKTOK_URL_MATCH) ||
-						entity.url.includes(FACEBOOK_URL_MATCH) ||
+						// TODO: Fix on production
+						// entity.url.includes(FACEBOOK_URL_MATCH) ||
 						entity.url.includes(INSTAGRAM_URL_MATCH))) ||
 				entity.type === 'url'
 		)
