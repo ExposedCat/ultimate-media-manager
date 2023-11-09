@@ -8,6 +8,7 @@ import { deleteFile } from '../helpers/fs.js'
 
 const TIKTOK_URL_MATCH = 'tiktok.com/'
 const INSTAGRAM_URL_MATCH = 'instagram.com/reel/'
+const FACEBOOK_URL_MATCH = 'fb.watch/'
 
 export const mediaDownloadController = new Composer<CustomContext>()
 mediaDownloadController.on(
@@ -23,8 +24,9 @@ mediaDownloadController.on(
 		const matchingEntity = entities.find(
 			entity =>
 				(entity.type === 'text_link' &&
-					entity.url.includes(TIKTOK_URL_MATCH) &&
-					entity.url.includes(INSTAGRAM_URL_MATCH)) ||
+					(entity.url.includes(TIKTOK_URL_MATCH) ||
+						entity.url.includes(FACEBOOK_URL_MATCH) ||
+						entity.url.includes(INSTAGRAM_URL_MATCH))) ||
 				entity.type === 'url'
 		)
 
@@ -42,19 +44,18 @@ mediaDownloadController.on(
 				? 'tiktok'
 				: url.includes(INSTAGRAM_URL_MATCH)
 				? 'instagram'
+				: url.includes(FACEBOOK_URL_MATCH)
+				? 'facebook'
 				: null
 
 			const send = (source: string | InputFile) =>
 				ctx.replyWithVideo(source, {
 					caption: ctx.i18n.t('promoCaption', {
-						viewUrl: ctx.i18n.t(
-							urlType === 'tiktok' ? 'viewOnTikTok' : 'viewOnInstagram',
-							{
-								postUrl: url,
-								userName,
-								userId: ctx.from.id
-							}
-						)
+						viewUrl: ctx.i18n.t(`viewOn.${urlType}`, {
+							postUrl: url,
+							userName,
+							userId: ctx.from.id
+						})
 					}),
 					parse_mode: 'HTML',
 					reply_to_message_id:

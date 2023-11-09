@@ -6,3 +6,4 @@ node_modules
 
 # Sensitive data
 .env
+cookies.json

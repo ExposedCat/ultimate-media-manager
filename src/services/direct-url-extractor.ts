@@ -1,14 +1,21 @@
 import type { Browser } from 'puppeteer'
 import { getTikTokDownloadUrl } from './tiktok.js'
-import { getInstagramReelDownloadUrl } from './instagram.js'
+import {
+	getFacebookReelDownloadUrl,
+	getInstagramReelDownloadUrl
+} from './meta.js'
 
 export async function extractDirectUrl(
 	scrapper: Browser,
 	postUrl: string,
-	type: 'tiktok' | 'instagram'
+	type: 'tiktok' | 'instagram' | 'facebook'
 ) {
-	if (type === 'tiktok') {
-		return await getTikTokDownloadUrl(postUrl)
+	switch (type) {
+		case 'tiktok':
+			return await getTikTokDownloadUrl(postUrl)
+		case 'instagram':
+			return await getInstagramReelDownloadUrl(scrapper, postUrl)
+		case 'facebook':
+			return await getFacebookReelDownloadUrl(scrapper, postUrl)
 	}
-	return await getInstagramReelDownloadUrl(scrapper, postUrl)
 }

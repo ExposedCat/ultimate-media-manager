@@ -1,7 +1,10 @@
 {
   "greeting": "Ultimate Media Manager\n<a href=\"https://github.com/ExposedCat/ultimate-media-manager\">💻 Source code</a>\n⚙️ Chat /settings\n\nPowered by @ExposedCatDev",
-  "viewOnInstagram": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Instagram video</a>",
-  "viewOnTikTok": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this TikTok video</a>",
+  "viewOn": {
+    "facebook": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Facebook video</a>",
+    "instagram": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Instagram video</a>",
+    "tiktok": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this TikTok video</a>"
+  },
   "promoCaption": "${viewUrl}",
   "settings": "Chat settings:\n\n${cleanup} ${cleanupOption} (<code>cleanup</code>)\n\n/settings OPTION yes|no",
   "unknownOption": "Unknown option \"${option}\"\nSee /settings",
