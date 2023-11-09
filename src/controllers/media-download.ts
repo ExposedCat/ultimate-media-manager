@@ -17,6 +17,10 @@ mediaDownloadController.on(
 		const text = ctx.message.text
 		const entities = ctx.message.entities ?? ctx.message.caption_entities ?? []
 
+		if (ctx.message.forward_from?.is_bot) {
+			return
+		}
+
 		const userName = [ctx.from.first_name, ctx.from.last_name]
 			.filter(Boolean)
 			.join(' ')
