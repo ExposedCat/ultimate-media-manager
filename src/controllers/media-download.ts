@@ -80,6 +80,7 @@ mediaDownloadController.on(
 
 					try {
 						await send(directUrl)
+						downloaded = true
 					} catch (object) {
 						const error = object as GrammyError
 						if (error.message.includes('failed to get HTTP URL content')) {
