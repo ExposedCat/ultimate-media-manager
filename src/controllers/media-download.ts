@@ -49,8 +49,8 @@ mediaDownloadController.on(
 				? 'tiktok'
 				: url.includes(INSTAGRAM_URL_MATCH)
 				? 'instagram'
-				: url.includes(FACEBOOK_URL_MATCH)
-				? 'facebook'
+				//: url.includes(FACEBOOK_URL_MATCH)
+				//? 'facebook'
 				: null
 
 			const send = (source: string | InputFile) =>
