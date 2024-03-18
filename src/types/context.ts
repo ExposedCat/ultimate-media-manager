@@ -4,23 +4,20 @@ import type { Extra } from './telegram.js'
 import type { Chat, Database } from './database.js'
 import type { Browser } from 'puppeteer'
 
-export interface Custom<C extends Context> {
+export type CustomContextFields = {
 	text: (
 		text: string,
 		templateData?: TemplateData,
 		extra?: Extra
-	) => ReturnType<C['reply']>
+	) => ReturnType<Context['reply']>
 
-	entities: { chat: Chat | null }
+	objects: { chat: Chat | null }
 
 	db: Database
 	scrapper: Browser
 }
 
-export type CustomContextMethods = Custom<Context>
-
 export type CustomContext = Context &
-	Custom<Context> &
+	CustomContextFields &
 	I18nContextFlavor &
-	// eslint-disable-next-line @typescript-eslint/ban-types
-	SessionFlavor<{}>
+	SessionFlavor<unknown>

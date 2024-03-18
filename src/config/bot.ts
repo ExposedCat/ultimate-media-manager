@@ -1,4 +1,4 @@
-import type { I18n } from '@grammyjs/i18n/dist/source/i18n.js'
+import type { I18n } from '@grammyjs/i18n'
 import { Bot as TelegramBot, session } from 'grammy'
 
 import { resolvePath } from '../helpers/resolve-path.js'
@@ -34,7 +34,7 @@ function extendContext(bot: Bot, database: Database, scrapper: Browser) {
 			})
 		}
 
-		ctx.entities = { chat }
+		ctx.objects = { chat }
 
 		await next()
 	})

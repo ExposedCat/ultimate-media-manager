@@ -8,7 +8,7 @@ import { deleteFile } from '../helpers/fs.js'
 
 const TIKTOK_URL_MATCH = 'tiktok.com/'
 const INSTAGRAM_URL_MATCH = 'instagram.com/reel/'
-const FACEBOOK_URL_MATCH = 'fb.watch/'
+// const FACEBOOK_URL_MATCH = 'fb.watch/'
 
 export const mediaDownloadController = new Composer<CustomContext>()
 mediaDownloadController.on(
@@ -17,7 +17,10 @@ mediaDownloadController.on(
 		const text = ctx.message.text
 		const entities = ctx.message.entities ?? ctx.message.caption_entities ?? []
 
-		if (ctx.message.forward_from?.is_bot) {
+		if (
+			ctx.message.forward_origin?.type === 'user' &&
+			ctx.message.forward_origin.sender_user.is_bot
+		) {
 			return
 		}
 
@@ -49,9 +52,9 @@ mediaDownloadController.on(
 				? 'tiktok'
 				: url.includes(INSTAGRAM_URL_MATCH)
 				? 'instagram'
-				//: url.includes(FACEBOOK_URL_MATCH)
-				//? 'facebook'
-				: null
+				: //: url.includes(FACEBOOK_URL_MATCH)
+				  //? 'facebook'
+				  null
 
 			const send = (source: string | InputFile) =>
 				ctx.replyWithVideo(source, {
@@ -101,7 +104,7 @@ mediaDownloadController.on(
 					if (
 						downloaded &&
 						text === url &&
-						ctx.entities.chat?.settings?.cleanup
+						ctx.objects.chat?.settings?.cleanup
 					) {
 						try {
 							await ctx.deleteMessage()

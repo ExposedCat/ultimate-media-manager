@@ -6,7 +6,7 @@ import type { Settings } from '../types/database.js'
 
 export const settingsController = new Composer<CustomContext>()
 settingsController.command('settings', async ctx => {
-	if (!ctx.message || !ctx.entities.chat) {
+	if (!ctx.message || !ctx.objects.chat) {
 		return
 	}
 
@@ -25,7 +25,7 @@ settingsController.command('settings', async ctx => {
 	if (!option || !value) {
 		await ctx.text('settings', {
 			cleanupOption: options.cleanup,
-			cleanup: ctx.entities.chat.settings.cleanup ? enabled : disabled
+			cleanup: ctx.objects.chat.settings.cleanup ? enabled : disabled
 		})
 	} else {
 		if (!options[option]) {
