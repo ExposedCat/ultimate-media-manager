@@ -1,4 +1,4 @@
-const API_URL = 'https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/feed/'
+const API_URL = 'https://api16-normal-c-useast2a.tiktokv.com/aweme/v1/feed/'
 
 function getHeaders() {
 	const headers = new Headers()
@@ -44,6 +44,7 @@ export async function getTikTokDownloadUrl(
 	if (!videoId) {
 		return null
 	}
+	console.log(`${API_URL}?aweme_id=${videoId}`)
 	const request = await fetch(`${API_URL}?aweme_id=${videoId}`, {
 		method: 'GET',
 		headers: headers
