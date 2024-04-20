@@ -8,3 +8,4 @@ ytdlp
 # Sensitive data
 .env
 cookies.json
+cookies
