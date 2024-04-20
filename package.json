@@ -26,7 +26,6 @@
     "dotenv": "^16.0.1",
     "grammy": "^1.10.1",
     "mongodb": "^4.9.1",
-    "puppeteer": "^21.3.8",
     "yt-dlp-wrap": "^2.3.12"
   },
   "devDependencies": {
