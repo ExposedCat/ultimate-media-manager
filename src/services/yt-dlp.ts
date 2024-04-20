@@ -15,7 +15,7 @@ export async function downloadMedia(
 ) {
 	return new Promise<string>((resolve, reject) =>
 		binary
-			.exec([url, '-o', path])
+			.exec([url, '--cookies cookies', '-f', '0', '-o', path])
 			.on('error', error => reject(error))
 			.on('close', () => resolve(path))
 	)
