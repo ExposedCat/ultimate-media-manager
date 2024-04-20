@@ -2,7 +2,7 @@ import type { Context, SessionFlavor } from 'grammy'
 import type { I18nContextFlavor, TemplateData } from '@grammyjs/i18n'
 import type { Extra } from './telegram.js'
 import type { Chat, Database } from './database.js'
-import type { Browser } from 'puppeteer'
+import YTDlpWrap from 'yt-dlp-wrap'
 
 export type CustomContextFields = {
 	text: (
@@ -14,7 +14,7 @@ export type CustomContextFields = {
 	objects: { chat: Chat | null }
 
 	db: Database
-	scrapper: Browser
+	binary: YTDlpWrap
 }
 
 export type CustomContext = Context &

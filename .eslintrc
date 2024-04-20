@@ -17,6 +17,7 @@
 	],
 	"rules": {
 		"@typescript-eslint/consistent-type-imports": "error",
+    "@typescript-eslint/no-explicit-any": "off",
 		"quotes": [2, "single", { "avoidEscape": true }],
 		"no-extra-parens": "off",
 		"arrow-parens": "off",

@@ -3,6 +3,7 @@ build
 
 # Built dependencies
 node_modules
+ytdlp
 
 # Sensitive data
 .env

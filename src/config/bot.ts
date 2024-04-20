@@ -9,13 +9,13 @@ import { initLocaleEngine } from './locale-engine.js'
 import { startController } from '../controllers/start.js'
 import type { Bot } from '../types/telegram.js'
 import { getOrCreateChat } from '../services/chat.js'
-import { initScrapper } from '../services/meta.js'
 import { setTimeout } from 'timers/promises'
-import type { Browser } from 'puppeteer'
 import { mediaDownloadController } from '../controllers/media-download.js'
 import { settingsController } from '../controllers/settings.js'
+import { loadBinary } from '../services/yt-dlp.js'
+import YTDlpWrap from 'yt-dlp-wrap'
 
-function extendContext(bot: Bot, database: Database, scrapper: Browser) {
+function extendContext(bot: Bot, database: Database, binary: YTDlpWrap) {
 	bot.use(async (ctx, next) => {
 		if (!ctx.chat || !ctx.from) {
 			return
@@ -23,7 +23,7 @@ function extendContext(bot: Bot, database: Database, scrapper: Browser) {
 
 		ctx.text = createReplyWithTextFunc(ctx)
 		ctx.db = database
-		ctx.scrapper = scrapper
+		ctx.binary = binary
 
 		let chat: Chat | null = null
 		if (ctx.chat.type !== 'private') {
@@ -54,10 +54,12 @@ function setupControllers(bot: Bot) {
 
 export async function startBot(database: Database) {
 	const localesPath = resolvePath(import.meta.url, '../locales')
+  
 	const i18n = initLocaleEngine(localesPath)
-	const scrapper = await initScrapper()
+	const binary = loadBinary()
 	const bot = new TelegramBot<CustomContext>(process.env.TOKEN)
-	extendContext(bot, database, scrapper)
+
+	extendContext(bot, database, binary)
 	setupMiddlewares(bot, i18n)
 	setupControllers(bot)
 

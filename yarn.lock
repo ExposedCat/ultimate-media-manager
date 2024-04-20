@@ -4099,3 +4099,8 @@ yocto-queue@^0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
+
+yt-dlp-wrap@^2.3.12:
+  version "2.3.12"
+  resolved "https://registry.npmjs.org/yt-dlp-wrap/-/yt-dlp-wrap-2.3.12.tgz#35601d4e4fad12c35a6c25041a6d6404cf5066d5"
+  integrity sha512-P8fJ+6M1YjukyJENCTviNLiZ8mokxprR54ho3DsSKPWDcac489OjRiStGEARJr6un6ETS6goTn4CWl/b/rM3aA==

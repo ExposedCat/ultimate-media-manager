@@ -1,14 +1,20 @@
-import type { GrammyError } from 'grammy'
 import { Composer, InputFile } from 'grammy'
 
 import type { CustomContext } from '../types/context.js'
-import { extractDirectUrl } from '../services/direct-url-extractor.js'
-import { downloadFile } from '../helpers/fetch.js'
 import { deleteFile } from '../helpers/fs.js'
+import { downloadMedia } from '../services/yt-dlp.js'
 
 const TIKTOK_URL_MATCH = 'tiktok.com/'
 const INSTAGRAM_URL_MATCH = 'instagram.com/reel/'
-// const FACEBOOK_URL_MATCH = 'fb.watch/'
+const FACEBOOK_URL_MATCH = 'fb.watch/'
+const YOUTUBE_URL_MATCH = 'youtube.com/shorts/'
+
+const SOURCE_URL_MATCHES = [
+	TIKTOK_URL_MATCH,
+	INSTAGRAM_URL_MATCH,
+	FACEBOOK_URL_MATCH,
+	YOUTUBE_URL_MATCH
+]
 
 export const mediaDownloadController = new Composer<CustomContext>()
 mediaDownloadController.on(
@@ -31,10 +37,7 @@ mediaDownloadController.on(
 		const matchingEntity = entities.find(
 			entity =>
 				(entity.type === 'text_link' &&
-					(entity.url.includes(TIKTOK_URL_MATCH) ||
-						// TODO: Fix on production
-						// entity.url.includes(FACEBOOK_URL_MATCH) ||
-						entity.url.includes(INSTAGRAM_URL_MATCH))) ||
+					SOURCE_URL_MATCHES.some(source => entity.url.includes(source))) ||
 				entity.type === 'url'
 		)
 
@@ -51,10 +54,12 @@ mediaDownloadController.on(
 			const urlType = url.includes(TIKTOK_URL_MATCH)
 				? 'tiktok'
 				: url.includes(INSTAGRAM_URL_MATCH)
-				? 'instagram'
-				: //: url.includes(FACEBOOK_URL_MATCH)
-				  //? 'facebook'
-				  null
+					? 'instagram'
+					: url.includes(FACEBOOK_URL_MATCH)
+						? 'facebook'
+						: url.includes(YOUTUBE_URL_MATCH)
+							? 'youtube'
+							: null
 
 			const send = (source: string | InputFile) =>
 				ctx.replyWithVideo(source, {
@@ -77,40 +82,23 @@ mediaDownloadController.on(
 				})
 
 			if (urlType !== null) {
-				const directUrl = await extractDirectUrl(ctx.scrapper, url, urlType)
-				if (directUrl) {
-					let downloaded = false
+				let downloaded = false
 
+				const filepath = `/tmp/ummrobot-${Date.now()}-${ctx.from.id}.mp4`
+				try {
+					const filename = await downloadMedia(ctx.binary, url, filepath)
+					await send(new InputFile(filename))
+					downloaded = true
+					await deleteFile(filename)
+				} catch (error) {
+					throwError(error as Error, filepath)
+				}
+
+				if (downloaded && text === url && ctx.objects.chat?.settings?.cleanup) {
 					try {
-						await send(directUrl)
-						downloaded = true
-					} catch (object) {
-						const error = object as GrammyError
-						if (error.message.includes('failed to get HTTP URL content')) {
-							const filepath = `/tmp/ummrobot-${Date.now()}-${ctx.from.id}.mp4`
-							try {
-								await downloadFile(directUrl, filepath)
-								await send(new InputFile(filepath))
-								downloaded = true
-								await deleteFile(filepath)
-							} catch (error) {
-								throwError(error as Error, filepath)
-							}
-						} else {
-							throwError(error, directUrl)
-						}
-					}
-
-					if (
-						downloaded &&
-						text === url &&
-						ctx.objects.chat?.settings?.cleanup
-					) {
-						try {
-							await ctx.deleteMessage()
-						} catch {
-							// ignore
-						}
+						await ctx.deleteMessage()
+					} catch {
+						// ignore
 					}
 				}
 			} else {
