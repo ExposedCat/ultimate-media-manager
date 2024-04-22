@@ -61,6 +61,8 @@ mediaDownloadController.on(
 							? 'youtube'
 							: null
 
+			const shouldFormat = urlType === 'tiktok'
+
 			const send = (source: string | InputFile) =>
 				ctx.replyWithVideo(source, {
 					caption: ctx.i18n.t('promoCaption', {
@@ -86,7 +88,12 @@ mediaDownloadController.on(
 
 				const filepath = `/tmp/ummrobot-${Date.now()}-${ctx.from.id}.mp4`
 				try {
-					const filename = await downloadMedia(ctx.binary, url, filepath)
+					const filename = await downloadMedia(
+						ctx.binary,
+						url,
+						filepath,
+						shouldFormat
+					)
 					await send(new InputFile(filename))
 					downloaded = true
 					await deleteFile(filename)

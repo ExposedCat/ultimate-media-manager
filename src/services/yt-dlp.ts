@@ -11,11 +11,17 @@ export function loadBinary() {
 export async function downloadMedia(
 	binary: YTDlpWrap,
 	url: string,
-	path: string
+	path: string,
+	format = false
 ) {
+	const options: string[] = [url, '--cookies', 'cookies']
+	if (format) {
+		options.push('-f', '0')
+	}
+	options.push('-o', path)
 	return new Promise<string>((resolve, reject) =>
 		binary
-			.exec([url, '--cookies', 'cookies', '-f', '0', '-o', path])
+			.exec(options)
 			.on('error', error => reject(error))
 			.on('close', () => resolve(path))
 	)
