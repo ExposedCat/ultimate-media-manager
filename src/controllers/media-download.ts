@@ -61,6 +61,28 @@ mediaDownloadController.on(
 							? 'youtube'
 							: null
 
+			if (urlType === 'instagram') {
+				await ctx.text(
+					'promoCaption',
+					{
+						viewUrl: ctx.i18n.t('viewOn.instagram', {
+							postUrl: url,
+							userName,
+							userId: ctx.from.id
+						})
+					},
+					{
+						link_preview_options: {
+							is_disabled: false,
+							url: url.replace('instagram', 'ddinstagram'),
+							prefer_large_media: true,
+							show_above_text: true
+						}
+					}
+				)
+				return
+			}
+
 			const shouldFormat = urlType === 'tiktok'
 
 			const send = (source: string | InputFile) =>
