@@ -6,12 +6,14 @@ import { downloadMedia } from '../services/yt-dlp.js'
 
 const TIKTOK_URL_MATCH = 'tiktok.com/'
 const INSTAGRAM_URL_MATCH = 'instagram.com/reel/'
+const INSTAGRAM_URL_MATCH2 = 'instagram.com/reels/'
 const FACEBOOK_URL_MATCH = 'fb.watch/'
 const YOUTUBE_URL_MATCH = 'youtube.com/shorts/'
 
 const SOURCE_URL_MATCHES = [
 	TIKTOK_URL_MATCH,
 	INSTAGRAM_URL_MATCH,
+	INSTAGRAM_URL_MATCH2,
 	FACEBOOK_URL_MATCH,
 	YOUTUBE_URL_MATCH
 ]
@@ -53,7 +55,8 @@ mediaDownloadController.on(
 
 			const urlType = url.includes(TIKTOK_URL_MATCH)
 				? 'tiktok'
-				: url.includes(INSTAGRAM_URL_MATCH)
+				: url.includes(INSTAGRAM_URL_MATCH) ||
+					  url.includes(INSTAGRAM_URL_MATCH2)
 					? 'instagram'
 					: url.includes(FACEBOOK_URL_MATCH)
 						? 'facebook'
@@ -81,6 +84,13 @@ mediaDownloadController.on(
 						message_thread_id: ctx.message.message_thread_id
 					}
 				)
+				if (text === url && ctx.objects.chat?.settings?.cleanup) {
+					try {
+						await ctx.deleteMessage()
+					} catch {
+						// ignore
+					}
+				}
 				return
 			}
 
