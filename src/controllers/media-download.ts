@@ -74,7 +74,8 @@ mediaDownloadController.on(
 					}),
 					parse_mode: 'HTML',
 					reply_to_message_id:
-						ctx.message.reply_to_message?.message_id ?? undefined
+						ctx.message.reply_to_message?.message_id ?? undefined,
+					message_thread_id: ctx.message.message_thread_id
 				})
 
 			const throwError = (error: Error, source: string) =>
