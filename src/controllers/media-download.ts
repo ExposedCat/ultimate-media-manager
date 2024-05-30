@@ -76,8 +76,9 @@ mediaDownloadController.on(
 							is_disabled: false,
 							url: url.replace('instagram', 'ddinstagram'),
 							prefer_large_media: true,
-							show_above_text: true
-						}
+							show_above_text: true,
+						},
+						message_thread_id: ctx.message.message_thread_id
 					}
 				)
 				return
@@ -96,7 +97,8 @@ mediaDownloadController.on(
 					}),
 					parse_mode: 'HTML',
 					reply_to_message_id:
-						ctx.message.reply_to_message?.message_id ?? undefined
+						ctx.message.reply_to_message?.message_id ?? undefined,
+					message_thread_id: ctx.message.message_thread_id
 				})
 
 			const throwError = (error: Error, source: string) =>
