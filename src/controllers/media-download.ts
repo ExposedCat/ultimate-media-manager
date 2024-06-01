@@ -45,6 +45,7 @@ mediaDownloadController.on(
 
 		if (matchingEntity) {
 			let url: string
+			let sent = false
 			if (matchingEntity.type === 'text_link') {
 				url = matchingEntity.url
 			} else if (text && matchingEntity.type === 'url') {
@@ -79,71 +80,61 @@ mediaDownloadController.on(
 							is_disabled: false,
 							url: url.replace('instagram', 'ddinstagram'),
 							prefer_large_media: true,
-							show_above_text: true,
+							show_above_text: true
 						},
 						message_thread_id: ctx.message.message_thread_id
 					}
 				)
-				if (text === url && ctx.objects.chat?.settings?.cleanup) {
-					try {
-						await ctx.deleteMessage()
-					} catch {
-						// ignore
-					}
-				}
-				return
-			}
-
-			const shouldFormat = urlType === 'tiktok'
-
-			const send = (source: string | InputFile) =>
-				ctx.replyWithVideo(source, {
-					caption: ctx.i18n.t('promoCaption', {
-						viewUrl: ctx.i18n.t(`viewOn.${urlType}`, {
-							postUrl: url,
-							userName,
-							userId: ctx.from.id
-						})
-					}),
-					parse_mode: 'HTML',
-					reply_to_message_id:
-						ctx.message.reply_to_message?.message_id ?? undefined,
-					message_thread_id: ctx.message.message_thread_id
-				})
-
-			const throwError = (error: Error, source: string) =>
-				console.error('[TTC] Failed to respond with video', {
-					source,
-					error
-				})
-
-			if (urlType !== null) {
-				let downloaded = false
-
-				const filepath = `/tmp/ummrobot-${Date.now()}-${ctx.from.id}.mp4`
-				try {
-					const filename = await downloadMedia(
-						ctx.binary,
-						url,
-						filepath,
-						shouldFormat
-					)
-					await send(new InputFile(filename))
-					downloaded = true
-					await deleteFile(filename)
-				} catch (error) {
-					throwError(error as Error, filepath)
-				}
-
-				if (downloaded && text === url && ctx.objects.chat?.settings?.cleanup) {
-					try {
-						await ctx.deleteMessage()
-					} catch {
-						// ignore
-					}
-				}
+				sent = true
 			} else {
-				await next()
+				const shouldFormat = urlType === 'tiktok'
+
+				const send = (source: string | InputFile) =>
+					ctx.replyWithVideo(source, {
+						caption: ctx.i18n.t('promoCaption', {
+							viewUrl: ctx.i18n.t(`viewOn.${urlType}`, {
+								postUrl: url,
+								userName,
+								userId: ctx.from.id
+							})
+						}),
+						parse_mode: 'HTML',
+						reply_to_message_id:
+							ctx.message.reply_to_message?.message_id ?? undefined,
+						message_thread_id: ctx.message.message_thread_id
+					})
+
+				const throwError = (error: Error, source: string) =>
+					console.error('[TTC] Failed to respond with video', {
+						source,
+						error
+					})
+
+				if (urlType !== null) {
+					const filepath = `/tmp/ummrobot-${Date.now()}-${ctx.from.id}.mp4`
+					try {
+						const filename = await downloadMedia(
+							ctx.binary,
+							url,
+							filepath,
+							shouldFormat
+						)
+						await send(new InputFile(filename))
+						sent = true
+						await deleteFile(filename)
+					} catch (error) {
+						throwError(error as Error, filepath)
+					}
+				} else {
+					await next()
+				}
+			}
+			if (sent && text === url && ctx.objects.chat?.settings?.cleanup) {
+				try {
+					await ctx.deleteMessage()
+				} catch {
+					// ignore
+				}
 			}
 		} else {
 			await next()
