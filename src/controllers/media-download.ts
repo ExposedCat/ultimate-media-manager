@@ -56,50 +56,50 @@ mediaDownloadController.on(['message::url', 'message::text_link'], async (ctx, n
             ? 'youtube'
             : null;
 
-			const shouldFormat = urlType === 'tiktok'
+    const shouldFormat = urlType === 'tiktok';
 
-      const send = (source: string | InputFile) =>
-        ctx.replyWithVideo(source, {
-          caption: ctx.i18n.t('promoCaption', {
-            viewUrl: ctx.i18n.t(`viewOn.${urlType}`, {
-              postUrl: url,
-              userName,
-              userId: ctx.from.id,
-            }),
+    const send = (source: string | InputFile) =>
+      ctx.replyWithVideo(source, {
+        caption: ctx.i18n.t('promoCaption', {
+          viewUrl: ctx.i18n.t(`viewOn.${urlType}`, {
+            postUrl: url,
+            userName,
+            userId: ctx.from.id,
           }),
-          parse_mode: 'HTML',
-          reply_to_message_id: ctx.message.reply_to_message?.message_id ?? undefined,
-          message_thread_id: ctx.message.message_thread_id,
-        });
+        }),
+        parse_mode: 'HTML',
+        reply_to_message_id: ctx.message.reply_to_message?.message_id ?? undefined,
+        message_thread_id: ctx.message.message_thread_id,
+      });
 
-      const throwError = (error: Error, source: string) =>
-        console.error('[TTC] Failed to respond with video', {
-          source,
-          error,
-        });
+    const throwError = (error: Error, source: string) =>
+      console.error('[TTC] Failed to respond with video', {
+        source,
+        error,
+      });
 
-      if (urlType !== null) {
-        const filepath = `/tmp/ummrobot-${Date.now()}-${ctx.from.id}.mp4`;
-        try {
-          const filename = await downloadMedia(ctx.binary, url, filepath, shouldFormat);
-          await send(new InputFile(filename));
-          sent = true;
-          await deleteFile(filename);
-        } catch (error) {
-          throwError(error as Error, filepath);
-        }
-      } else {
-        await next();
+    if (urlType !== null) {
+      const filepath = `/tmp/ummrobot-${Date.now()}-${ctx.from.id}.mp4`;
+      try {
+        const filename = await downloadMedia(ctx.binary, url, filepath, shouldFormat);
+        await send(new InputFile(filename));
+        sent = true;
+        await deleteFile(filename);
+      } catch (error) {
+        throwError(error as Error, filepath);
       }
+    } else {
+      await next();
     }
+
     if (sent && text === url && ctx.objects.chat?.settings?.cleanup) {
       try {
         await ctx.deleteMessage();
       } catch {
         // ignore
       }
+    } else {
+      await next();
     }
-  } else {
-    await next();
   }
 });
