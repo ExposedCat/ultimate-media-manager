@@ -1,4 +1,4 @@
-import { startApp } from './config/app.js'
+import { startApp } from './config/app.js';
 
-await startApp()
-console.debug('App started')
+await startApp();
+console.debug('App started');

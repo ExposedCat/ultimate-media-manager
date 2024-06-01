@@ -1,16 +1,27 @@
 {
-	// TODO: Extend some of https://github.com/tsconfig/bases
-	"compilerOptions": {
-		"target": "es2017",
-		"outDir": "./build",
-		"module": "es2022",
-		"strict": true,
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"forceConsistentCasingInFileNames": true,
-		"moduleResolution": "node",
-		"experimentalDecorators": true,
-		"emitDecoratorMetadata": true,
-		"strictPropertyInitialization": false
-	}
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "importsNotUsedAsValues": "remove",
+    "target": "ESNext",
+    "module": "NodeNext",
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
+    "incremental": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "downlevelIteration": true,
+    "importHelpers": true,
+    "maxNodeModuleJsDepth": 2,
+    "outDir": "./build",
+    "rootDir": "./src",
+    "paths": {
+      "~/*": ["./src/*"],
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.js"]
 }

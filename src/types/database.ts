@@ -1,15 +1,15 @@
-import type { Collection } from 'mongodb'
+import type { Collection } from 'mongodb';
 
 export type Settings = {
-	cleanup: boolean
-}
+  cleanup: boolean;
+};
 
 export type Chat = {
-	chatId: number
-	title: string
-	settings: Settings
-}
+  chatId: number;
+  title: string;
+  settings: Settings;
+};
 
 export type Database = {
-	chat: Collection<Chat>
-}
+  chat: Collection<Chat>;
+};
