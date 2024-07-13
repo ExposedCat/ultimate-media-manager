@@ -7,6 +7,7 @@ import { deleteFile } from '../helpers/fs.js';
 const TIKTOK_URL_MATCH = 'tiktok.com/';
 const INSTAGRAM_URL_MATCH = 'instagram.com/reel/';
 const INSTAGRAM_URL_MATCH2 = 'instagram.com/reels/';
+const INSTAGRAM_URL_MATCH3 = 'instagram.com/p/';
 const FACEBOOK_URL_MATCH = 'fb.watch/';
 const YOUTUBE_URL_MATCH = 'youtube.com/shorts/';
 
@@ -14,6 +15,7 @@ const SOURCE_URL_MATCHES = [
   TIKTOK_URL_MATCH,
   INSTAGRAM_URL_MATCH,
   INSTAGRAM_URL_MATCH2,
+  INSTAGRAM_URL_MATCH3,
   FACEBOOK_URL_MATCH,
   YOUTUBE_URL_MATCH,
 ];
@@ -48,7 +50,7 @@ mediaDownloadController.on(['message::url', 'message::text_link'], async (ctx, n
 
     const urlType = url.includes(TIKTOK_URL_MATCH)
       ? 'tiktok'
-      : url.includes(INSTAGRAM_URL_MATCH) || url.includes(INSTAGRAM_URL_MATCH2)
+      : url.includes(INSTAGRAM_URL_MATCH) || url.includes(INSTAGRAM_URL_MATCH2) || url.includes(INSTAGRAM_URL_MATCH3)
         ? 'instagram'
         : url.includes(FACEBOOK_URL_MATCH)
           ? 'facebook'
