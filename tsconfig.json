@@ -18,10 +18,7 @@
     "importHelpers": true,
     "maxNodeModuleJsDepth": 2,
     "outDir": "./build",
-    "rootDir": "./src",
-    "paths": {
-      "~/*": ["./src/*"],
-    }
+    "rootDir": "./src"
   },
   "include": ["src/**/*.ts", "src/**/*.js"]
 }

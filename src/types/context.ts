@@ -1,7 +1,7 @@
 import type { Context, SessionFlavor } from 'grammy';
 import type { I18nContextFlavor, TemplateData } from '@grammyjs/i18n';
 
-import type { YTDlpWrap } from '~/services/yt-dlp.js';
+import type { YTDlpWrap } from '../services/yt-dlp.js';
 import type { Extra } from './telegram.js';
 import type { Chat, Database } from './database.js';
 

@@ -1,23 +1,16 @@
-import { Composer, InputFile } from 'grammy';
+import { Composer } from 'grammy';
 
 import type { CustomContext } from '../types/context.js';
-import { downloadMedia } from '../services/yt-dlp.js';
-import { deleteFile } from '../helpers/fs.js';
+import { ddInstagramAdapter, downloadAdapter } from '../services/media-adapters.js';
+import type { MediaSource } from '../services/media-adapters.js';
 
-const TIKTOK_URL_MATCH = 'tiktok.com/';
-const INSTAGRAM_URL_MATCH = 'instagram.com/reel/';
-const INSTAGRAM_URL_MATCH2 = 'instagram.com/reels/';
-const INSTAGRAM_URL_MATCH3 = 'instagram.com/p/';
-const FACEBOOK_URL_MATCH = 'fb.watch/';
-const YOUTUBE_URL_MATCH = 'youtube.com/shorts/';
-
-const SOURCE_URL_MATCHES = [
-  TIKTOK_URL_MATCH,
-  INSTAGRAM_URL_MATCH,
-  INSTAGRAM_URL_MATCH2,
-  INSTAGRAM_URL_MATCH3,
-  FACEBOOK_URL_MATCH,
-  YOUTUBE_URL_MATCH,
+const SOURCES: MediaSource[] = [
+  { type: 'tiktok', match: 'tiktok.com/' },
+  { type: 'instagram', match: /instagram.com\/.+?\/reel\// },
+  { type: 'instagram', match: 'instagram.com/reels/' },
+  { type: 'instagram', match: 'instagram.com/p/' },
+  { type: 'facebook', match: 'fb.watch/' },
+  { type: 'youtube', match: 'youtube.com/shorts/' },
 ];
 
 export const mediaDownloadController = new Composer<CustomContext>();
@@ -31,99 +24,59 @@ mediaDownloadController.on(['message::url', 'message::text_link'], async (ctx, n
 
   const userName = [ctx.from.first_name, ctx.from.last_name].filter(Boolean).join(' ');
 
-  const matchingEntity = entities.find(
-    entity =>
-      (entity.type === 'text_link' && SOURCE_URL_MATCHES.some(source => entity.url.includes(source))) ||
-      entity.type === 'url',
-  );
+  const urls: string[] = [];
 
-  if (matchingEntity) {
-    let url: string;
+  for (const entity of entities) {
+    if (entity.type === 'url') {
+      urls.push(text!.slice(entity.offset, entity.length));
+    } else if (entity.type === 'text_link') {
+      urls.push(entity.url);
+    }
+  }
+
+  let shouldCleanup = false;
+  let somethingSent = false;
+
+  for (const url of urls) {
     let sent = false;
-    if (matchingEntity.type === 'text_link') {
-      url = matchingEntity.url;
-    } else if (text && matchingEntity.type === 'url') {
-      url = text.slice(matchingEntity.offset, matchingEntity.length);
-    } else {
-      return await next();
-    }
 
-    const urlType = url.includes(TIKTOK_URL_MATCH)
-      ? 'tiktok'
-      : url.includes(INSTAGRAM_URL_MATCH) || url.includes(INSTAGRAM_URL_MATCH2) || url.includes(INSTAGRAM_URL_MATCH3)
-        ? 'instagram'
-        : url.includes(FACEBOOK_URL_MATCH)
-          ? 'facebook'
-          : url.includes(YOUTUBE_URL_MATCH)
-            ? 'youtube'
-            : null;
+    for (const { type, match } of SOURCES) {
+      if (typeof match === 'string' ? url.includes(match) : match.test(url)) {
+        const adapter = {
+          instagram: ddInstagramAdapter,
+          tiktok: downloadAdapter,
+          facebook: downloadAdapter,
+          youtube: downloadAdapter,
+        }[type];
 
-    if (urlType === 'instagram') {
-      await ctx.text(
-        'promoCaption',
-        {
-          viewUrl: ctx.i18n.t('viewOn.instagram', {
-            postUrl: url,
-            userName,
-            userId: ctx.from.id,
-          }),
-        },
-        {
-          link_preview_options: {
-            is_disabled: false,
-            url: url.replace('instagram', 'ddinstagram'),
-            prefer_large_media: true,
-            show_above_text: true,
-          },
-          message_thread_id: ctx.message.message_thread_id,
-        },
-      );
-      sent = true;
-    } else {
-      const shouldFormat = urlType === 'tiktok';
-
-      const send = (source: string | InputFile) =>
-        ctx.replyWithVideo(source, {
-          caption: ctx.i18n.t('promoCaption', {
-            viewUrl: ctx.i18n.t(`viewOn.${urlType}`, {
-              postUrl: url,
-              userName,
-              userId: ctx.from.id,
-            }),
-          }),
-          parse_mode: 'HTML',
-          reply_to_message_id: ctx.message.reply_to_message?.message_id ?? undefined,
-          message_thread_id: ctx.message.message_thread_id,
+        sent = await adapter(ctx, {
+          source: { type, match },
+          userId: ctx.from.id,
+          userName,
+          url,
+          replyId: ctx.message.reply_to_message?.message_id,
+          threadId: ctx.message.is_topic_message ? ctx.message.message_thread_id : undefined,
         });
-
-      const throwError = (error: Error, source: string) =>
-        console.error('[TTC] Failed to respond with video', {
-          source,
-          error,
-        });
-
-      if (urlType !== null) {
-        const filepath = `/tmp/ummrobot-${Date.now()}-${ctx.from.id}.mp4`;
-        try {
-          const filename = await downloadMedia(ctx.binary, url, filepath, shouldFormat);
-          await send(new InputFile(filename));
-          sent = true;
-          await deleteFile(filename);
-        } catch (error) {
-          throwError(error as Error, filepath);
-        }
-      } else {
-        await next();
       }
     }
-    if (sent && text === url && ctx.objects.chat?.settings?.cleanup) {
-      try {
-        await ctx.deleteMessage();
-      } catch {
-        // ignore
+
+    if (sent) {
+      somethingSent = true;
+      if (!shouldCleanup && text === url) {
+        shouldCleanup = true;
       }
     }
-  } else {
-    await next();
+  }
+
+  if (!somethingSent) {
+    return await next();
+  }
+
+  if (shouldCleanup && ctx.objects.chat?.settings?.cleanup) {
+    try {
+      await ctx.deleteMessage();
+    } catch {
+      // ignore
+    }
   }
 });

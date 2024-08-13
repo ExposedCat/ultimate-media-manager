@@ -139,10 +139,6 @@
           {
             "pattern": "./**",
             "group": "parent"
-          },
-          {
-            "pattern": "~/**",
-            "group": "parent"
           }
         ],
         "newlines-between": "always",
