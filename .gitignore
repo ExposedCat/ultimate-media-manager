@@ -1,5 +1,6 @@
 # Built application
 build
+tsconfig.tsbuildinfo
 
 # Built dependencies
 node_modules
