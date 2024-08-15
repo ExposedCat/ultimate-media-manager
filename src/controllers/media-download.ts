@@ -8,6 +8,7 @@ const SOURCES: MediaSource[] = [
   { type: 'tiktok', match: 'tiktok.com/' },
   { type: 'instagram', match: /instagram.com\/.+?\/reel\// },
   { type: 'instagram', match: 'instagram.com/reels/' },
+  { type: 'instagram', match: 'instagram.com/reel/' },
   { type: 'instagram', match: 'instagram.com/p/' },
   { type: 'facebook', match: 'fb.watch/' },
   { type: 'youtube', match: 'youtube.com/shorts/' },
