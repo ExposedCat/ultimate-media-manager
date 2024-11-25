@@ -40,3 +40,13 @@ export async function downloadYouTubeAudio(binary: YTDlpWrap, url: string, path:
       .on('close', () => resolve(path)),
   );
 }
+
+export async function getBinaryVersion(binary: YTDlpWrap) {
+  const options = ['--version'];
+  return new Promise<string>((resolve, reject) =>
+    binary
+      .exec(options)
+      .on('error', error => reject(error))
+      .on('close', data => resolve(data?.toString() ?? 'Unknown')),
+  );
+}

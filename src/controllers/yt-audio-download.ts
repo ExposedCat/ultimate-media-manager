@@ -21,6 +21,8 @@ ytAudioDownloadController.chatType(['supergroup', 'private', 'group']).hears(/\/
     return true;
   } catch (error) {
     console.error('[YTA] Failed to respond with audio', { url, filepath, error });
-    await ctx.reply(`Failed to download audio: ${error}`);
+    await ctx.text('error', {
+      error: `Failed to download audio: ${error}`,
+    });
   }
 });
