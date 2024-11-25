@@ -15,7 +15,7 @@ export async function downloadMedia(binary: YTDlpWrap, url: string, path: string
       options.push('-f', '0');
     }
     options.push('-o', path);
-    return new Promise<string>((resolve, reject) =>
+    return await new Promise<string>((resolve, reject) =>
       binary
         .exec(options)
         .on('error', error => reject(error))
