@@ -33,10 +33,17 @@ export async function downloadMedia(binary: YTDlpWrap, url: string, path: string
 
 export async function downloadYouTubeAudio(binary: YTDlpWrap, url: string, path: string) {
   const options = ['-x', '--audio-format', 'mp3', url, '-o', path];
-  return new Promise<string>((resolve, reject) =>
+  const metadata = await binary.getVideoInfo(url);
+  return new Promise<{ path: string; title: string; thumbnail: string }>((resolve, reject) =>
     binary
       .exec(options)
       .on('error', error => reject(error))
-      .on('close', () => resolve(path)),
+      .on('close', () => {
+        return resolve({
+          path,
+          title: metadata.title,
+          thumbnail: metadata.thumbnail,
+        });
+      }),
   );
 }
