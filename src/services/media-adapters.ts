@@ -54,7 +54,10 @@ export const ddInstagramAdapter: MediaAdapter = async (ctx, data) => {
 };
 
 export const downloadAdapter: MediaAdapter = async (ctx, data) => {
-  const shouldFormat = data.source.type === 'tiktok';
+  // NOTE: Formatting changed, so `-f 0` is not working.
+  // Need a better ytdlp bindings to query formats.
+  // Default is selecting best available format on it's own
+  const shouldFormat = false; // data.source.type === 'tiktok';
 
   const send = (source: string | InputFile) =>
     ctx.replyWithVideo(source, {
