@@ -15,6 +15,7 @@ import { startController } from '../controllers/start.js';
 import { settingsController } from '../controllers/settings.js';
 import { mediaDownloadController } from '../controllers/media-download.js';
 import { initLocaleEngine } from './locale-engine.js';
+import { ytAudioDownloadController } from '../controllers/yt-audio-download.js';
 
 function extendContext(bot: Bot, database: Database, binary: YTDlpWrap) {
   bot.use(async (ctx, next) => {
@@ -50,6 +51,9 @@ function setupMiddlewares(bot: Bot, localeEngine: I18n) {
 function setupControllers(bot: Bot) {
   bot.use(startController);
   bot.use(settingsController);
+
+  bot.use(ytAudioDownloadController);
+
   bot.use(mediaDownloadController);
 }
 
