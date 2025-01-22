@@ -54,11 +54,6 @@ export const ddInstagramAdapter: MediaAdapter = async (ctx, data) => {
 };
 
 export const downloadAdapter: MediaAdapter = async (ctx, data) => {
-  // NOTE: Formatting changed, so `-f 0` is not working.
-  // Need a better ytdlp bindings to query formats.
-  // Default is selecting best available format on it's own
-  const shouldFormat = false; // data.source.type === 'tiktok';
-
   const send = (source: string | InputFile) =>
     ctx.replyWithVideo(source, {
       caption: ctx.i18n.t('promoCaption', {
@@ -77,7 +72,7 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 
   const filepath = `/tmp/ummrobot-${Date.now()}-${data.userId}.mp4`;
   try {
-    const filename = await downloadMedia(ctx.binary, data.url, filepath, shouldFormat);
+    const filename = await downloadMedia(ctx.binary, data.url, filepath);
     await send(new InputFile(filename));
     await deleteFile(filename);
     return true;

@@ -11,11 +11,11 @@ import type { YTDlpWrap } from '../services/yt-dlp.js';
 import { createReplyWithTextFunc } from '../services/context.js';
 import { getOrCreateChat } from '../services/chat.js';
 import { resolvePath } from '../helpers/resolve-path.js';
+import { ytAudioDownloadController } from '../controllers/yt-audio-download.js';
 import { startController } from '../controllers/start.js';
 import { settingsController } from '../controllers/settings.js';
 import { mediaDownloadController } from '../controllers/media-download.js';
 import { initLocaleEngine } from './locale-engine.js';
-import { ytAudioDownloadController } from '../controllers/yt-audio-download.js';
 
 function extendContext(bot: Bot, database: Database, binary: YTDlpWrap) {
   bot.use(async (ctx, next) => {

@@ -1,7 +1,7 @@
 import { Composer } from 'grammy';
 
 import type { CustomContext } from '../types/context.js';
-import { ddInstagramAdapter, downloadAdapter } from '../services/media-adapters.js';
+import { downloadAdapter } from '../services/media-adapters.js';
 import type { MediaSource } from '../services/media-adapters.js';
 
 const SOURCES: MediaSource[] = [
@@ -44,7 +44,7 @@ mediaDownloadController.on(['message::url', 'message::text_link'], async (ctx, n
     for (const { type, match } of SOURCES) {
       if (typeof match === 'string' ? url.includes(match) : match.test(url)) {
         const adapter = {
-          instagram: ddInstagramAdapter,
+          instagram: downloadAdapter,
           tiktok: downloadAdapter,
           facebook: downloadAdapter,
           youtube: downloadAdapter,

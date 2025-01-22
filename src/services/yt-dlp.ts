@@ -8,27 +8,24 @@ export function loadBinary() {
   return new Binary('./ytdlp');
 }
 
-export async function downloadMedia(binary: YTDlpWrap, url: string, path: string, format = false): Promise<string> {
-  try {
-    const options: string[] = [url, '--cookies', 'cookies'];
-    if (format) {
-      options.push('-f', '0');
-    }
-    options.push('-o', path);
-    return await new Promise<string>((resolve, reject) =>
-      binary
-        .exec(options)
-        .on('error', error => reject(error))
-        .on('close', () => resolve(path)),
-    );
-  } catch (error) {
-    if (format) {
-      console.error(`[Download Media] Download failed, will retry:`, error);
-      return downloadMedia(binary, url, path, false);
-    } else {
-      throw error;
-    }
-  }
+export async function downloadMedia(binary: YTDlpWrap, url: string, path: string): Promise<string> {
+  const options: string[] = [url, '--cookies', 'cookies'];
+  options.push('-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestaudio[ext=mp4]/best');
+  options.push('-o', path);
+  let destination = path;
+  return await new Promise<string>((resolve, reject) =>
+    binary
+      .exec(options)
+      .on('ytDlpEvent', (event, data) => {
+        if (event === 'download' && data.startsWith(' Destination')) {
+          destination = data.replace(' Destination: ', '').trim();
+        } else if (event === 'Merger') {
+          destination = data.split('"')[1]?.split('"')[0] ?? destination;
+        }
+      })
+      .on('error', error => reject(error))
+      .on('close', () => resolve(destination)),
+  );
 }
 
 export async function downloadYouTubeAudio(binary: YTDlpWrap, url: string, path: string) {
