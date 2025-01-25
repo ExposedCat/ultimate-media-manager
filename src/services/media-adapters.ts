@@ -1,7 +1,7 @@
 import { InputFile } from "grammy";
 
-import type { CustomContext } from "../types/context.js";
 import { deleteFile } from "../helpers/fs.js";
+import type { CustomContext } from "../types/context.js";
 import { downloadMedia } from "./yt-dlp.js";
 
 export type MediaSource = {
@@ -60,18 +60,23 @@ export const ddInstagramAdapter: MediaAdapter = async (ctx, data) => {
 };
 
 export const downloadAdapter: MediaAdapter = async (ctx, data) => {
-	const send = (source: string | InputFile) =>
-		ctx.replyWithVideo(source, {
-			caption: ctx.i18n.t("promoCaption", {
-				viewUrl: ctx.i18n.t(`viewOn.${data.source.type}`, {
-					postUrl: data.url,
-					userName: data.userName,
-					userId: data.userId,
-				}),
-			}),
-			parse_mode: "HTML",
-			...buildReplyExtra(data.replyId, data.threadId),
-		});
+	const caption = ctx.i18n.t("promoCaption", {
+		viewUrl: ctx.i18n.t(`viewOn.${data.source.type}`, {
+			postUrl: data.url,
+			userName: data.userName,
+			userId: data.userId,
+		}),
+	});
+	const extra = {
+		parse_mode: "HTML" as const,
+		...buildReplyExtra(data.replyId, data.threadId),
+		link_preview_options: {
+			is_disabled: false,
+			url: data.url,
+			prefer_large_media: true,
+			show_above_text: true,
+		},
+	};
 
 	const logError = (error: Error, source: string) =>
 		console.error("[TTC] Failed to respond with video", { source, error });
@@ -79,7 +84,12 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 	const filepath = `/tmp/ummrobot-${Date.now()}-${data.userId}.mp4`;
 	try {
 		const filename = await downloadMedia(ctx.binary, data.url, filepath);
-		await send(new InputFile(filename));
+		try {
+			await ctx.replyWithVideo(new InputFile(filename), { caption, ...extra });
+		} catch {
+			await ctx.reply(caption, extra);
+			return true;
+		}
 		await deleteFile(filename);
 		return true;
 	} catch (error) {
