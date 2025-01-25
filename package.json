@@ -1,54 +1,43 @@
 {
-  "name": "ultimate-media-manager-tg",
-  "version": "1.0.0",
-  "description": "Media downloader & converted as a Telegram Bot",
-  "main": "build/index.js",
-  "scripts": {
-    "compile": "tsc",
-    "postcompile": "cp -r src/locales build",
-    "bg:start": "npm run compile && pm2 start build/index.js --name media",
-    "bg:restart": "npm run compile && pm2 restart media",
-    "bg:logs": "pm2 logs media --lines 1000 -f",
-    "start": "npm run compile && node .",
-    "lint:strict": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "lint:fix": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --rule 'no-warning-comments: off' --fix",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --rule 'no-warning-comments: off'"
-  },
-  "keywords": [
-    "telegram",
-    "bot",
-    "instagram",
-    "tiktok",
-    "download"
-  ],
-  "author": "ExposedCat",
-  "license": "GPL-3.0-or-later",
-  "dependencies": {
-    "@grammyjs/i18n": "^0.5.1",
-    "dotenv": "^16.4.5",
-    "grammy": "^1.24.0",
-    "mongodb": "^4.17.2",
-    "yt-dlp-wrap": "^2.3.12"
-  },
-  "devDependencies": {
-    "@types/node": "^18.19.33",
-    "@types/pg": "^8.11.6",
-    "@typescript-eslint/parser": "^6.21.0",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-functional": "^6.5.1",
-    "eslint-plugin-github": "^4.10.2",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-prettier": "^5.1.3",
-    "eslint-plugin-sonarjs": "^0.21.0",
-    "prettier": "^3.2.5",
-    "prettier-eslint": "^16.3.0",
-    "typescript": "^4.9.5"
-  },
-  "type": "module",
-  "engines": {
-    "node": ">=4",
-    "npm": ">=2"
-  },
-  "packageManager": "pnpm@8.14.2+sha1.1670a65b60df5f95e9f0cb7de46e605d9bd74fda"
+	"name": "ultimate-media-manager-tg",
+	"version": "1.0.0",
+	"description": "Media downloader & converted as a Telegram Bot",
+	"main": "build/index.js",
+	"scripts": {
+		"build": "tsc && cp -r src/locales build",
+		"start": "npm run build && node .",
+		"lint": "npx biome format src/ --write; npx biome lint src/"
+	},
+	"keywords": ["telegram", "bot", "instagram", "tiktok", "download"],
+	"author": "ExposedCat",
+	"license": "GPL-3.0-or-later",
+	"dependencies": {
+		"@grammyjs/i18n": "^0.5.1",
+		"dotenv": "^16.4.5",
+		"grammy": "^1.24.0",
+		"mongodb": "^4.17.2",
+		"yt-dlp-wrap": "^2.3.12"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@types/node": "^18.19.33",
+		"@types/pg": "^8.11.6",
+		"@typescript-eslint/parser": "^6.21.0",
+		"eslint": "^8.57.0",
+		"eslint-config-prettier": "^9.1.0",
+		"eslint-plugin-functional": "^6.5.1",
+		"eslint-plugin-github": "^4.10.2",
+		"eslint-plugin-import": "^2.29.1",
+		"eslint-plugin-prettier": "^5.1.3",
+		"eslint-plugin-sonarjs": "^0.21.0",
+		"prettier": "^3.2.5",
+		"prettier-eslint": "^16.3.0",
+		"typescript": "^4.9.5"
+	},
+	"type": "module",
+	"engines": {
+		"node": ">=4",
+		"npm": ">=2"
+	},
+	"packageManager": "pnpm@8.14.2+sha1.1670a65b60df5f95e9f0cb7de46e605d9bd74fda"
 }

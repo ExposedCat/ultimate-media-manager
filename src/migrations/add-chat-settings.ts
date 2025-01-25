@@ -1,23 +1,23 @@
-import { config } from 'dotenv';
+import { config } from "dotenv";
 
-import type { Database } from '../types/database.js';
-import { validateEnv } from '../helpers/validate-env.js';
-import { resolvePath } from '../helpers/resolve-path.js';
-import { connectToDb } from '../config/database.js';
+import type { Database } from "../types/database.js";
+import { validateEnv } from "../helpers/validate-env.js";
+import { resolvePath } from "../helpers/resolve-path.js";
+import { connectToDb } from "../config/database.js";
 
 config({
-  path: resolvePath(import.meta.url, '../../.env'),
+	path: resolvePath(import.meta.url, "../../.env"),
 });
-validateEnv(['DB_CONNECTION_STRING']);
+validateEnv(["DB_CONNECTION_STRING"]);
 
 async function migrate(database: Database) {
-  await database.chat.updateMany({}, { $set: { settings: { cleanup: true } } });
+	await database.chat.updateMany({}, { $set: { settings: { cleanup: true } } });
 }
 
-console.info('Connecting…');
+console.info("Connecting…");
 const { database, client } = await connectToDb();
-console.info('Running migration…');
+console.info("Running migration…");
 await migrate(database);
-console.info('Disconnecting…');
+console.info("Disconnecting…");
 await client.close();
-console.info('Done');
+console.info("Done");
