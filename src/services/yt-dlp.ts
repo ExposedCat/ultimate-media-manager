@@ -13,7 +13,7 @@ export async function downloadMedia(
 	url: string,
 	path: string,
 ): Promise<string> {
-	const options: string[] = [url, "--cookies", "cookies"];
+	const options: string[] = [url]; //, "--cookies", "cookies"];
 	options.push(
 		"-f",
 		"bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestaudio[ext=mp4]/best",
