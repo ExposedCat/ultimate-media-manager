@@ -79,12 +79,16 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 	};
 
 	const logError = (error: Error, source: string) =>
-		console.error("[TTC] Failed to respond with video", { source, error });
+		console.error("[Download Adapter] Failed to respond with video", {
+			source,
+			error,
+		});
 
 	const filepath = `/tmp/ummrobot-${Date.now()}-${data.userId}.mp4`;
 	try {
-		const filename = await downloadMedia(ctx.binary, data.url, filepath);
+		let filename: string;
 		try {
+			filename = await downloadMedia(ctx.binary, data.url, filepath);
 			await ctx.replyWithVideo(new InputFile(filename), { caption, ...extra });
 		} catch {
 			await ctx.reply(caption, extra);
