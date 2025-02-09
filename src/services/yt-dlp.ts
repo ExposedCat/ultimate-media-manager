@@ -16,7 +16,7 @@ export async function downloadMedia(
 	const options: string[] = [url]; //, "--cookies", "cookies"];
 	options.push(
 		"-f",
-		"bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestaudio[ext=mp4]/best",
+		"bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo[ext=mp4]+bestaudio[ext=mp4]/best",
 	);
 	options.push("-o", path);
 	let destination = path;

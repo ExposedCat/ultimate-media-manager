@@ -12,6 +12,7 @@ const SOURCES: MediaSource[] = [
 	{ type: "instagram", match: "instagram.com/p/" },
 	{ type: "facebook", match: "fb.watch/" },
 	{ type: "youtube", match: "youtube.com/shorts/" },
+	{ type: "twitter", match: /x.com\/.+?\/status\// },
 ];
 
 export const mediaDownloadController = new Composer<CustomContext>();
@@ -56,6 +57,7 @@ mediaDownloadController.on(
 						tiktok: downloadAdapter,
 						facebook: downloadAdapter,
 						youtube: downloadAdapter,
+						twitter: downloadAdapter,
 					}[type];
 
 					const proxyUrl =

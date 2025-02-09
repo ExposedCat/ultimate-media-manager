@@ -5,7 +5,7 @@ import type { CustomContext } from "../types/context.js";
 import { downloadMedia } from "./yt-dlp.js";
 
 export type MediaSource = {
-	type: "tiktok" | "instagram" | "facebook" | "youtube";
+	type: "tiktok" | "instagram" | "facebook" | "youtube" | "twitter";
 	match: string | RegExp;
 };
 
