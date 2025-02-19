@@ -13,6 +13,7 @@ const SOURCES: MediaSource[] = [
 	{ type: "facebook", match: "fb.watch/" },
 	{ type: "youtube", match: "youtube.com/shorts/" },
 	{ type: "twitter", match: /x.com\/.+?\/status\// },
+	{ type: "facebook", match: /facebook.com\/share\// },
 ];
 
 export const mediaDownloadController = new Composer<CustomContext>();
