@@ -4,6 +4,7 @@ import type { I18n } from "@grammyjs/i18n";
 import { Bot as TelegramBot, session } from "grammy";
 
 import { mediaDownloadController } from "../controllers/media-download.js";
+import { searchController } from "../controllers/search.js";
 import { settingsController } from "../controllers/settings.js";
 import { startController } from "../controllers/start.js";
 import { ytAudioDownloadController } from "../controllers/yt-audio-download.js";
@@ -48,6 +49,10 @@ function setupMiddlewares(bot: Bot, localeEngine: I18n) {
 	bot.catch(console.error);
 }
 
+function setupRawControllers(bot: Bot) {
+	bot.use(searchController);
+}
+
 function setupControllers(bot: Bot) {
 	bot.use(startController);
 	bot.use(settingsController);
@@ -64,6 +69,7 @@ export async function startBot(database: Database) {
 	const binary = loadBinary();
 	const bot = new TelegramBot<CustomContext>(process.env.TOKEN);
 
+	setupRawControllers(bot);
 	extendContext(bot, database, binary);
 	setupMiddlewares(bot, i18n);
 	setupControllers(bot);
