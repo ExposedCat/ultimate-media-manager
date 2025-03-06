@@ -1,20 +1,6 @@
 import { Composer } from "grammy";
-
-import { downloadAdapter } from "../services/media-adapters.js";
-import type { MediaSource } from "../services/media-adapters.js";
+import { matchInput } from "../services/sources.js";
 import type { CustomContext } from "../types/context.js";
-
-const SOURCES: MediaSource[] = [
-	{ type: "tiktok", match: "tiktok.com/" },
-	{ type: "instagram", match: /instagram.com\/.+?\/reel\// },
-	{ type: "instagram", match: "instagram.com/reels/" },
-	{ type: "instagram", match: "instagram.com/reel/" },
-	{ type: "instagram", match: "instagram.com/p/" },
-	{ type: "facebook", match: "fb.watch/" },
-	{ type: "youtube", match: "youtube.com/shorts/" },
-	{ type: "twitter", match: /x.com\/.+?\/status\// },
-	{ type: "facebook", match: /facebook.com\/share\// },
-];
 
 export const mediaDownloadController = new Composer<CustomContext>();
 mediaDownloadController.on(
@@ -49,41 +35,37 @@ mediaDownloadController.on(
 		let somethingSent = false;
 
 		for (const url of urls) {
-			let sent = false;
+			const { adapter, type, proxyUrl, match } = matchInput(url);
+			if (!adapter) continue;
 
-			for (const { type, match } of SOURCES) {
-				if (typeof match === "string" ? url.includes(match) : match.test(url)) {
-					const adapter = {
-						instagram: downloadAdapter,
-						tiktok: downloadAdapter,
-						facebook: downloadAdapter,
-						youtube: downloadAdapter,
-						twitter: downloadAdapter,
-					}[type];
+			const result = await adapter(ctx, {
+				source: { type, match },
+				userId: ctx.from.id,
+				userName,
+				url: proxyUrl,
+				replyId: ctx.message.reply_to_message?.message_id,
+				threadId: ctx.message.is_topic_message
+					? ctx.message.message_thread_id
+					: undefined,
+			});
 
-					const proxyUrl =
-						type === "instagram"
-							? url.replace("instagram", "ddinstagram")
-							: url;
-
-					sent = await adapter(ctx, {
-						source: { type, match },
-						userId: ctx.from.id,
-						userName,
-						url: proxyUrl,
-						replyId: ctx.message.reply_to_message?.message_id,
-						threadId: ctx.message.is_topic_message
-							? ctx.message.message_thread_id
-							: undefined,
+			try {
+				if (result.kind === "text") {
+					await ctx.reply(result.caption, result.extra);
+				} else {
+					await ctx.replyWithVideo(result.file, {
+						caption: result.caption,
+						...result.extra,
 					});
 				}
-			}
-
-			if (sent) {
 				somethingSent = true;
 				if (!shouldCleanup && text === url) {
 					shouldCleanup = true;
 				}
+			} catch (error) {
+				console.error("[Failed to send media]", error);
+			} finally {
+				await result.cleanup();
 			}
 		}
 

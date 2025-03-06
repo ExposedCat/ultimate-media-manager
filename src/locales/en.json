@@ -5,9 +5,10 @@
 		"instagram": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Instagram video</a>",
 		"tiktok": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this TikTok video</a>",
 		"youtube": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this YouTube Short video</a>",
-		"twitter": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Twitter video</a>",
+		"twitter": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Twitter post</a>",
 		"null": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this video</a>"
 	},
+	"rawCaption": "${kind} ${type}",
 	"status": {
 		"downloading": "Downloading..."
 	},

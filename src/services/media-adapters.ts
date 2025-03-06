@@ -1,4 +1,4 @@
-import { InputFile } from "grammy";
+import { type Api, InputFile } from "grammy";
 
 import { deleteFile } from "../helpers/fs.js";
 import type { CustomContext } from "../types/context.js";
@@ -21,7 +21,24 @@ export type MediaAdapterData = {
 export type MediaAdapter = (
 	ctx: CustomContext,
 	data: MediaAdapterData,
-) => Promise<boolean>;
+) => Promise<
+	{
+		cleanup: () => Promise<void>;
+		caption: string;
+		rawCaption: string;
+		error: string | null;
+		extra: Parameters<Api["sendMessage"]>[2];
+	} & (
+		| {
+				kind: "video";
+				file: InputFile;
+		  }
+		| {
+				kind: "text";
+				file: null;
+		  }
+	)
+>;
 
 export const buildReplyExtra = (
 	replyId: number | null | undefined,
@@ -36,28 +53,32 @@ export const buildReplyExtra = (
 	}),
 });
 
-export const ddInstagramAdapter: MediaAdapter = async (ctx, data) => {
-	await ctx.text(
-		"promoCaption",
-		{
-			viewUrl: ctx.i18n.t("viewOn.instagram", {
-				postUrl: data.url,
-				userName: data.userName,
-				userId: data.userId,
-			}),
+export const ddInstagramAdapter: MediaAdapter = async (ctx, data) => ({
+	kind: "text",
+	caption: ctx.i18n.t("promoCaption", {
+		viewUrl: ctx.i18n.t("viewOn.instagram", {
+			postUrl: data.url,
+			userName: data.userName,
+			userId: data.userId,
+		}),
+	}),
+	rawCaption: ctx.i18n.t("rawCaption", {
+		type: "instagram",
+		kind: "link",
+	}),
+	extra: {
+		link_preview_options: {
+			is_disabled: false,
+			url: data.url.replace("instagram", "ddinstagram"),
+			prefer_large_media: true,
+			show_above_text: true,
 		},
-		{
-			link_preview_options: {
-				is_disabled: false,
-				url: data.url.replace("instagram", "ddinstagram"),
-				prefer_large_media: true,
-				show_above_text: true,
-			},
-			...buildReplyExtra(data.replyId, data.threadId),
-		},
-	);
-	return true;
-};
+		...buildReplyExtra(data.replyId, data.threadId),
+	},
+	file: null,
+	error: null,
+	cleanup: async () => {},
+});
 
 export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 	const caption = ctx.i18n.t("promoCaption", {
@@ -78,27 +99,33 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 		},
 	};
 
-	const logError = (error: Error, source: string) =>
-		console.error("[Download Adapter] Failed to respond with video", {
-			source,
-			error,
-		});
-
 	const filepath = `/tmp/ummrobot-${Date.now()}-${data.userId}.mp4`;
 	try {
-		let filename: string;
-		try {
-			filename = await downloadMedia(ctx.binary, data.url, filepath);
-			await ctx.replyWithVideo(new InputFile(filename), { caption, ...extra });
-		} catch {
-			await ctx.reply(caption, extra);
-			return true;
-		}
-		await deleteFile(filename);
-		return true;
+		const filename = await downloadMedia(ctx.binary, data.url, filepath);
+		return {
+			kind: "video",
+			file: new InputFile(filename),
+			error: null,
+			caption,
+			rawCaption: ctx.i18n.t("rawCaption", {
+				type: data.source.type,
+				kind: "video",
+			}),
+			extra,
+			cleanup: async () => await deleteFile(filename),
+		};
 	} catch (error) {
-		logError(error as Error, filepath);
+		return {
+			kind: "text",
+			file: null,
+			error: (error as Error).message,
+			caption,
+			rawCaption: ctx.i18n.t("rawCaption", {
+				type: data.source.type,
+				kind: "link",
+			}),
+			extra,
+			cleanup: async () => {},
+		};
 	}
-
-	return false;
 };
