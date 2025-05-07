@@ -1,5 +1,6 @@
 import { Composer, InlineKeyboard, InlineQueryResultBuilder } from "grammy";
 import { matchInput } from "../services/sources.js";
+import { humanifyError } from "../services/yt-dlp.js";
 
 import type { CustomContext } from "../types/context.js";
 
@@ -53,7 +54,7 @@ searchController.on("chosen_inline_result", async (ctx) => {
 				// biome-ignore lint/style/noNonNullAssertion: <explanation>
 				ctx.chosenInlineResult.inline_message_id!,
 				{
-					caption: `${result.caption}\n\n<i>Failed to download</i>`,
+					caption: `${result.caption}\n\n<i>${humanifyError(result.error ?? "Failed to download video")}</i>`,
 					parse_mode: "HTML",
 				},
 			);
