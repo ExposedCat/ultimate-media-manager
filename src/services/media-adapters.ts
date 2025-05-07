@@ -2,7 +2,7 @@ import { type Api, InputFile } from "grammy";
 
 import { deleteFile } from "../helpers/fs.js";
 import type { CustomContext } from "../types/context.js";
-import { downloadMedia } from "./yt-dlp.js";
+import { downloadMedia, humanifyError } from "./yt-dlp.js";
 
 export type MediaSource = {
 	type: "tiktok" | "instagram" | "facebook" | "youtube" | "twitter";
@@ -90,21 +90,19 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			cleanup: async () => await deleteFile(filename),
 		}) as MediaAdapterResult;
 
-	const trimError = (error: string) => error.split("ERROR: ")[1] ?? error;
-
 	const errorText = (error: Error) =>
 		({
 			kind: "text",
 			file: null,
-			error: trimError(error.message),
+			error: humanifyError(error.message),
 			caption: ctx.i18n.t("errorViewOn", {
 				viewOn: caption,
-				error: trimError(error.message),
+				error: humanifyError(error.message),
 			}),
 			rawCaption: ctx.i18n.t("rawErrorCaption", {
 				type: data.source.type,
 				kind: "link",
-				error: trimError(error.message),
+				error: humanifyError(error.message),
 			}),
 			extra: extra(data.proxyUrl ?? data.url),
 			cleanup: async () => {},

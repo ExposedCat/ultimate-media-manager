@@ -8,6 +8,22 @@ export function loadBinary() {
 	return new Binary("./ytdlp");
 }
 
+const ERROR_MAPPING = Object.entries({
+	"no video in this post": "🖼 Picture posts can't be downloaded",
+	"rate-limit": "🫠 Too many posts were downloaded recently, limit exceeded",
+});
+
+export const humanifyError = (output: string) => {
+	for (const [partial, value] of ERROR_MAPPING) {
+		if (output.includes(partial)) {
+			return value;
+		}
+	}
+	const rawError = output.split("ERROR: ")[1] ?? output;
+	const trimmedError = rawError.replace(/\[.+\] .+?: /, "");
+	return `😵‍💫 ${trimmedError}`;
+};
+
 export async function downloadMedia(
 	binary: YTDlpWrap,
 	url: string,
