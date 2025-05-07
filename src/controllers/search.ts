@@ -47,21 +47,31 @@ searchController.on("chosen_inline_result", async (ctx) => {
 			source: urlMatch,
 			userId: ctx.from.id,
 			userName: ctx.from.first_name,
-			url: urlMatch.proxyUrl,
+			url: ctx.chosenInlineResult.query,
+			proxyUrl: urlMatch.proxyUrl,
 		});
 		if (result.kind === "text" || !result.file) {
-			await ctx.api.editMessageCaptionInline(
-				// biome-ignore lint/style/noNonNullAssertion: <explanation>
+			await ctx.api.editMessageTextInline(
+				// biome-ignore lint/style/noNonNullAssertion: Button is always attached below
 				ctx.chosenInlineResult.inline_message_id!,
+				result.caption,
 				{
-					caption: `${result.caption}\n\n<i>${humanifyError(result.error ?? "Failed to download video")}</i>`,
 					parse_mode: "HTML",
+					link_preview_options: {
+						is_disabled: false,
+						url: urlMatch.proxyUrl,
+						show_above_text: true,
+						prefer_large_media: true,
+					},
 				},
 			);
 		} else if (result.file) {
-			const video = await ctx.api.sendVideo(849670500, result.file);
+			const video = await ctx.api.sendVideo(
+				Number(process.env.CACHE_CHAT_ID),
+				result.file,
+			);
 			await ctx.api.editMessageMediaInline(
-				// biome-ignore lint/style/noNonNullAssertion: <explanation>
+				// biome-ignore lint/style/noNonNullAssertion: Button is always attached below
 				ctx.chosenInlineResult.inline_message_id!,
 				{
 					type: "video",
@@ -84,12 +94,11 @@ searchController.on("inline_query", async (ctx) => {
 	const urlMatch = matchInput(ctx.inlineQuery.query);
 	if (urlMatch.adapter) {
 		await ctx.answerInlineQuery([
-			InlineQueryResultBuilder.videoCached(
-				"post",
-				`${urlMatch.type[0].toUpperCase()}${urlMatch.type.slice(1)} video`,
-				"BAACAgIAAxkBAAEBdjdnyiXmDyYgA0-dY9IF87XbVLTgkwAC0HMAAuwiUUqsm64AAYXv8t02BA",
-				{ reply_markup: new InlineKeyboard().text("Downloading...") },
-			),
+			InlineQueryResultBuilder.article("test", "Share post", {
+				reply_markup: new InlineKeyboard().text(
+					`⏳ Downloading ${urlMatch.type[0].toUpperCase()}${urlMatch.type.slice(1)} video...`,
+				),
+			}).text("⁠"),
 		]);
 		return;
 	}
@@ -97,7 +106,7 @@ searchController.on("inline_query", async (ctx) => {
 	const result = await searchImages(ctx.inlineQuery.query);
 
 	if (result.ok) {
-		// biome-ignore lint/style/noNonNullAssertion: <explanation>
+		// biome-ignore lint/style/noNonNullAssertion: result.ok means result.result is not null
 		const results = result
 			.result!.slice(0, 50)
 			.map((image, i) =>
