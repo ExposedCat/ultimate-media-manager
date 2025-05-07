@@ -42,7 +42,8 @@ mediaDownloadController.on(
 				source: { type, match },
 				userId: ctx.from.id,
 				userName,
-				url: proxyUrl,
+				url,
+				proxyUrl,
 				replyId: ctx.message.reply_to_message?.message_id,
 				threadId: ctx.message.is_topic_message
 					? ctx.message.message_thread_id

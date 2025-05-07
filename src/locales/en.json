@@ -8,7 +8,9 @@
 		"twitter": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Twitter post</a>",
 		"null": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this video</a>"
 	},
+	"errorViewOn": "${viewOn}\n\n<i>${error}</i>",
 	"rawCaption": "${kind} ${type}",
+	"rawErrorCaption": "${kind} ${type}\n\n<i>${error}</i>",
 	"status": {
 		"downloading": "Downloading..."
 	},
