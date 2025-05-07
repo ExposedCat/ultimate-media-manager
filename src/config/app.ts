@@ -11,7 +11,7 @@ export async function startApp() {
 		env.config({
 			path: resolvePath(import.meta.url, "../../.env"),
 		});
-		validateEnv(["TOKEN", "DB_CONNECTION_STRING"]);
+		validateEnv(["TOKEN", "DB_CONNECTION_STRING", "CACHE_CHAT_ID"]);
 	} catch (error) {
 		console.error("Error occurred while loading environment:", error);
 		process.exit(1);

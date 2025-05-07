@@ -1,9 +1,9 @@
 import { config } from "dotenv";
 
-import type { Database } from "../types/database.js";
-import { validateEnv } from "../helpers/validate-env.js";
-import { resolvePath } from "../helpers/resolve-path.js";
 import { connectToDb } from "../config/database.js";
+import { resolvePath } from "../helpers/resolve-path.js";
+import { validateEnv } from "../helpers/validate-env.js";
+import type { Database } from "../types/database.js";
 
 config({
 	path: resolvePath(import.meta.url, "../../.env"),
