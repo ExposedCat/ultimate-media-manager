@@ -1,4 +1,5 @@
 import _YTDlpWrap from "yt-dlp-wrap";
+import type { MediaAdapterData } from "./media-adapters.js";
 
 // TODO: Use better typed lib
 export const Binary = _YTDlpWrap.default;
@@ -27,14 +28,25 @@ export const humanifyError = (output: string) => {
 export async function downloadMedia(
 	binary: YTDlpWrap,
 	url: string,
+	sourceType: MediaAdapterData["source"]["type"],
 	path: string,
 ): Promise<string> {
-	const options: string[] = [url]; //, "--cookies", "cookies"];
+	const options: string[] = [url];
+	if (sourceType === "youtube") {
+		options.push("--cookies", "cookies/youtube.txt");
+	} else if (sourceType === "tiktok") {
+		options.push("--cookies", "cookies/tiktok.txt");
+	} else if (sourceType === "instagram") {
+		options.push("--cookies", "cookies/instagram.txt");
+	}
+
 	options.push(
 		"-f",
 		"bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo[ext=mp4]+bestaudio[ext=mp4]/best",
 	);
+
 	options.push("-o", path);
+
 	let destination = path;
 	return await new Promise<string>((resolve, reject) =>
 		binary

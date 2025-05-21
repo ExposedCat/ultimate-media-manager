@@ -110,12 +110,22 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 
 	let filename: string | null = null;
 	try {
-		filename = await downloadMedia(ctx.binary, data.url, filepath);
+		filename = await downloadMedia(
+			ctx.binary,
+			data.url,
+			data.source.type,
+			filepath,
+		);
 		return video(filename);
 	} catch (directError) {
 		if (data.proxyUrl) {
 			try {
-				filename = await downloadMedia(ctx.binary, data.proxyUrl, filepath);
+				filename = await downloadMedia(
+					ctx.binary,
+					data.proxyUrl,
+					data.source.type,
+					filepath,
+				);
 				return video(filename);
 			} catch (error) {
 				return errorText(error as Error);

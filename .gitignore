@@ -8,5 +8,5 @@ ytdlp
 
 # Sensitive data
 .env
-cookies.json
-cookies
+cookies/*
+!cookies/.gitkeep
