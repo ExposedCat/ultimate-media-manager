@@ -11,7 +11,10 @@ export function loadBinary() {
 
 const ERROR_MAPPING = Object.entries({
 	"no video in this post": "🖼 Picture posts can't be downloaded",
-	"rate-limit": "🫠 Too many posts were downloaded recently, limit exceeded",
+	"rate-limit": "🫠 Download failed: platform limits reached",
+	"not be comfortable": "🔞 Download failed: platform blocked NSFW download",
+	"Read timed out": "🤕 Download failed: video didn't load",
+	"Sign in": "🤖 Download failed: platform blocked the bot",
 });
 
 export const humanifyError = (output: string) => {
