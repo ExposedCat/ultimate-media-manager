@@ -95,7 +95,7 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			kind: "text",
 			file: null,
 			error: humanifyError(error.message),
-			caption: ctx.i18n.t("errorViewOn", {
+			caption: ctx.i18n.t("error.viewOn", {
 				viewOn: caption,
 				error: humanifyError(error.message),
 			}),

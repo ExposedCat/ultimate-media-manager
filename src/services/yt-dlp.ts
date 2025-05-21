@@ -66,24 +66,30 @@ export async function downloadMedia(
 	);
 }
 
+export async function getVideoMetadata(binary: YTDlpWrap, url: string) {
+	const output = await binary.execPromise(["-j", url]);
+	const metadata = JSON.parse(output);
+	return {
+		title: metadata.title,
+		thumbnail: metadata.thumbnail,
+		sizeMb: metadata.filesize_approx / 1024 / 1024,
+	};
+}
+
 export async function downloadYouTubeAudio(
 	binary: YTDlpWrap,
 	url: string,
 	path: string,
 ) {
 	const options = ["-x", "--audio-format", "mp3", url, "-o", path];
-	const metadata = await binary.getVideoInfo(url);
+	const { title, thumbnail } = await getVideoMetadata(binary, url);
 	return new Promise<{ path: string; title: string; thumbnail: string }>(
 		(resolve, reject) =>
 			binary
 				.exec(options)
 				.on("error", (error) => reject(error))
 				.on("close", () => {
-					return resolve({
-						path,
-						title: metadata.title,
-						thumbnail: metadata.thumbnail,
-					});
+					return resolve({ path, title, thumbnail });
 				}),
 	);
 }

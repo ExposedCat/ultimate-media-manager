@@ -8,6 +8,7 @@ import { searchController } from "../controllers/search.js";
 import { settingsController } from "../controllers/settings.js";
 import { startController } from "../controllers/start.js";
 import { ytAudioDownloadController } from "../controllers/yt-audio-download.js";
+import { ytVideoDownloadController } from "../controllers/yt-video-download.js";
 import { resolvePath } from "../helpers/resolve-path.js";
 import { getOrCreateChat } from "../services/chat.js";
 import { createReplyWithTextFunc } from "../services/context.js";
@@ -23,6 +24,7 @@ function extendContext(bot: Bot, database: Database, binary: YTDlpWrap) {
 		ctx.text = createReplyWithTextFunc(ctx);
 		ctx.db = database;
 		ctx.binary = binary;
+
 		if (ctx.chat && ctx.from) {
 			let chat: Chat | null = null;
 			if (ctx.chat.type !== "private") {
@@ -58,6 +60,7 @@ function setupControllers(bot: Bot) {
 	bot.use(settingsController);
 
 	bot.use(ytAudioDownloadController);
+	bot.use(ytVideoDownloadController);
 
 	bot.use(mediaDownloadController);
 }
