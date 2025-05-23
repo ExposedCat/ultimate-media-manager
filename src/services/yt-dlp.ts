@@ -67,7 +67,13 @@ export async function downloadMedia(
 }
 
 export async function getVideoMetadata(binary: YTDlpWrap, url: string) {
-	const output = await binary.execPromise(["-j", url]);
+	console.log(["-j", url, "--cookies", "./cookies/youtube.txt"]);
+	const output = await binary.execPromise([
+		"-j",
+		url,
+		"--cookies",
+		"cookies/youtube.txt",
+	]);
 	const metadata = JSON.parse(output);
 	return {
 		title: metadata.title,
