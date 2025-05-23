@@ -22,8 +22,8 @@
 	},
 	"error": {
 		"viewOn": "${viewOn}\n\n<i>${error}</i>",
-		"audio": "😵‍💫 Failed to download audio\n<pre><code class=\"language-error\">${error}</code></pre>",
-		"video": "😵‍💫 Failed to download video\n<pre><code class=\"language-error\">${error}</code></pre>",
+		"audio": "${error}",
+		"video": "${error}",
 		"videoSize": "🫨 Video is too big to download: ${size} Mb out of ${limit} Mb limit"
 	},
 	"promoCaption": "${viewUrl}",

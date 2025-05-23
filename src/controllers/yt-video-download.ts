@@ -6,6 +6,7 @@ import {
 	downloadMedia,
 	downloadYouTubeAudio,
 	getVideoMetadata,
+	humanifyError,
 } from "../services/yt-dlp.js";
 import type { CustomContext } from "../types/context.js";
 
@@ -70,7 +71,7 @@ ytVideoDownloadController
 				filepath,
 				error,
 			});
-			await ctx.text("error.video", { error: errorText });
+			await ctx.text("error.video", { error: humanifyError(errorText) });
 		} finally {
 			if (statusMessageId) {
 				await ctx.api.deleteMessage(ctx.chat.id, statusMessageId);

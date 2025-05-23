@@ -9,13 +9,25 @@ export function loadBinary() {
 	return new Binary("./ytdlp");
 }
 
-const ERROR_MAPPING = Object.entries({
-	"no video in this post": "🖼 Picture posts can't be downloaded",
-	"rate-limit": "🫠 Download failed: platform limits reached",
-	"not be comfortable": "🔞 Download failed: platform blocked NSFW download",
-	"Read timed out": "🤕 Download failed: video didn't load",
-	"Sign in": "🤖 Download failed: platform blocked the bot",
-});
+const ERROR_MAPPING = [
+	["no video in this post", "🖼 Picture posts can't be downloaded"],
+	["rate-limit", "🫠 Download failed: platform limits reached"],
+	["not be comfortable", "🔞 Download failed: platform blocked NSFW download"],
+	["Read timed out", "🤕 Download failed: video didn't load"],
+	[
+		"Connection aborted",
+		"🤨 Video is not available for download for some reason",
+	],
+	["Sign in", "🤖 Download failed: platform blocked the bot"],
+	[
+		"Only images",
+		"😥 Platform rejected downloading this video.\nPlease report to @ExposedCatDev!",
+	],
+	[
+		"format is not available",
+		"🫣 MP4 format is not available for this video.\nPlease report to @ExposedCatDev!",
+	],
+];
 
 export const humanifyError = (output: string) => {
 	for (const [partial, value] of ERROR_MAPPING) {
@@ -25,7 +37,7 @@ export const humanifyError = (output: string) => {
 	}
 	const rawError = output.split("ERROR: ")[1] ?? output;
 	const trimmedError = rawError.replace(/\[.+\] .+?: /, "");
-	return `😵‍💫 ${trimmedError}`;
+	return `😵‍💫 Download failed\n<pre><code class="language-error">${trimmedError}</code></pre>\nPlease report to @ExposedCatDev!`;
 };
 
 export async function downloadMedia(
@@ -45,7 +57,7 @@ export async function downloadMedia(
 
 	options.push(
 		"-f",
-		"bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo[ext=mp4]+bestaudio[ext=mp4]/best",
+		"bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo[ext=mp4]+bestaudio[ext=mp4]/bestvideo[ext=mhtml]+bestaudio[ext=m4a]/bestvideo[ext=mhtml]+bestaudio[ext=mp4]/best",
 	);
 
 	options.push("-o", path);
@@ -67,7 +79,6 @@ export async function downloadMedia(
 }
 
 export async function getVideoMetadata(binary: YTDlpWrap, url: string) {
-	console.log(["-j", url, "--cookies", "./cookies/youtube.txt"]);
 	const output = await binary.execPromise([
 		"-j",
 		url,

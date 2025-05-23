@@ -1,7 +1,7 @@
 import { Composer, InputFile } from "grammy";
 
 import { deleteFile } from "../helpers/fs.js";
-import { downloadYouTubeAudio } from "../services/yt-dlp.js";
+import { downloadYouTubeAudio, humanifyError } from "../services/yt-dlp.js";
 import type { CustomContext } from "../types/context.js";
 
 export const ytAudioDownloadController = new Composer<CustomContext>();
@@ -46,6 +46,6 @@ ytAudioDownloadController
 				filepath,
 				error,
 			});
-			await ctx.text("error.audio", { error: errorText });
+			await ctx.text("error.audio", { error: humanifyError(errorText) });
 		}
 	});
