@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import _YTDlpWrap from "yt-dlp-wrap";
 import type { MediaAdapterData } from "./media-adapters.js";
 
@@ -46,36 +47,64 @@ export async function downloadMedia(
 	sourceType: MediaAdapterData["source"]["type"],
 	path: string,
 ): Promise<string> {
-	const options: string[] = [url];
-	if (sourceType === "youtube") {
-		options.push("--cookies", "cookies/youtube.txt");
-	} else if (sourceType === "tiktok") {
-		options.push("--cookies", "cookies/tiktok.txt");
-	} else if (sourceType === "instagram") {
-		options.push("--cookies", "cookies/instagram.txt");
+	const directUrl = await fetch("http://127.0.0.1:9000", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Accept: "application/json",
+		},
+		body: JSON.stringify({ url }),
+	});
+
+	const body = (await directUrl.json()) as
+		| { status: "redirect"; url: string }
+		| { status: "error"; error: { code: string } };
+
+	if (body.status === "error") {
+		throw new Error(
+			{
+				"error.api.fetch.empty": "Content is not available",
+				"error.api.link.invalid": "Platform is not supported",
+			}[body.error.code] ?? body.error.code,
+		);
 	}
 
-	options.push(
-		"-f",
-		"bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo[ext=mp4]+bestaudio[ext=mp4]/bestvideo[ext=mhtml]+bestaudio[ext=m4a]/bestvideo[ext=mhtml]+bestaudio[ext=mp4]/best",
-	);
+	const response = await fetch(body.url);
+	const buffer = await response.arrayBuffer();
+	await fs.writeFile(path, Buffer.from(buffer));
 
-	options.push("-o", path);
+	return path;
 
-	let destination = path;
-	return await new Promise<string>((resolve, reject) =>
-		binary
-			.exec(options)
-			.on("ytDlpEvent", (event, data) => {
-				if (event === "download" && data.startsWith(" Destination")) {
-					destination = data.replace(" Destination: ", "").trim();
-				} else if (event === "Merger") {
-					destination = data.split('"')[1]?.split('"')[0] ?? destination;
-				}
-			})
-			.on("error", (error) => reject(error))
-			.on("close", () => resolve(destination)),
-	);
+	// const options: string[] = [url];
+	// if (sourceType === "youtube") {
+	// 	options.push("--cookies", "cookies/youtube.txt");
+	// } else if (sourceType === "tiktok") {
+	// 	options.push("--cookies", "cookies/tiktok.txt");
+	// } else if (sourceType === "instagram") {
+	// 	options.push("--cookies", "cookies/instagram.txt");
+	// }
+
+	// options.push(
+	// 	"-f",
+	// 	"bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo[ext=mp4]+bestaudio[ext=mp4]/bestvideo[ext=mhtml]+bestaudio[ext=m4a]/bestvideo[ext=mhtml]+bestaudio[ext=mp4]/best",
+	// );
+
+	// options.push("-o", path);
+
+	// let destination = path;
+	// return await new Promise<string>((resolve, reject) =>
+	// 	binary
+	// 		.exec(options)
+	// 		.on("ytDlpEvent", (event, data) => {
+	// 			if (event === "download" && data.startsWith(" Destination")) {
+	// 				destination = data.replace(" Destination: ", "").trim();
+	// 			} else if (event === "Merger") {
+	// 				destination = data.split('"')[1]?.split('"')[0] ?? destination;
+	// 			}
+	// 		})
+	// 		.on("error", (error) => reject(error))
+	// 		.on("close", () => resolve(destination)),
+	// );
 }
 
 export async function getVideoMetadata(binary: YTDlpWrap, url: string) {
