@@ -62,7 +62,11 @@ mediaDownloadController.on(
 						);
 					} else {
 						const method =
-							result.kind === "image" ? "replyWithPhoto" : "replyWithVideo";
+							result.kind === "image"
+								? "replyWithPhoto"
+								: result.kind === "audio"
+									? "replyWithAudio"
+									: "replyWithVideo";
 						await ctx[method](result.file, {
 							caption: result.caption,
 							...result.extra,

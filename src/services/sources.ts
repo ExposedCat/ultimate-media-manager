@@ -18,7 +18,7 @@ const SOURCES: MediaSource[] = [
 
 	{ type: "reddit", match: /reddit.com\/r\/.+?\// },
 
-	{ type: "soundcloud", match: /soundcloud.com\/.+?\// },
+	{ type: "soundcloud", match: /soundcloud\.com\/.+?/ },
 ];
 
 const PROXIES: Record<string, [string, string]> = {

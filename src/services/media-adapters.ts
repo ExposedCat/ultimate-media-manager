@@ -35,7 +35,7 @@ export type MediaAdapterResult = {
 	extra: Parameters<Api["sendMessage"]>[2];
 } & (
 	| {
-			kind: "video" | "image";
+			kind: "video" | "image" | "audio";
 			file: InputFile;
 	  }
 	| {
@@ -132,6 +132,20 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			cleanup: async () => await deleteFile(filenames[0]),
 		}) as MediaAdapterResult;
 
+	const audio = (filename: string) =>
+		({
+			kind: "audio",
+			file: new InputFile(filename),
+			error: null,
+			caption: caption("audio"),
+			rawCaption: ctx.i18n.t("rawCaption", {
+				type: data.source.type,
+				kind: "audio",
+			}),
+			extra: extra(data.url),
+			cleanup: async () => await deleteFile(filename),
+		}) as MediaAdapterResult;
+
 	const text = () =>
 		({
 			kind: "text",
@@ -149,14 +163,20 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 
 	const media = await downloadMedia(data.url, pathPrefix);
 	if (media) {
-		const isImage = ["png", "jpg", "jpeg"].includes(
-			// biome-ignore lint/style/noNonNullAssertion: always returns a string
-			(media.type === "single" ? media.filename : media.filenames[0])
-				.split(".")
-				.at(-1)!,
-		);
+		// biome-ignore lint/style/noNonNullAssertion: always returns a string
+		const filename = (
+			media.type === "single" ? media.filename : media.filenames[0]
+		)
+			.split(".")
+			.at(-1)!;
+		const isImage = ["png", "jpg", "jpeg"].includes(filename);
+		const isSound = ["mp3", "wav", "ogg"].includes(filename);
 		if (media.type === "single") {
-			return isImage ? image(media.filename) : video(media.filename);
+			return isImage
+				? image(media.filename)
+				: isSound
+					? audio(media.filename)
+					: video(media.filename);
 		}
 		return images(media.filenames);
 	}
