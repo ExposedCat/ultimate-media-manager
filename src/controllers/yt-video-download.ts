@@ -5,7 +5,6 @@ import {
 	downloadYoutubeVideo,
 	prepareYoutubeVideo,
 } from "../services/cobalt.js";
-import { getVideoMetadata } from "../services/yt-dlp.js";
 import type { CustomContext } from "../types/context.js";
 
 const MAX_VIDEO_SIZE_MB = 300;

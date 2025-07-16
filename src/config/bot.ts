@@ -11,18 +11,15 @@ import { ytVideoDownloadController } from "../controllers/yt-video-download.js";
 import { resolvePath } from "../helpers/resolve-path.js";
 import { getOrCreateChat } from "../services/chat.js";
 import { createReplyWithTextFunc } from "../services/context.js";
-import { loadBinary } from "../services/yt-dlp.js";
-import type { YTDlpWrap } from "../services/yt-dlp.js";
 import type { CustomContext } from "../types/context.js";
 import type { Chat, Database } from "../types/database.js";
 import type { Bot } from "../types/telegram.js";
 import { initLocaleEngine } from "./locale-engine.js";
 
-function extendContext(bot: Bot, database: Database, binary: YTDlpWrap) {
+function extendContext(bot: Bot, database: Database) {
 	bot.use(async (ctx, next) => {
 		ctx.text = createReplyWithTextFunc(ctx);
 		ctx.db = database;
-		ctx.binary = binary;
 
 		if (ctx.chat && ctx.from) {
 			let chat: Chat | null = null;
@@ -67,11 +64,10 @@ export async function startBot(database: Database) {
 	const localesPath = resolvePath(import.meta.url, "../locales");
 
 	const i18n = initLocaleEngine(localesPath);
-	const binary = loadBinary();
 	const bot = new TelegramBot<CustomContext>(process.env.TOKEN);
 
 	setupMiddlewares(bot, i18n);
-	extendContext(bot, database, binary);
+	extendContext(bot, database);
 	setupControllers(bot);
 
 	// NOTE: Resolves only when bot is stopped

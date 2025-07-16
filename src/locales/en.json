@@ -1,5 +1,5 @@
 {
-	"greeting": "Ultimate Media Manager\nYTDLP v${binaryVersion}\n<a href=\"https://github.com/ExposedCat/ultimate-media-manager\">💻 Source code</a>\n⚙️ Chat /settings\n\nPowered by @ExposedCatDev",
+	"greeting": "Ultimate Media Manager\n<a href=\"https://github.com/ExposedCat/ultimate-media-manager\">💻 Source code</a>\n⚙️ Chat /settings\n\nPowered by @ExposedCatDev",
 	"viewOn": {
 		"facebook": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Facebook ${kind}</a>",
 		"instagram": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Instagram ${kind}</a>",
