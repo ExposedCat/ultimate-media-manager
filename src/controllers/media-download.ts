@@ -9,10 +9,7 @@ mediaDownloadController.on(
 		const text = ctx.message.text;
 		const entities = ctx.message.entities ?? ctx.message.caption_entities ?? [];
 
-		if (
-			ctx.message.forward_origin?.type === "user" &&
-			ctx.message.forward_origin.sender_user.is_bot
-		) {
+		if (ctx.message.forward_origin) {
 			return;
 		}
 
@@ -54,10 +51,23 @@ mediaDownloadController.on(
 				if (result.kind === "text") {
 					await ctx.reply(result.caption, result.extra);
 				} else {
-					await ctx.replyWithVideo(result.file, {
-						caption: result.caption,
-						...result.extra,
-					});
+					if (result.kind === "images") {
+						await ctx.replyWithMediaGroup(
+							result.files.map((file, index) => ({
+								type: "photo",
+								media: file,
+								caption: index === 0 ? result.caption : undefined,
+								...result.extra,
+							})),
+						);
+					} else {
+						const method =
+							result.kind === "image" ? "replyWithPhoto" : "replyWithVideo";
+						await ctx[method](result.file, {
+							caption: result.caption,
+							...result.extra,
+						});
+					}
 				}
 				somethingSent = true;
 				if (!shouldCleanup && text === url) {

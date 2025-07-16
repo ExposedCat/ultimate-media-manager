@@ -1,13 +1,11 @@
 import { Composer, InputFile } from "grammy";
 
 import { deleteFile } from "../helpers/fs.js";
-import { downloadAdapter } from "../services/media-adapters.js";
 import {
-	downloadMedia,
-	downloadYouTubeAudio,
-	getVideoMetadata,
-	humanifyError,
-} from "../services/yt-dlp.js";
+	downloadYoutubeVideo,
+	prepareYoutubeVideo,
+} from "../services/cobalt.js";
+import { getVideoMetadata } from "../services/yt-dlp.js";
 import type { CustomContext } from "../types/context.js";
 
 const MAX_VIDEO_SIZE_MB = 300;
@@ -24,60 +22,52 @@ ytVideoDownloadController
 		}
 
 		let statusMessageId: number | null = null;
-		const filepath = `/tmp/ummrobot-${Date.now()}-${ctx.from.id}.mp4`;
+		const videoId = `${Date.now()}-${ctx.from.id}`;
+		const pathPrefix = `/tmp/ummrobot-${videoId}`;
 		try {
-			const { title, thumbnail, sizeMb } = await getVideoMetadata(
-				ctx.binary,
-				url,
-			);
+			const prepared = await prepareYoutubeVideo(url, videoId);
+			if (!prepared) {
+				console.log("!prepared", prepared);
+				await ctx.text("error.video");
+				return;
+			}
+
+			if (prepared.sizeMb > MAX_VIDEO_SIZE_MB) {
+				await ctx.text("error.videoSize", {
+					size: prepared.sizeMb.toFixed(1),
+					limit: MAX_VIDEO_SIZE_MB,
+				});
+				return;
+			}
 
 			const status = await ctx.text("status.downloading.video");
 			statusMessageId = status.message_id;
 
-			if (sizeMb > MAX_VIDEO_SIZE_MB) {
-				await ctx.text("error.videoSize", {
-					size: sizeMb.toFixed(1),
-					limit: MAX_VIDEO_SIZE_MB,
-				});
-			} else {
-				const video = await downloadMedia(ctx.binary, url, "youtube", filepath);
-				const extra: Parameters<typeof ctx.replyWithVideo>[1] = {
-					caption: ctx.i18n.t("downloaded.video", {
-						title: title ?? "Downloaded YouTube Video",
-						url,
-					}),
-					parse_mode: "HTML",
-					thumbnail: thumbnail as unknown as InputFile,
-				};
-				try {
-					await ctx.replyWithVideo(new InputFile(video, title), extra);
-				} catch {
-					await ctx.replyWithDocument(new InputFile(video, title), extra);
-				}
-			}
+			const video = await downloadYoutubeVideo(prepared, pathPrefix);
+
+			const extra: Parameters<typeof ctx.replyWithVideo>[1] = {
+				caption: ctx.i18n.t("downloaded.video", {
+					title: prepared.name ?? "Downloaded YouTube Video",
+					url,
+				}),
+				parse_mode: "HTML",
+			};
 			try {
-				await ctx.api.deleteMessage(ctx.chatId, status.message_id);
-			} catch {}
+				await ctx.replyWithVideo(new InputFile(video, prepared.name), extra);
+			} catch {
+				await ctx.replyWithDocument(new InputFile(video, prepared.name), extra);
+			}
+
 			return true;
 		} catch (error) {
-			const errorObject = error as Error;
-			const stringError = errorObject.toString();
-			const errorText =
-				stringError.split("ERROR:")[1] ||
-				errorObject.toString() ||
-				"Unknown Error";
-			console.error("[YTA] Failed to respond with video", {
-				url,
-				filepath,
-				error,
-			});
-			await ctx.text("error.video", { error: humanifyError(errorText) });
+			console.error(error);
+			await ctx.text("error.video");
 		} finally {
 			if (statusMessageId) {
 				await ctx.api.deleteMessage(ctx.chat.id, statusMessageId);
 			}
 			try {
-				await deleteFile(filepath);
+				await deleteFile(pathPrefix);
 			} catch {}
 		}
 	});

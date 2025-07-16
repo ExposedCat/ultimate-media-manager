@@ -7,7 +7,6 @@ import { mediaDownloadController } from "../controllers/media-download.js";
 import { searchController } from "../controllers/search.js";
 import { settingsController } from "../controllers/settings.js";
 import { startController } from "../controllers/start.js";
-import { ytAudioDownloadController } from "../controllers/yt-audio-download.js";
 import { ytVideoDownloadController } from "../controllers/yt-video-download.js";
 import { resolvePath } from "../helpers/resolve-path.js";
 import { getOrCreateChat } from "../services/chat.js";
@@ -59,7 +58,6 @@ function setupControllers(bot: Bot) {
 	bot.use(startController);
 	bot.use(settingsController);
 
-	bot.use(ytAudioDownloadController);
 	bot.use(ytVideoDownloadController);
 
 	bot.use(mediaDownloadController);

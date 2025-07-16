@@ -2,10 +2,18 @@ import { type Api, InputFile } from "grammy";
 
 import { deleteFile } from "../helpers/fs.js";
 import type { CustomContext } from "../types/context.js";
-import { downloadMedia, humanifyError } from "./yt-dlp.js";
+import { downloadMedia } from "./cobalt.js";
 
 export type MediaSource = {
-	type: "tiktok" | "instagram" | "facebook" | "youtube" | "twitter";
+	type:
+		| "tiktok"
+		| "instagram"
+		| "facebook"
+		| "youtube"
+		| "twitter"
+		| "pinterest"
+		| "soundcloud"
+		| "reddit";
 	match: string | RegExp;
 };
 
@@ -27,8 +35,12 @@ export type MediaAdapterResult = {
 	extra: Parameters<Api["sendMessage"]>[2];
 } & (
 	| {
-			kind: "video";
+			kind: "video" | "image";
 			file: InputFile;
+	  }
+	| {
+			kind: "images";
+			files: InputFile[];
 	  }
 	| {
 			kind: "text";
@@ -55,13 +67,15 @@ export const buildReplyExtra = (
 });
 
 export const downloadAdapter: MediaAdapter = async (ctx, data) => {
-	const caption = ctx.i18n.t("promoCaption", {
-		viewUrl: ctx.i18n.t(`viewOn.${data.source.type}`, {
-			postUrl: data.url,
-			userName: data.userName,
-			userId: data.userId,
-		}),
-	});
+	const caption = (kind: string) =>
+		ctx.i18n.t("promoCaption", {
+			viewUrl: ctx.i18n.t(`viewOn.${data.source.type}`, {
+				kind,
+				postUrl: data.url,
+				userName: data.userName,
+				userId: data.userId,
+			}),
+		});
 
 	const extra = (url: string) => ({
 		parse_mode: "HTML" as const,
@@ -74,14 +88,14 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 		},
 	});
 
-	const filepath = `/tmp/ummrobot-${Date.now()}-${data.userId}.mp4`;
+	const pathPrefix = `/tmp/ummrobot-${Date.now()}-${data.userId}-`;
 
 	const video = (filename: string) =>
 		({
 			kind: "video",
 			file: new InputFile(filename),
 			error: null,
-			caption,
+			caption: caption("video"),
 			rawCaption: ctx.i18n.t("rawCaption", {
 				type: data.source.type,
 				kind: "video",
@@ -90,47 +104,62 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			cleanup: async () => await deleteFile(filename),
 		}) as MediaAdapterResult;
 
-	const errorText = (error: Error) =>
+	const image = (filename: string) =>
+		({
+			kind: "image",
+			file: new InputFile(filename),
+			error: null,
+			caption: caption("image"),
+			rawCaption: ctx.i18n.t("rawCaption", {
+				type: data.source.type,
+				kind: "image",
+			}),
+			extra: extra(data.url),
+			cleanup: async () => await deleteFile(filename),
+		}) as MediaAdapterResult;
+
+	const images = (filenames: string[]) =>
+		({
+			kind: "images",
+			files: filenames.map((filename) => new InputFile(filename)),
+			error: null,
+			caption: caption("slider"),
+			rawCaption: ctx.i18n.t("rawCaption", {
+				type: data.source.type,
+				kind: "image",
+			}),
+			extra: extra(data.url),
+			cleanup: async () => await deleteFile(filenames[0]),
+		}) as MediaAdapterResult;
+
+	const text = () =>
 		({
 			kind: "text",
 			file: null,
-			error: humanifyError(error.message),
-			caption: ctx.i18n.t("error.viewOn", {
-				viewOn: caption,
-				error: humanifyError(error.message),
-			}),
+			error: null,
+			caption: caption("post"),
 			rawCaption: ctx.i18n.t("rawErrorCaption", {
 				type: data.source.type,
 				kind: "link",
-				error: humanifyError(error.message),
+				error: "",
 			}),
 			extra: extra(data.proxyUrl ?? data.url),
 			cleanup: async () => {},
 		}) as MediaAdapterResult;
 
-	let filename: string | null = null;
-	try {
-		filename = await downloadMedia(
-			ctx.binary,
-			data.url,
-			data.source.type,
-			filepath,
+	const media = await downloadMedia(data.url, pathPrefix);
+	if (media) {
+		const isImage = ["png", "jpg", "jpeg"].includes(
+			// biome-ignore lint/style/noNonNullAssertion: always returns a string
+			(media.type === "single" ? media.filename : media.filenames[0])
+				.split(".")
+				.at(-1)!,
 		);
-		return video(filename);
-	} catch (directError) {
-		if (data.proxyUrl) {
-			try {
-				filename = await downloadMedia(
-					ctx.binary,
-					data.proxyUrl,
-					data.source.type,
-					filepath,
-				);
-				return video(filename);
-			} catch (error) {
-				return errorText(error as Error);
-			}
+		if (media.type === "single") {
+			return isImage ? image(media.filename) : video(media.filename);
 		}
-		return errorText(directError as Error);
+		return images(media.filenames);
 	}
+
+	return text();
 };

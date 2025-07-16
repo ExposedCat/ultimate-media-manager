@@ -2,14 +2,23 @@ import { type MediaSource, downloadAdapter } from "./media-adapters.js";
 
 const SOURCES: MediaSource[] = [
 	{ type: "tiktok", match: "tiktok.com/" },
+
 	{ type: "instagram", match: /instagram.com\/.+?\/reel\// },
 	{ type: "instagram", match: "instagram.com/reels/" },
 	{ type: "instagram", match: "instagram.com/reel/" },
 	{ type: "instagram", match: "instagram.com/p/" },
+
 	{ type: "facebook", match: "fb.watch/" },
+	{ type: "facebook", match: /facebook.com\/share\// },
+
 	{ type: "youtube", match: "youtube.com/shorts/" },
 	{ type: "twitter", match: /x.com\/.+?\/status\// },
-	{ type: "facebook", match: /facebook.com\/share\// },
+
+	{ type: "pinterest", match: "pinterest.com/pin/" },
+
+	{ type: "reddit", match: /reddit.com\/r\/.+?\// },
+
+	{ type: "soundcloud", match: /soundcloud.com\/.+?\// },
 ];
 
 const PROXIES: Record<string, [string, string]> = {
@@ -26,6 +35,9 @@ export function matchInput(input: string) {
 				facebook: downloadAdapter,
 				youtube: downloadAdapter,
 				twitter: downloadAdapter,
+				pinterest: downloadAdapter,
+				soundcloud: downloadAdapter,
+				reddit: downloadAdapter,
 			}[type];
 
 			const proxyUrl = PROXIES[type] ? input.replace(...PROXIES[type]) : input;

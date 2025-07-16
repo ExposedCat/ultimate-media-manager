@@ -1,11 +1,14 @@
 {
 	"greeting": "Ultimate Media Manager\nYTDLP v${binaryVersion}\n<a href=\"https://github.com/ExposedCat/ultimate-media-manager\">💻 Source code</a>\n⚙️ Chat /settings\n\nPowered by @ExposedCatDev",
 	"viewOn": {
-		"facebook": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Facebook video</a>",
-		"instagram": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Instagram video</a>",
-		"tiktok": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this TikTok video</a>",
-		"youtube": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this YouTube Short video</a>",
+		"facebook": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Facebook ${kind}</a>",
+		"instagram": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Instagram ${kind}</a>",
+		"tiktok": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this TikTok ${kind}</a>",
+		"youtube": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this YouTube Short ${kind}</a>",
 		"twitter": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Twitter post</a>",
+		"pinterest": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Pinterest pin</a>",
+		"soundcloud": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this SoundCloud song</a>",
+		"reddit": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this Reddit post</a>",
 		"null": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this video</a>"
 	},
 	"rawCaption": "${kind} ${type}",
@@ -22,8 +25,8 @@
 	},
 	"error": {
 		"viewOn": "${viewOn}\n\n<i>${error}</i>",
-		"audio": "${error}",
-		"video": "${error}",
+		"audio": "😢 Failed to download audio",
+		"video": "😢 Failed to download video",
 		"videoSize": "🫨 Video is too big to download: ${size} Mb out of ${limit} Mb limit"
 	},
 	"promoCaption": "${viewUrl}",
