@@ -28,7 +28,7 @@ export type MediaAdapterData = {
 };
 
 export type MediaAdapterResult = {
-	cleanup: () => Promise<void>;
+	cleanup: () => Promise<unknown>;
 	caption: string;
 	rawCaption: string;
 	error: string | null;
@@ -129,7 +129,7 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 				kind: "image",
 			}),
 			extra: extra(data.url),
-			cleanup: async () => await deleteFile(filenames[0]),
+			cleanup: async () => await Promise.all(filenames.map(deleteFile)),
 		}) as MediaAdapterResult;
 
 	const audio = (filename: string) =>

@@ -21,6 +21,7 @@ ytVideoDownloadController
 		}
 
 		let statusMessageId: number | null = null;
+		let downloadedVideoPath: string | null = null;
 		const videoId = `${Date.now()}-${ctx.from.id}`;
 		const pathPrefix = `/tmp/ummrobot-${videoId}`;
 		try {
@@ -43,6 +44,7 @@ ytVideoDownloadController
 			statusMessageId = status.message_id;
 
 			const video = await downloadYoutubeVideo(prepared, pathPrefix);
+			downloadedVideoPath = video;
 
 			const extra: Parameters<typeof ctx.replyWithVideo>[1] = {
 				caption: ctx.i18n.t("downloaded.video", {
@@ -66,7 +68,9 @@ ytVideoDownloadController
 				await ctx.api.deleteMessage(ctx.chat.id, statusMessageId);
 			}
 			try {
-				await deleteFile(pathPrefix);
+				if (downloadedVideoPath) {
+					await deleteFile(downloadedVideoPath);
+				}
 			} catch {}
 		}
 	});
