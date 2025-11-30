@@ -39,19 +39,31 @@ export async function downloadYoutubeVideo(
 	const buffer = await response.arrayBuffer();
 
 	const path = `${pathPrefix}${preparedVideo.filename}`;
-	await fs.writeFile(path, Buffer.from(buffer));
+	await fs.writeFile(path, new Uint8Array(buffer));
 
 	return path;
 }
 
+export type DownloadMediaResult =
+	| {
+			type: "single";
+			filename: string | null;
+			url: string;
+			mediaKind: "image" | "video" | "audio";
+	  }
+	| {
+			type: "multiple";
+			filenames: string[];
+			mediaKind: "image";
+	  };
+
+const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];
+const AUDIO_EXTENSIONS = ["mp3", "wav", "ogg", "m4a"];
+
 export async function downloadMedia(
 	url: string,
 	pathPrefix: string,
-): Promise<
-	| { type: "single"; filename: string }
-	| { type: "multiple"; filenames: string[] }
-	| null
-> {
+): Promise<DownloadMediaResult | null> {
 	try {
 		const directUrl = await fetch("http://127.0.0.1:9000", {
 			method: "POST",
@@ -71,33 +83,49 @@ export async function downloadMedia(
 			return null;
 		}
 
-		const targets =
-			body.status === "picker"
-				? body.picker.map((item) => item.url)
-				: [body.url];
+		if (body.status === "picker") {
+			const responses = await Promise.all(
+				body.picker.map((item) => fetch(item.url)),
+			);
+			const buffers = await Promise.all(
+				responses.map((response) => response.arrayBuffer()),
+			);
 
-		const responses = await Promise.all(targets.map((target) => fetch(target)));
-		const buffers = await Promise.all(
-			responses.map((response) => response.arrayBuffer()),
-		);
+			const filenames: string[] = [];
+			for (const [index, buffer] of buffers.entries()) {
+				const filename = `${pathPrefix}-${index}.jpg`;
+				filenames.push(filename);
+				await fs.writeFile(filename, new Uint8Array(buffer));
+			}
 
-		const results = buffers.map(
-			(buffer, index) =>
-				[
-					body.status === "picker"
-						? `${pathPrefix}-${index}.jpg`
-						: `${pathPrefix}-${body.filename}`,
-					buffer,
-				] as const,
-		);
-
-		for (const [path, buffer] of results) {
-			await fs.writeFile(path, Buffer.from(buffer));
+			return { type: "multiple", filenames, mediaKind: "image" };
 		}
 
-		return results.length === 1
-			? { type: "single", filename: results[0][0] }
-			: { type: "multiple", filenames: results.map(([filename]) => filename) };
+		const extension = body.filename.split(".").at(-1)?.toLowerCase() ?? "";
+		const isImage = IMAGE_EXTENSIONS.includes(extension);
+		const isAudio = AUDIO_EXTENSIONS.includes(extension);
+
+		if (isAudio) {
+			const response = await fetch(body.url);
+			const buffer = await response.arrayBuffer();
+
+			const filename = `${pathPrefix}-${body.filename}`;
+			await fs.writeFile(filename, new Uint8Array(buffer));
+
+			return {
+				type: "single",
+				filename,
+				url: body.url,
+				mediaKind: "audio",
+			};
+		}
+
+		return {
+			type: "single",
+			filename: null,
+			url: body.url,
+			mediaKind: isImage ? "image" : "video",
+		};
 	} catch {
 		return null;
 	}
