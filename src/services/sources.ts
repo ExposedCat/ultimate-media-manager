@@ -22,7 +22,7 @@ const SOURCES: MediaSource[] = [
 ];
 
 const PROXIES: Record<string, [string, string]> = {
-	instagram: ["instagram", "ddinstagram"],
+	instagram: ["instagram", "d.ddinstagram"],
 	twitter: ["x.com", "fxtwitter.com"],
 };
 

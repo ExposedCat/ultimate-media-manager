@@ -30,7 +30,6 @@ export type MediaAdapterData = {
 export type MediaAdapterResult = {
 	cleanup: () => Promise<unknown>;
 	caption: string;
-	rawCaption: string;
 	error: string | null;
 	extra: Parameters<Api["sendMessage"]>[2];
 } & (
@@ -100,12 +99,28 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			files: filenames.map((filename) => new InputFile(filename)),
 			error: null,
 			caption: caption("slider"),
-			rawCaption: ctx.i18n.t("rawCaption", {
-				type: data.source.type,
-				kind: "image",
-			}),
 			extra: htmlExtra(data.url),
 			cleanup: async () => await Promise.all(filenames.map(deleteFile)),
+		}) as MediaAdapterResult;
+
+	const image = (filename: string) =>
+		({
+			kind: "image",
+			file: new InputFile(filename),
+			error: null,
+			caption: caption("image"),
+			extra: htmlExtra(data.url),
+			cleanup: async () => await deleteFile(filename),
+		}) as MediaAdapterResult;
+
+	const video = (filename: string) =>
+		({
+			kind: "video",
+			file: new InputFile(filename),
+			error: null,
+			caption: caption("video"),
+			extra: htmlExtra(data.url),
+			cleanup: async () => await deleteFile(filename),
 		}) as MediaAdapterResult;
 
 	const audio = (filename: string) =>
@@ -114,53 +129,25 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			file: new InputFile(filename),
 			error: null,
 			caption: caption("audio"),
-			rawCaption: ctx.i18n.t("rawCaption", {
-				type: data.source.type,
-				kind: "audio",
-			}),
 			extra: htmlExtra(data.url),
 			cleanup: async () => await deleteFile(filename),
 		}) as MediaAdapterResult;
 
-	const preview = (kind: "image" | "video") =>
-		({
-			kind: "text",
-			file: null,
-			error: null,
-			caption: data.proxyUrl ?? data.url,
-			rawCaption: ctx.i18n.t("rawCaption", {
-				type: data.source.type,
-				kind,
-			}),
-			extra: baseExtra(data.proxyUrl ?? data.url),
-			cleanup: async () => {},
-		}) as MediaAdapterResult;
-
-	const text = () =>
+	const preview = () =>
 		({
 			kind: "text",
 			file: null,
 			error: null,
 			caption: caption("post"),
-			rawCaption: ctx.i18n.t("rawErrorCaption", {
-				type: data.source.type,
-				kind: "link",
-				error: "",
-			}),
 			extra: htmlExtra(data.proxyUrl ?? data.url),
 			cleanup: async () => {},
 		}) as MediaAdapterResult;
 
 	const media = await downloadMedia(data.url, pathPrefix);
 	if (media) {
-		if (media.type === "single") {
-			if (media.mediaKind === "audio" && media.filename) {
-				return audio(media.filename);
-			}
-
-			if (media.mediaKind === "image" || media.mediaKind === "video") {
-				return preview(media.mediaKind);
-			}
+		if (media.type === "single" && media.filename) {
+			const func = { audio, image, video }[media.mediaKind];
+			return func(media.filename);
 		}
 
 		if (media.type === "multiple") {
@@ -168,5 +155,5 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 		}
 	}
 
-	return text();
+	return preview();
 };

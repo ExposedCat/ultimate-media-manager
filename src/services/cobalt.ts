@@ -48,7 +48,6 @@ export type DownloadMediaResult =
 	| {
 			type: "single";
 			filename: string | null;
-			url: string;
 			mediaKind: "image" | "video" | "audio";
 	  }
 	| {
@@ -105,28 +104,19 @@ export async function downloadMedia(
 		const isImage = IMAGE_EXTENSIONS.includes(extension);
 		const isAudio = AUDIO_EXTENSIONS.includes(extension);
 
-		if (isAudio) {
-			const response = await fetch(body.url);
-			const buffer = await response.arrayBuffer();
+		const response = await fetch(body.url);
+		const buffer = await response.arrayBuffer();
 
-			const filename = `${pathPrefix}-${body.filename}`;
-			await fs.writeFile(filename, new Uint8Array(buffer));
-
-			return {
-				type: "single",
-				filename,
-				url: body.url,
-				mediaKind: "audio",
-			};
-		}
+		const filename = `${pathPrefix}-${body.filename}`;
+		await fs.writeFile(filename, new Uint8Array(buffer));
 
 		return {
 			type: "single",
-			filename: null,
-			url: body.url,
-			mediaKind: isImage ? "image" : "video",
+			filename,
+			mediaKind: isImage ? "image" : isAudio ? "audio" : "video",
 		};
-	} catch {
+	} catch (error) {
+		console.log("Cobalt failed to prepare media", error);
 		return null;
 	}
 }
