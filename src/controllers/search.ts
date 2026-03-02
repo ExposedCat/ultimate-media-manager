@@ -11,6 +11,8 @@ type SearchEntry = {
 	title: string;
 	content?: string;
 	img_src?: string;
+	img_format?: string;
+	thumbnail_src?: string;
 };
 
 type SearchApiResponse = {
@@ -18,16 +20,19 @@ type SearchApiResponse = {
 };
 
 async function searchImages(query: string) {
-	const uri = `http://127.0.0.1:8088/search?format=json&categories=images&q=${encodeURIComponent(query)}`;
+	const uri = `http://127.0.0.1:9000/search?format=json&categories=images&q=${encodeURIComponent(query)}`;
 	try {
 		const request = await fetch(uri);
 		const response = (await request.json()) as SearchApiResponse;
+		console.log(`Found ${response.results.length} results`);
 		const formatted = response.results.map((result) => {
 			return {
 				url: result.url,
 				title: result.title,
 				content: result.content,
 				image: result.img_src,
+				format: result.img_format,
+				thumbnail: result.thumbnail_src,
 			};
 		});
 		return { ok: true, result: formatted, error: null };
@@ -138,15 +143,41 @@ searchController.on("inline_query", async (ctx) => {
 		return;
 	}
 
+	const offset = Number.parseInt(ctx.inlineQuery.offset || "0");
+
 	const result = await searchImages(ctx.inlineQuery.query);
 
 	if (result.ok) {
 		// biome-ignore lint/style/noNonNullAssertion: result.ok means result.result is not null
-		const results = result
-			.result!.slice(0, 50)
-			.map((image, i) =>
-				InlineQueryResultBuilder.photo(i.toString(), image.url),
-			);
-		await ctx.answerInlineQuery(results);
+		const filtered = result
+			.result!.filter((image) => {
+				console.log(image.format);
+				if (
+					!["jpg", "jpeg", "image/jpeg"].includes(
+						image.format?.toLowerCase() ?? "unknown",
+					)
+				) {
+					return false;
+				}
+				try {
+					new URL(image.image ?? image.url);
+				} catch {
+					return false;
+				}
+				return true;
+			})
+			.slice(offset, offset + 50);
+		const results = filtered.map((image, i) => {
+			const imageUrl = image.image ?? image.url;
+			const thumbnailUrl = image.thumbnail ?? imageUrl;
+			return InlineQueryResultBuilder.photo(i.toString(), imageUrl, {
+				caption: `<a href="${image.url}">source</a>`,
+				parse_mode: "HTML",
+				thumbnail_url: thumbnailUrl,
+			});
+		});
+		await ctx.answerInlineQuery(results, {
+			next_offset: (offset + filtered.length).toString(),
+		});
 	}
 });
