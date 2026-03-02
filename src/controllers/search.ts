@@ -24,7 +24,6 @@ async function searchImages(query: string) {
 	try {
 		const request = await fetch(uri);
 		const response = (await request.json()) as SearchApiResponse;
-		console.log(`Found ${response.results.length} results`);
 		const formatted = response.results.map((result) => {
 			return {
 				url: result.url,
@@ -151,7 +150,6 @@ searchController.on("inline_query", async (ctx) => {
 		// biome-ignore lint/style/noNonNullAssertion: result.ok means result.result is not null
 		const filtered = result
 			.result!.filter((image) => {
-				console.log(image.format);
 				if (
 					!["jpg", "jpeg", "image/jpeg"].includes(
 						image.format?.toLowerCase() ?? "unknown",
