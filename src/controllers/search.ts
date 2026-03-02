@@ -20,7 +20,7 @@ type SearchApiResponse = {
 };
 
 async function searchImages(query: string) {
-	const uri = `http://127.0.0.1:9000/search?format=json&categories=images&q=${encodeURIComponent(query)}`;
+	const uri = `${process.env.SEARXNG_API_URL}/search?format=json&categories=images&q=${encodeURIComponent(query)}`;
 	try {
 		const request = await fetch(uri);
 		const response = (await request.json()) as SearchApiResponse;

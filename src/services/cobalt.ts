@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 
 export async function prepareYoutubeVideo(url: string, id: string) {
-	const directUrl = await fetch("http://127.0.0.1:9000", {
+	const directUrl = await fetch(process.env.COBALT_API_URL, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -64,7 +64,7 @@ export async function downloadMedia(
 	pathPrefix: string,
 ): Promise<DownloadMediaResult | null> {
 	try {
-		const directUrl = await fetch("http://127.0.0.1:9000", {
+		const directUrl = await fetch(process.env.COBALT_API_URL, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
