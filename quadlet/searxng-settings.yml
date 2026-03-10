@@ -19,12 +19,12 @@ search:
     cf_SearxEngineCaptcha: 0
     cf_SearxEngineAccessDenied: 0
     recaptcha_SearxEngineCaptcha: 0
+
 engines:
   - name: google images
     disabled: false
   - name: bing images
-    disabled: false
-
+    disabled: true
   - name: startpage images
     disabled: true
   - name: brave.images

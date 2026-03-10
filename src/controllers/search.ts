@@ -1,48 +1,11 @@
 import { Composer, InlineKeyboard, InlineQueryResultBuilder } from "grammy";
+import { searchJpegImages } from "../services/search.js";
 import { matchInput } from "../services/sources.js";
 
 import type { CustomContext } from "../types/context.js";
 
-const THUMBNAIL_URL =
+const DOWNLOAD_THUMBNAIL_IMAGE_URL =
 	"https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fcdn4.iconfinder.com%2Fdata%2Ficons%2Farrows-245%2F24%2Fdownload_1-1024.png&f=1&nofb=1&ipt=fe03aaef09431f64f583d6239a6a6423af9fd2375434e98f80eff03b0119a485";
-
-type SearchEntry = {
-	url: string;
-	title: string;
-	content?: string;
-	img_src?: string;
-	img_format?: string;
-	thumbnail_src?: string;
-};
-
-type SearchApiResponse = {
-	results: SearchEntry[];
-};
-
-async function searchImages(query: string) {
-	const uri = `${process.env.SEARXNG_API_URL}/search?format=json&categories=images&q=${encodeURIComponent(query)}`;
-	try {
-		const request = await fetch(uri);
-		const response = (await request.json()) as SearchApiResponse;
-		const formatted = response.results.map((result) => {
-			return {
-				url: result.url,
-				title: result.title,
-				content: result.content,
-				image: result.img_src,
-				format: result.img_format,
-				thumbnail: result.thumbnail_src,
-			};
-		});
-		return { ok: true, result: formatted, error: null };
-	} catch (error) {
-		return {
-			ok: false,
-			result: null,
-			error: `${error}`.trim() || "Unknown Error",
-		};
-	}
-}
 
 export const searchController = new Composer<CustomContext>();
 
@@ -135,7 +98,7 @@ searchController.on("inline_query", async (ctx) => {
 						source: `${urlMatch.type[0].toUpperCase()}${urlMatch.type.slice(1)}`,
 					}),
 				),
-				thumbnail_url: THUMBNAIL_URL,
+				thumbnail_url: DOWNLOAD_THUMBNAIL_IMAGE_URL,
 				description: ctx.i18n.t("inline.description"),
 			}).text(ctx.i18n.t("inline.content")),
 		]);
@@ -143,39 +106,17 @@ searchController.on("inline_query", async (ctx) => {
 	}
 
 	const offset = Number.parseInt(ctx.inlineQuery.offset || "0");
+	const images = await searchJpegImages(ctx.inlineQuery.query);
+	const paginatedImages = images.slice(offset, offset + 50);
+	const results = paginatedImages.map((image, i) =>
+		InlineQueryResultBuilder.photo((offset + i).toString(), image.imageUrl, {
+			caption: `<a href="${image.sourceUrl}">source</a>`,
+			parse_mode: "HTML",
+			thumbnail_url: image.thumbnailUrl,
+		}),
+	);
 
-	const result = await searchImages(ctx.inlineQuery.query);
-
-	if (result.ok) {
-		// biome-ignore lint/style/noNonNullAssertion: result.ok means result.result is not null
-		const filtered = result
-			.result!.filter((image) => {
-				if (
-					!["jpg", "jpeg", "image/jpeg"].includes(
-						image.format?.toLowerCase() ?? "unknown",
-					)
-				) {
-					return false;
-				}
-				try {
-					new URL(image.image ?? image.url);
-				} catch {
-					return false;
-				}
-				return true;
-			})
-			.slice(offset, offset + 50);
-		const results = filtered.map((image, i) => {
-			const imageUrl = image.image ?? image.url;
-			const thumbnailUrl = image.thumbnail ?? imageUrl;
-			return InlineQueryResultBuilder.photo(i.toString(), imageUrl, {
-				caption: `<a href="${image.url}">source</a>`,
-				parse_mode: "HTML",
-				thumbnail_url: thumbnailUrl,
-			});
-		});
-		await ctx.answerInlineQuery(results, {
-			next_offset: (offset + filtered.length).toString(),
-		});
-	}
+	await ctx.answerInlineQuery(results, {
+		next_offset: (offset + paginatedImages.length).toString(),
+	});
 });
