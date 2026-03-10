@@ -4,9 +4,7 @@
 	"description": "Media downloader & converted as a Telegram Bot",
 	"main": "build/index.js",
 	"scripts": {
-		"build:local": "tsc && cp -r src/locales build",
-		"build:quadlet": "./scripts/build",
-		"start:quadlet": "./scripts/restart",
+		"build": "tsc && cp -r src/locales build",
 		"start": "npm run build && node .",
 		"lint": "npx biome format src/ --write; npx biome lint src/"
 	},
