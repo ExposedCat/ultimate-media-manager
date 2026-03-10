@@ -1,0 +1,8 @@
+[Unit]
+Description=Ultimate Media Manager pod
+
+[Pod]
+PodName=ultimate-media-manager
+Network=dev-infra
+PublishPort=127.0.0.1:9000:9000
+PublishPort=127.0.0.1:8080:8080

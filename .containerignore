@@ -1,0 +1,5 @@
+.git
+.env
+build
+node_modules
+tsconfig.tsbuildinfo

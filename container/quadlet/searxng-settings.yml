@@ -1,0 +1,32 @@
+use_default_settings: true
+
+general:
+  instance_name: "SearXNG"
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  formats:
+    - json
+
+  # Keep image search results available even if some engines are flaky.
+  ban_time_on_fail: 0
+  max_ban_time_on_fail: 0
+  suspended_times:
+    SearxEngineAccessDenied: 0
+    SearxEngineCaptcha: 0
+    SearxEngineTooManyRequests: 0
+    cf_SearxEngineCaptcha: 0
+    cf_SearxEngineAccessDenied: 0
+    recaptcha_SearxEngineCaptcha: 0
+
+engines:
+  - name: pexels
+    disabled: true
+  - name: artic
+    disabled: true
+
+server:
+  limiter: false
+  image_proxy: true
+  method: "POST"
