@@ -32,5 +32,5 @@ outgoing:
 
 server:
   limiter: false
-  image_proxy: true
+  image_proxy: false
   method: "POST"
