@@ -26,6 +26,10 @@ engines:
   - name: artic
     disabled: true
 
+outgoing:
+  request_timeout: 10.0
+  max_request_timeout: 10.0
+
 server:
   limiter: false
   image_proxy: true
