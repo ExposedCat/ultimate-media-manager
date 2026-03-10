@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 systemctl --user reset-failed
-systemctl --user restart ultimate-media-manager-app.service
+systemctl --user restart ultimate-media-manager-pod.service
