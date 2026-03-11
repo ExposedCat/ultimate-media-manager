@@ -63,13 +63,11 @@ export async function searchJpegImages(
 	const cachedResult = imageSearchCache.get(query);
 	if (cachedResult) {
 		if (now - cachedResult.timestamp <= SEARCH_CACHE_TTL_MS) {
-			console.log("cache hit", query);
 			return cachedResult.results;
 		}
 	}
 
 	try {
-		console.log("fresh search", query);
 		const request = await fetch(buildJpegSearchUri(query));
 		const response = (await request.json()) as SearchApiResponse;
 		const results = response.results.flatMap((result) => {
