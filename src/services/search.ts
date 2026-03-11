@@ -18,7 +18,7 @@ export type ImageSearchResult = {
 
 type CachedSearchResult = {
 	timestamp: number;
-	results: ImageSearchResult[];
+	resultsPromise: Promise<ImageSearchResult[]>;
 };
 
 const JPEG_FORMATS = new Set(["jpg", "jpeg", "image/jpeg"]);
@@ -56,47 +56,54 @@ function cleanupImageSearchCache(now: number) {
 	}
 }
 
+async function fetchJpegImages(query: string): Promise<ImageSearchResult[]> {
+	const request = await fetch(buildJpegSearchUri(query));
+	const response = (await request.json()) as SearchApiResponse;
+	return response.results.flatMap((result) => {
+		const format = result.img_format?.toLowerCase() ?? null;
+		if (format && !JPEG_FORMATS.has(format)) {
+			return [];
+		}
+
+		const sourceUrl = result.url;
+		const imageUrl = result.img_src ?? result.url;
+		const thumbnailUrl = result.thumbnail_src ?? imageUrl;
+
+		if (!isValidUrl(imageUrl) || !isValidUrl(thumbnailUrl)) {
+			return [];
+		}
+
+		return [{ sourceUrl, imageUrl, thumbnailUrl, format }];
+	});
+}
+
 export async function searchJpegImages(
 	query: string,
 ): Promise<ImageSearchResult[]> {
 	const now = Date.now();
 	const cachedResult = imageSearchCache.get(query);
-	if (cachedResult) {
-		if (now - cachedResult.timestamp <= SEARCH_CACHE_TTL_MS) {
-			return cachedResult.results;
-		}
+	const hasFreshCache =
+		cachedResult && now - cachedResult.timestamp <= SEARCH_CACHE_TTL_MS;
+
+	let resultsPromise = cachedResult?.resultsPromise;
+	if (!hasFreshCache || !resultsPromise) {
+		resultsPromise = fetchJpegImages(query);
+		imageSearchCache.set(query, {
+			timestamp: now,
+			resultsPromise,
+		});
+		cleanupImageSearchCache(now);
 	}
 
 	try {
-		const request = await fetch(buildJpegSearchUri(query));
-		const response = (await request.json()) as SearchApiResponse;
-		const results = response.results.flatMap((result) => {
-			const format = result.img_format?.toLowerCase() ?? null;
-			if (format && !JPEG_FORMATS.has(format)) {
-				return [];
-			}
-
-			const sourceUrl = result.url;
-			const imageUrl = result.img_src ?? result.url;
-			const thumbnailUrl = result.thumbnail_src ?? imageUrl;
-
-			if (!isValidUrl(imageUrl) || !isValidUrl(thumbnailUrl)) {
-				return [];
-			}
-
-			return [{ sourceUrl, imageUrl, thumbnailUrl, format }];
-		});
-
-		imageSearchCache.set(query, {
-			timestamp: now,
-			results,
-		});
-
-		return results;
+		return await resultsPromise;
 	} catch (error) {
+		if (imageSearchCache.get(query)?.resultsPromise === resultsPromise) {
+			imageSearchCache.delete(query);
+		}
 		console.error("Image search failed", error);
 		return [];
 	} finally {
-		cleanupImageSearchCache(now);
+		cleanupImageSearchCache(Date.now());
 	}
 }
