@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  cobalt:
+    image: ghcr.io/imputnet/cobalt:11
+    container_name: ultimate-media-manager-cobalt
+    restart: always
+    read_only: true
+    environment:
+      API_URL: http://cobalt:9000/
+    networks:
+      - dev-infra
+    ports:
+      - "127.0.0.1:9000:9000"
+
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    container_name: ultimate-media-manager-searxng
+    restart: always
+    env_file: .env
+    environment:
+      SEARXNG_BASE_URL: http://searxng:8080/
+    volumes:
+      - ./quadlet/searxng-settings.yml:/etc/searxng/settings.yml
+      - searxng-data:/var/cache/searxng
+    networks:
+      - dev-infra
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  app:
+    image: localhost/ultimate-media-manager:latest
+    container_name: ultimate-media-manager-app
+    restart: always
+    env_file: .env
+    environment:
+      COBALT_API_URL: http://cobalt:9000
+      SEARXNG_API_URL: http://searxng:8080
+    depends_on:
+      - cobalt
+      - searxng
+    networks:
+      - dev-infra
+
+volumes:
+  searxng-data:
+    name: ultimate-media-manager-searxng-data
+
+networks:
+  dev-infra:
+    name: dev-infra
+    external: true
