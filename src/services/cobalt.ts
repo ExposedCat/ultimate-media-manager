@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { deleteFiles } from "../helpers/fs.js";
 
 export async function prepareYoutubeVideo(url: string, id: string) {
 	const directUrl = await fetch(process.env.COBALT_API_URL, {
@@ -63,6 +64,7 @@ export async function downloadMedia(
 	url: string,
 	pathPrefix: string,
 ): Promise<DownloadMediaResult | null> {
+	const filenames: string[] = [];
 	try {
 		const directUrl = await fetch(process.env.COBALT_API_URL, {
 			method: "POST",
@@ -90,11 +92,10 @@ export async function downloadMedia(
 				responses.map((response) => response.arrayBuffer()),
 			);
 
-			const filenames: string[] = [];
 			for (const [index, buffer] of buffers.entries()) {
 				const filename = `${pathPrefix}-${index}.jpg`;
-				filenames.push(filename);
 				await fs.writeFile(filename, new Uint8Array(buffer));
+				filenames.push(filename);
 			}
 
 			return { type: "multiple", filenames, mediaKind: "image" };
@@ -109,6 +110,7 @@ export async function downloadMedia(
 
 		const filename = `${pathPrefix}-${body.filename}`;
 		await fs.writeFile(filename, new Uint8Array(buffer));
+		filenames.push(filename);
 
 		return {
 			type: "single",
@@ -117,6 +119,7 @@ export async function downloadMedia(
 		};
 	} catch (error) {
 		console.log("Cobalt failed to prepare media", error);
+		await deleteFiles(filenames);
 		return null;
 	}
 }

@@ -1,6 +1,6 @@
 import { type Api, InputFile } from "grammy";
 
-import { deleteFile } from "../helpers/fs.js";
+import { deleteFiles } from "../helpers/fs.js";
 import type { CustomContext } from "../types/context.js";
 import { downloadMedia } from "./cobalt.js";
 
@@ -100,7 +100,7 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			error: null,
 			caption: caption("slider"),
 			extra: htmlExtra(data.url),
-			cleanup: async () => await Promise.all(filenames.map(deleteFile)),
+			cleanup: async () => await deleteFiles(filenames),
 		}) as MediaAdapterResult;
 
 	const image = (filename: string) =>
@@ -110,7 +110,7 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			error: null,
 			caption: caption("image"),
 			extra: htmlExtra(data.url),
-			cleanup: async () => await deleteFile(filename),
+			cleanup: async () => await deleteFiles([filename]),
 		}) as MediaAdapterResult;
 
 	const video = (filename: string) =>
@@ -120,7 +120,7 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			error: null,
 			caption: caption("video"),
 			extra: htmlExtra(data.url),
-			cleanup: async () => await deleteFile(filename),
+			cleanup: async () => await deleteFiles([filename]),
 		}) as MediaAdapterResult;
 
 	const audio = (filename: string) =>
@@ -130,7 +130,7 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			error: null,
 			caption: caption("audio"),
 			extra: htmlExtra(data.url),
-			cleanup: async () => await deleteFile(filename),
+			cleanup: async () => await deleteFiles([filename]),
 		}) as MediaAdapterResult;
 
 	const preview = () =>

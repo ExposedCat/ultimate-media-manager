@@ -1,6 +1,6 @@
 import { Composer, InputFile } from "grammy";
 
-import { deleteFile } from "../helpers/fs.js";
+import { deleteFiles } from "../helpers/fs.js";
 import {
 	downloadYoutubeVideo,
 	prepareYoutubeVideo,
@@ -67,10 +67,8 @@ ytVideoDownloadController
 			if (statusMessageId) {
 				await ctx.api.deleteMessage(ctx.chat.id, statusMessageId);
 			}
-			try {
-				if (downloadedVideoPath) {
-					await deleteFile(downloadedVideoPath);
-				}
-			} catch {}
+			if (downloadedVideoPath) {
+				await deleteFiles([downloadedVideoPath]);
+			}
 		}
 	});
