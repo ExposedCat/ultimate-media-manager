@@ -1,3 +1,4 @@
+import { autoRetry } from "@grammyjs/auto-retry";
 import type { I18n } from "@grammyjs/i18n";
 import { run } from "@grammyjs/runner";
 import { Bot as TelegramBot, session } from "grammy";
@@ -64,6 +65,10 @@ export async function startBot(database: Database) {
 
 	const i18n = initLocaleEngine(localesPath);
 	const bot = new TelegramBot<CustomContext>(process.env.TOKEN);
+
+	bot.api.config.use(autoRetry({
+		rethrowHttpErrors: true
+	}));
 
 	setupMiddlewares(bot, i18n);
 	extendContext(bot, database);
