@@ -1,6 +1,5 @@
-import { setTimeout } from "node:timers/promises";
-
 import type { I18n } from "@grammyjs/i18n";
+import { run } from "@grammyjs/runner";
 import { Bot as TelegramBot, session } from "grammy";
 
 import { mediaDownloadController } from "../controllers/media-download.js";
@@ -70,10 +69,7 @@ export async function startBot(database: Database) {
 	extendContext(bot, database);
 	setupControllers(bot);
 
-	// NOTE: Resolves only when bot is stopped
-	// so give it a second to start instead of `await`
-	void bot.start({
-		drop_pending_updates: true,
-	});
-	return await setTimeout(1_000);
+	await bot.api.deleteWebhook();
+
+	return run(bot);
 }
