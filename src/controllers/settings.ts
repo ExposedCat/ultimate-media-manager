@@ -1,12 +1,17 @@
 import { Composer } from "grammy";
 
-import type { Settings } from "../types/database.js";
-import type { CustomContext } from "../types/context.js";
 import { setChatCleanup } from "../services/chat.js";
+import type { CustomContext } from "../types/context.js";
+import type { Settings } from "../types/database.js";
 
 export const settingsController = new Composer<CustomContext>();
 settingsController.command("settings", async (ctx) => {
-	if (!ctx.message || !ctx.objects.chat) {
+	if (!ctx.message) {
+		return;
+	}
+
+	if (!ctx.objects.chat) {
+		await ctx.text("settingsGroupOnly");
 		return;
 	}
 

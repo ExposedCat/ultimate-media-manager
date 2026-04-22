@@ -38,6 +38,7 @@
 		"videoSize": "🫨 Video is too big to download: ${size} Mb out of ${limit} Mb limit"
 	},
 	"promoCaption": "${viewUrl}",
+	"settingsGroupOnly": "Settings are only available in group chats.",
 	"settings": "Chat settings:\n\n${cleanup} ${cleanupOption} (<code>cleanup</code>)\n\n/settings OPTION yes|no",
 	"unknownOption": "Unknown option \"${option}\"\nSee /settings",
 	"cleanupOption": "Delete links",

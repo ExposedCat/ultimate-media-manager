@@ -66,9 +66,11 @@ export async function startBot(database: Database) {
 	const i18n = initLocaleEngine(localesPath);
 	const bot = new TelegramBot<CustomContext>(process.env.TOKEN);
 
-	bot.api.config.use(autoRetry({
-		rethrowHttpErrors: true
-	}));
+	bot.api.config.use(
+		autoRetry({
+			rethrowHttpErrors: true,
+		}),
+	);
 
 	setupMiddlewares(bot, i18n);
 	extendContext(bot, database);
