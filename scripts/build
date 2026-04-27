@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-podman build -t localhost/ultimate-media-manager:latest -f Containerfile .
-podman quadlet install --replace ./quadlet/ ./.env
-systemctl --user daemon-reload

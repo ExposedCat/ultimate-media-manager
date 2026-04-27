@@ -1,5 +1,0 @@
-[Unit]
-Description=Ultimate Media Manager SearXNG cache volume
-
-[Volume]
-VolumeName=ultimate-media-manager-searxng-data

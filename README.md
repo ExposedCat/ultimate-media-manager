@@ -17,8 +17,11 @@ See social media posts right in the Telegram Messenger.
   - TikTok
   - YouTube Shorts
   - Facebook
+  - Reddit
   - Twitter (X)
-- YouTube audio downloading
+  - Pinterest
+  - Soundcloud
+- YouTube downloading
 
 # Usage
 
@@ -35,8 +38,8 @@ See social media posts right in the Telegram Messenger.
    post link (separated by space)
 2. Press "Share post"
 
-## YouTube Audio Downloading
+## YouTube Downloading
 
 1. Add @UMMRobot to the group chat
-2. Use `/mp3 link` command, replace `link` with the YouTube video link. Videos
-   longer than 60 seconds are not supported
+2. Use `/audio link`, `/video link` or just `/audio`, `/video` **in reply** to
+   the message containing a link
