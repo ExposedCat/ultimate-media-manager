@@ -69,6 +69,7 @@ export async function startBot(database: Database) {
 	bot.api.config.use(
 		autoRetry({
 			rethrowHttpErrors: true,
+			maxRetryAttempts: 5,
 		}),
 	);
 
