@@ -1,5 +1,4 @@
 import { APP_ENV } from "../config/env.ts";
-import { deleteFiles } from "../helpers/fs.ts";
 
 export async function prepareYoutubeVideo(url: string, id: string) {
 	const directUrl = await fetch(APP_ENV.COBALT_API_URL, {
@@ -34,12 +33,12 @@ export async function prepareYoutubeVideo(url: string, id: string) {
 
 export async function downloadYoutubeVideo(
 	preparedVideo: Exclude<Awaited<ReturnType<typeof prepareYoutubeVideo>>, null>,
-	pathPrefix: string,
+	tempDir: string,
 ) {
 	const response = await fetch(preparedVideo.url);
 	const buffer = await response.arrayBuffer();
 
-	const path = `${pathPrefix}${preparedVideo.filename}`;
+	const path = `${tempDir}/${preparedVideo.filename}`;
 	await Deno.writeFile(path, new Uint8Array(buffer));
 
 	return path;
@@ -62,7 +61,7 @@ const AUDIO_EXTENSIONS = ["mp3", "wav", "ogg", "m4a"];
 
 export async function downloadMedia(
 	url: string,
-	pathPrefix: string,
+	tempDir: string,
 ): Promise<DownloadMediaResult | null> {
 	const filenames: string[] = [];
 	try {
@@ -93,7 +92,7 @@ export async function downloadMedia(
 			);
 
 			for (const [index, buffer] of buffers.entries()) {
-				const filename = `${pathPrefix}-${index}.jpg`;
+				const filename = `${tempDir}/${index}.jpg`;
 				await Deno.writeFile(filename, new Uint8Array(buffer));
 				filenames.push(filename);
 			}
@@ -108,7 +107,7 @@ export async function downloadMedia(
 		const response = await fetch(body.url);
 		const buffer = await response.arrayBuffer();
 
-		const filename = `${pathPrefix}-${body.filename}`;
+		const filename = `${tempDir}/${body.filename}`;
 		await Deno.writeFile(filename, new Uint8Array(buffer));
 		filenames.push(filename);
 
@@ -119,7 +118,6 @@ export async function downloadMedia(
 		};
 	} catch (error) {
 		console.log("Cobalt failed to prepare media", error);
-		await deleteFiles(filenames);
 		return null;
 	}
 }

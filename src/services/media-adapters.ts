@@ -1,6 +1,6 @@
 import { type Api, InputFile } from "grammy";
 
-import { deleteFiles } from "../helpers/fs.ts";
+import { deletePaths } from "../helpers/fs.ts";
 import type { CustomContext } from "../types/context.ts";
 import { downloadMedia } from "./cobalt.ts";
 
@@ -91,7 +91,9 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 		...baseExtra(url),
 	});
 
-	const pathPrefix = `/tmp/ummrobot-${Date.now()}-${data.userId}-`;
+	const tempDir = await Deno.makeTempDir({
+		prefix: `ummrobot-${data.userId}-`,
+	});
 
 	const images = (filenames: string[]) =>
 		({
@@ -100,7 +102,7 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			error: null,
 			caption: caption("slider"),
 			extra: htmlExtra(data.url),
-			cleanup: async () => await deleteFiles(filenames),
+			cleanup: async () => await deletePaths([tempDir]),
 		}) as MediaAdapterResult;
 
 	const image = (filename: string) =>
@@ -110,7 +112,7 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			error: null,
 			caption: caption("image"),
 			extra: htmlExtra(data.url),
-			cleanup: async () => await deleteFiles([filename]),
+			cleanup: async () => await deletePaths([tempDir]),
 		}) as MediaAdapterResult;
 
 	const video = (filename: string) =>
@@ -120,7 +122,7 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			error: null,
 			caption: caption("video"),
 			extra: htmlExtra(data.url),
-			cleanup: async () => await deleteFiles([filename]),
+			cleanup: async () => await deletePaths([tempDir]),
 		}) as MediaAdapterResult;
 
 	const audio = (filename: string) =>
@@ -130,7 +132,7 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			error: null,
 			caption: caption("audio"),
 			extra: htmlExtra(data.url),
-			cleanup: async () => await deleteFiles([filename]),
+			cleanup: async () => await deletePaths([tempDir]),
 		}) as MediaAdapterResult;
 
 	const preview = () =>
@@ -140,10 +142,10 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 			error: null,
 			caption: caption("post"),
 			extra: htmlExtra(data.proxyUrl ?? data.url),
-			cleanup: async () => {},
+			cleanup: async () => await deletePaths([tempDir]),
 		}) as MediaAdapterResult;
 
-	const media = await downloadMedia(data.url, pathPrefix);
+	const media = await downloadMedia(data.url, tempDir);
 	if (media) {
 		if (media.type === "single" && media.filename) {
 			const func = { audio, image, video }[media.mediaKind];

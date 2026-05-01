@@ -1,6 +1,6 @@
 import { Composer, InputFile } from "grammy";
 
-import { deleteFiles } from "../helpers/fs.ts";
+import { deletePaths } from "../helpers/fs.ts";
 import {
 	downloadYoutubeVideo,
 	prepareYoutubeVideo,
@@ -21,9 +21,10 @@ ytVideoDownloadController
 		}
 
 		let statusMessageId: number | null = null;
-		let downloadedVideoPath: string | null = null;
 		const videoId = `${Date.now()}-${ctx.from.id}`;
-		const pathPrefix = `/tmp/ummrobot-${videoId}`;
+		const tempDir = await Deno.makeTempDir({
+			prefix: `ummrobot-${videoId}-`,
+		});
 		try {
 			const prepared = await prepareYoutubeVideo(url, videoId);
 			if (!prepared) {
@@ -43,8 +44,7 @@ ytVideoDownloadController
 			const status = await ctx.text("status.downloading.video");
 			statusMessageId = status.message_id;
 
-			const video = await downloadYoutubeVideo(prepared, pathPrefix);
-			downloadedVideoPath = video;
+			const video = await downloadYoutubeVideo(prepared, tempDir);
 
 			const extra: Parameters<typeof ctx.replyWithVideo>[1] = {
 				caption: ctx.i18n.t("downloaded.video", {
@@ -67,8 +67,6 @@ ytVideoDownloadController
 			if (statusMessageId) {
 				await ctx.api.deleteMessage(ctx.chat.id, statusMessageId);
 			}
-			if (downloadedVideoPath) {
-				await deleteFiles([downloadedVideoPath]);
-			}
+			await deletePaths([tempDir]);
 		}
 	});

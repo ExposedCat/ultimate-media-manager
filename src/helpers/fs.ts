@@ -1,10 +1,10 @@
-export async function deleteFiles(filePaths: string[]) {
+export async function deletePaths(paths: string[]) {
 	const results = await Promise.allSettled(
-		filePaths.map((filePath) => Deno.remove(filePath)),
+		paths.map((path) => Deno.remove(path, { recursive: true })),
 	);
 	for (const result of results) {
 		if (result.status === "rejected") {
-			console.error("[Failed to delete temp file]", result.reason);
+			console.error("[Failed to delete temp path]", result.reason);
 		}
 	}
 }

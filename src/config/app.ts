@@ -5,8 +5,13 @@ import type { MongoClient } from "mongodb";
 import { startBot } from "./bot.ts";
 import { connectToDb } from "./database.ts";
 import { APP_ENV } from "./env.ts";
+import { startHealthServer, stopHealthServer } from "./health.ts";
 
-function setupShutdown(runner: RunnerHandle, client: MongoClient) {
+function setupShutdown(
+	runner: RunnerHandle,
+	client: MongoClient,
+	healthServer: Deno.HttpServer,
+) {
 	let isShuttingDown = false;
 
 	const shutdown = async () => {
@@ -16,6 +21,7 @@ function setupShutdown(runner: RunnerHandle, client: MongoClient) {
 		isShuttingDown = true;
 
 		try {
+			await stopHealthServer(healthServer);
 			await runner.stop();
 			await client.close();
 			Deno.exit(0);
@@ -41,7 +47,8 @@ export async function startApp() {
 		const { database, client } = await connectToDb();
 		try {
 			const runner = await startBot(database);
-			setupShutdown(runner, client);
+			const healthServer = startHealthServer();
+			setupShutdown(runner, client, healthServer);
 			runner.task()?.catch((error) => {
 				console.error("Error occurred while running the bot:", error);
 				Deno.exit(3);
