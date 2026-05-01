@@ -1,4 +1,4 @@
-import { type MediaSource, downloadAdapter } from "./media-adapters.js";
+import { type MediaSource, downloadAdapter } from "./media-adapters.ts";
 
 const SOURCES: MediaSource[] = [
 	{ type: "tiktok", match: "tiktok.com/" },

@@ -1,8 +1,6 @@
-import fs from "node:fs/promises";
-
 export async function deleteFiles(filePaths: string[]) {
 	const results = await Promise.allSettled(
-		filePaths.map((filePath) => fs.unlink(filePath)),
+		filePaths.map((filePath) => Deno.remove(filePath)),
 	);
 	for (const result of results) {
 		if (result.status === "rejected") {

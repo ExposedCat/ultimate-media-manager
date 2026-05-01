@@ -1,8 +1,8 @@
 import { type Api, InputFile } from "grammy";
 
-import { deleteFiles } from "../helpers/fs.js";
-import type { CustomContext } from "../types/context.js";
-import { downloadMedia } from "./cobalt.js";
+import { deleteFiles } from "../helpers/fs.ts";
+import type { CustomContext } from "../types/context.ts";
+import { downloadMedia } from "./cobalt.ts";
 
 export type MediaSource = {
 	type:

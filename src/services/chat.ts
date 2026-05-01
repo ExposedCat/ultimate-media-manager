@@ -1,6 +1,6 @@
 import type { UpdateResult } from "mongodb";
 
-import type { Chat, Database } from "../types/database.js";
+import type { Chat, Database } from "../types/database.ts";
 
 async function createChat(args: {
 	db: Database;
@@ -38,7 +38,7 @@ export async function getOrCreateChat(args: {
 	return createChat(args);
 }
 
-export async function setChatCleanup(args: {
+export function setChatCleanup(args: {
 	db: Database;
 	chatId: number;
 	cleanup: boolean;

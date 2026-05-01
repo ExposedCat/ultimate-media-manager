@@ -43,3 +43,14 @@ See social media posts right in the Telegram Messenger.
 1. Add @UMMRobot to the group chat
 2. Use `/audio link`, `/video link` or just `/audio`, `/video` **in reply** to
    the message containing a link
+
+# Development
+
+- Install Deno 2
+- Start the bot with `deno task start`
+- Run checks with `deno task check`
+- Format with `deno task fmt`
+- Run lint with `deno task lint`
+- Run the full verification pass with `deno task verify`
+- Run the existing migration with `deno task migrate:add-chat-settings`
+- Runtime tasks load local variables from `.env` via Deno's `--env-file`

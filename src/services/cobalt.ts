@@ -1,8 +1,8 @@
-import fs from "node:fs/promises";
-import { deleteFiles } from "../helpers/fs.js";
+import { APP_ENV } from "../config/env.ts";
+import { deleteFiles } from "../helpers/fs.ts";
 
 export async function prepareYoutubeVideo(url: string, id: string) {
-	const directUrl = await fetch(process.env.COBALT_API_URL, {
+	const directUrl = await fetch(APP_ENV.COBALT_API_URL, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -40,7 +40,7 @@ export async function downloadYoutubeVideo(
 	const buffer = await response.arrayBuffer();
 
 	const path = `${pathPrefix}${preparedVideo.filename}`;
-	await fs.writeFile(path, new Uint8Array(buffer));
+	await Deno.writeFile(path, new Uint8Array(buffer));
 
 	return path;
 }
@@ -66,7 +66,7 @@ export async function downloadMedia(
 ): Promise<DownloadMediaResult | null> {
 	const filenames: string[] = [];
 	try {
-		const directUrl = await fetch(process.env.COBALT_API_URL, {
+		const directUrl = await fetch(APP_ENV.COBALT_API_URL, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -94,7 +94,7 @@ export async function downloadMedia(
 
 			for (const [index, buffer] of buffers.entries()) {
 				const filename = `${pathPrefix}-${index}.jpg`;
-				await fs.writeFile(filename, new Uint8Array(buffer));
+				await Deno.writeFile(filename, new Uint8Array(buffer));
 				filenames.push(filename);
 			}
 
@@ -109,7 +109,7 @@ export async function downloadMedia(
 		const buffer = await response.arrayBuffer();
 
 		const filename = `${pathPrefix}-${body.filename}`;
-		await fs.writeFile(filename, new Uint8Array(buffer));
+		await Deno.writeFile(filename, new Uint8Array(buffer));
 		filenames.push(filename);
 
 		return {

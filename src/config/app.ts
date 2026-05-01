@@ -1,44 +1,40 @@
 // TODO: Use path aliases
 import type { RunnerHandle } from "@grammyjs/runner";
-import env from "dotenv";
 import type { MongoClient } from "mongodb";
 
-import { resolvePath } from "../helpers/resolve-path.js";
-import { validateEnv } from "../helpers/validate-env.js";
-import { startBot } from "./bot.js";
-import { connectToDb } from "./database.js";
+import { startBot } from "./bot.ts";
+import { connectToDb } from "./database.ts";
+import { APP_ENV } from "./env.ts";
 
 function setupShutdown(runner: RunnerHandle, client: MongoClient) {
+	let isShuttingDown = false;
+
 	const shutdown = async () => {
+		if (isShuttingDown) {
+			return;
+		}
+		isShuttingDown = true;
+
 		try {
 			await runner.stop();
 			await client.close();
-			process.exit(0);
+			Deno.exit(0);
 		} catch (error) {
 			console.error("Error occurred while stopping the app:", error);
-			process.exit(1);
+			Deno.exit(1);
 		}
 	};
 
-	process.once("SIGINT", shutdown);
-	process.once("SIGTERM", shutdown);
+	Deno.addSignalListener("SIGINT", () => void shutdown());
+	Deno.addSignalListener("SIGTERM", () => void shutdown());
 }
 
 export async function startApp() {
 	try {
-		env.config({
-			path: resolvePath(import.meta.url, "../../.env"),
-		});
-		validateEnv([
-			"TOKEN",
-			"DB_CONNECTION_STRING",
-			"CACHE_CHAT_ID",
-			"COBALT_API_URL",
-			"SEARXNG_API_URL",
-		]);
+		void APP_ENV;
 	} catch (error) {
 		console.error("Error occurred while loading environment:", error);
-		process.exit(1);
+		Deno.exit(1);
 	}
 
 	try {
@@ -48,14 +44,14 @@ export async function startApp() {
 			setupShutdown(runner, client);
 			runner.task()?.catch((error) => {
 				console.error("Error occurred while running the bot:", error);
-				process.exit(3);
+				Deno.exit(3);
 			});
 		} catch (error) {
 			console.error("Error occurred while starting the bot:", error);
-			process.exit(3);
+			Deno.exit(3);
 		}
 	} catch (error) {
 		console.error("Error occurred while connecting to the database:", error);
-		process.exit(2);
+		Deno.exit(2);
 	}
 }

@@ -1,11 +1,11 @@
 import { Composer, InputFile } from "grammy";
 
-import { deleteFiles } from "../helpers/fs.js";
+import { deleteFiles } from "../helpers/fs.ts";
 import {
 	downloadYoutubeVideo,
 	prepareYoutubeVideo,
-} from "../services/cobalt.js";
-import type { CustomContext } from "../types/context.js";
+} from "../services/cobalt.ts";
+import type { CustomContext } from "../types/context.ts";
 
 const MAX_VIDEO_SIZE_MB = 300;
 

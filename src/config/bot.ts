@@ -3,18 +3,18 @@ import type { I18n } from "@grammyjs/i18n";
 import { run } from "@grammyjs/runner";
 import { Bot as TelegramBot, session } from "grammy";
 
-import { mediaDownloadController } from "../controllers/media-download.js";
-import { searchController } from "../controllers/search.js";
-import { settingsController } from "../controllers/settings.js";
-import { startController } from "../controllers/start.js";
-import { ytVideoDownloadController } from "../controllers/yt-video-download.js";
-import { resolvePath } from "../helpers/resolve-path.js";
-import { getOrCreateChat } from "../services/chat.js";
-import { createReplyWithTextFunc } from "../services/context.js";
-import type { CustomContext } from "../types/context.js";
-import type { Chat, Database } from "../types/database.js";
-import type { Bot } from "../types/telegram.js";
-import { initLocaleEngine } from "./locale-engine.js";
+import { mediaDownloadController } from "../controllers/media-download.ts";
+import { searchController } from "../controllers/search.ts";
+import { settingsController } from "../controllers/settings.ts";
+import { startController } from "../controllers/start.ts";
+import { ytVideoDownloadController } from "../controllers/yt-video-download.ts";
+import { getOrCreateChat } from "../services/chat.ts";
+import { createReplyWithTextFunc } from "../services/context.ts";
+import type { CustomContext } from "../types/context.ts";
+import type { Chat, Database } from "../types/database.ts";
+import type { Bot } from "../types/telegram.ts";
+import { APP_ENV } from "./env.ts";
+import { initLocaleEngine } from "./locale-engine.ts";
 
 function extendContext(bot: Bot, database: Database) {
 	bot.use(async (ctx, next) => {
@@ -61,10 +61,10 @@ function setupControllers(bot: Bot) {
 }
 
 export async function startBot(database: Database) {
-	const localesPath = resolvePath(import.meta.url, "../locales");
+	const localesPath = new URL("../locales/", import.meta.url).pathname;
 
 	const i18n = initLocaleEngine(localesPath);
-	const bot = new TelegramBot<CustomContext>(process.env.TOKEN);
+	const bot = new TelegramBot<CustomContext>(APP_ENV.TOKEN);
 
 	bot.api.config.use(
 		autoRetry({

@@ -1,8 +1,9 @@
 import { Composer, InlineKeyboard, InlineQueryResultBuilder } from "grammy";
-import { searchJpegImages } from "../services/search.js";
-import { matchInput } from "../services/sources.js";
+import { APP_ENV } from "../config/env.ts";
+import { searchJpegImages } from "../services/search.ts";
+import { matchInput } from "../services/sources.ts";
 
-import type { CustomContext } from "../types/context.js";
+import type { CustomContext } from "../types/context.ts";
 
 const DOWNLOAD_THUMBNAIL_IMAGE_URL =
 	"https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fcdn4.iconfinder.com%2Fdata%2Ficons%2Farrows-245%2F24%2Fdownload_1-1024.png&f=1&nofb=1&ipt=fe03aaef09431f64f583d6239a6a6423af9fd2375434e98f80eff03b0119a485";
@@ -47,7 +48,7 @@ searchController.on("chosen_inline_result", async (ctx) => {
 						: "sendPhoto";
 
 			const media = await ctx.api[method](
-				Number(process.env.CACHE_CHAT_ID),
+				Number(APP_ENV.CACHE_CHAT_ID),
 				result.file,
 			);
 

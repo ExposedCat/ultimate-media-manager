@@ -56,7 +56,7 @@ services:
     networks:
       - dev-infra
     healthcheck:
-      test: [ "CMD", "node", "-e", "process.kill(1, 0)" ]
+      test: [ "CMD-SHELL", "kill -0 1" ]
       interval: 30s
       timeout: 5s
       retries: 3

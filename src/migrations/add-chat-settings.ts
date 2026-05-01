@@ -1,14 +1,8 @@
-import { config } from "dotenv";
+import { connectToDb } from "../config/database.ts";
+import { APP_ENV } from "../config/env.ts";
+import type { Database } from "../types/database.ts";
 
-import { connectToDb } from "../config/database.js";
-import { resolvePath } from "../helpers/resolve-path.js";
-import { validateEnv } from "../helpers/validate-env.js";
-import type { Database } from "../types/database.js";
-
-config({
-	path: resolvePath(import.meta.url, "../../.env"),
-});
-validateEnv(["DB_CONNECTION_STRING"]);
+void APP_ENV;
 
 async function migrate(database: Database) {
 	await database.chat.updateMany({}, { $set: { settings: { cleanup: true } } });

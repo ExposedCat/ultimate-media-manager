@@ -1,8 +1,8 @@
 import { Composer } from "grammy";
 
-import { setChatCleanup } from "../services/chat.js";
-import type { CustomContext } from "../types/context.js";
-import type { Settings } from "../types/database.js";
+import { setChatCleanup } from "../services/chat.ts";
+import type { CustomContext } from "../types/context.ts";
+import type { Settings } from "../types/database.ts";
 
 export const settingsController = new Composer<CustomContext>();
 settingsController.command("settings", async (ctx) => {

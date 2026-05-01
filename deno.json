@@ -1,0 +1,18 @@
+{
+	"tasks": {
+		"start": "deno run -A --env-file=.env src/index.ts",
+		"dev": "deno run -A --env-file=.env --watch src/index.ts",
+		"check": "deno check src/index.ts src/migrations/add-chat-settings.ts",
+		"format": "deno run -A @biomejs/biome lint . --write; deno run -A @biomejs/biome format . --write",
+		"verify": "deno run -A @biomejs/biome check . && deno check src/index.ts src/migrations/add-chat-settings.ts",
+		"migrate:add-chat-settings": "deno run -A --env-file=.env src/migrations/add-chat-settings.ts"
+	},
+	"imports": {
+		"@biomejs/biome": "npm:@biomejs/biome@1.9.4",
+		"@grammyjs/auto-retry": "npm:@grammyjs/auto-retry@2.0.2",
+		"@grammyjs/i18n": "npm:@grammyjs/i18n@0.5.1",
+		"@grammyjs/runner": "npm:@grammyjs/runner@2.0.3",
+		"grammy": "npm:grammy@1.24.0",
+		"mongodb": "npm:mongodb@4.17.2"
+	}
+}

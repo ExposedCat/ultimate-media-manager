@@ -1,27 +1,22 @@
-FROM docker.io/node:22-bookworm-slim AS build
+FROM docker.io/denoland/deno:2.7.11 AS cache
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
-
-COPY tsconfig.json ./
+COPY deno.json ./
 COPY src ./src
 
-RUN npm run build && npm prune --omit=dev
+RUN deno cache --lock=deno.lock --frozen=false src/index.ts src/migrations/add-chat-settings.ts
 
-FROM docker.io/node:22-bookworm-slim
+FROM docker.io/denoland/deno:2.7.11
 
-ENV NODE_ENV=production
+ENV DENO_DIR=/deno-dir
 
 WORKDIR /app
 
-COPY --from=build /app/package.json /app/package-lock.json ./
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/build ./build
+COPY --from=cache /deno-dir /deno-dir
+COPY deno.json deno.lock ./
+COPY src ./src
 
-RUN chown -R node:node /app
+USER deno
 
-USER node
-
-CMD ["node", "build/index.js"]
+CMD ["deno", "run", "-A", "src/index.ts"]

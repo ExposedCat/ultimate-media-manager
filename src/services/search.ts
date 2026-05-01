@@ -1,3 +1,5 @@
+import { APP_ENV } from "../config/env.ts";
+
 type SearchEntry = {
 	url: string;
 	img_src?: string;
@@ -39,7 +41,7 @@ function isValidUrl(url: string) {
 
 function buildJpegSearchUri(query: string): string {
 	const searchQuery = `${query}${JPEG_QUERY_SUFFIX}`;
-	const uri = new URL("/search", process.env.SEARXNG_API_URL);
+	const uri = new URL("/search", APP_ENV.SEARXNG_API_URL);
 	uri.search = new URLSearchParams({
 		format: "json",
 		categories: "images",

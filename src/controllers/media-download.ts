@@ -1,6 +1,6 @@
 import { Composer } from "grammy";
-import { matchInput } from "../services/sources.js";
-import type { CustomContext } from "../types/context.js";
+import { matchInput } from "../services/sources.ts";
+import type { CustomContext } from "../types/context.ts";
 
 export const mediaDownloadController = new Composer<CustomContext>();
 mediaDownloadController.on(
