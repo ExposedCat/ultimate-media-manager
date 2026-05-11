@@ -1,49 +1,5 @@
 import { APP_ENV } from "../config/env.ts";
 
-export async function prepareYoutubeVideo(url: string, id: string) {
-	const directUrl = await fetch(APP_ENV.COBALT_API_URL, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Accept: "application/json",
-		},
-		body: JSON.stringify({
-			url,
-			videoQuality: "720",
-		}),
-	});
-
-	const body = (await directUrl.json()) as
-		| { status: "redirect" | "tunnel"; url: string; filename: string }
-		| { status: "error"; error: { code: string } };
-
-	if (body.status === "error") {
-		return null;
-	}
-
-	const metadata = await fetch(body.url, { method: "HEAD" });
-	const sizeMb =
-		Number(metadata.headers.get("Estimated-Content-Length")) / (1024 * 1024);
-
-	const name = body.filename.split(".").slice(0, -1).join(".");
-	const extension = body.filename.split(".").at(-1) ?? "mp4";
-
-	return { url: body.url, filename: `${id}.${extension}`, name, sizeMb };
-}
-
-export async function downloadYoutubeVideo(
-	preparedVideo: Exclude<Awaited<ReturnType<typeof prepareYoutubeVideo>>, null>,
-	tempDir: string,
-) {
-	const response = await fetch(preparedVideo.url);
-	const buffer = await response.arrayBuffer();
-
-	const path = `${tempDir}/${preparedVideo.filename}`;
-	await Deno.writeFile(path, new Uint8Array(buffer));
-
-	return path;
-}
-
 export type DownloadMediaResult =
 	| {
 			type: "single";

@@ -12,4 +12,5 @@ export const APP_ENV = {
 	CACHE_CHAT_ID: requireEnv("CACHE_CHAT_ID"),
 	COBALT_API_URL: requireEnv("COBALT_API_URL"),
 	SEARXNG_API_URL: requireEnv("SEARXNG_API_URL"),
+	YT_DLP_PATH: Deno.env.get("YT_DLP_PATH") ?? "yt-dlp",
 };

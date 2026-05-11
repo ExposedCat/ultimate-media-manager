@@ -4,7 +4,7 @@ import { deletePaths } from "../helpers/fs.ts";
 import {
 	downloadYoutubeVideo,
 	prepareYoutubeVideo,
-} from "../services/cobalt.ts";
+} from "../services/youtube-video-download.ts";
 import type { CustomContext } from "../types/context.ts";
 
 const MAX_VIDEO_SIZE_MB = 300;
@@ -48,15 +48,21 @@ ytVideoDownloadController
 
 			const extra: Parameters<typeof ctx.replyWithVideo>[1] = {
 				caption: ctx.i18n.t("downloaded.video", {
-					title: prepared.name ?? "Downloaded YouTube Video",
+					title: prepared.title,
 					url,
 				}),
 				parse_mode: "HTML",
 			};
 			try {
-				await ctx.replyWithVideo(new InputFile(video, prepared.name), extra);
+				await ctx.replyWithVideo(
+					new InputFile(video, `${prepared.title}.${prepared.extension}`),
+					extra,
+				);
 			} catch {
-				await ctx.replyWithDocument(new InputFile(video, prepared.name), extra);
+				await ctx.replyWithDocument(
+					new InputFile(video, `${prepared.title}.${prepared.extension}`),
+					extra,
+				);
 			}
 
 			return true;

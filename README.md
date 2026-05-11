@@ -21,7 +21,7 @@ See social media posts right in the Telegram Messenger.
   - Twitter (X)
   - Pinterest
   - Soundcloud
-- YouTube downloading
+- YouTube video downloading
 
 # Usage
 
@@ -41,12 +41,13 @@ See social media posts right in the Telegram Messenger.
 ## YouTube Downloading
 
 1. Add @UMMRobot to the group chat
-2. Use `/audio link`, `/video link` or just `/audio`, `/video` **in reply** to
-   the message containing a link
+2. Use `/video link` or just `/video` **in reply** to the message containing a
+   link
 
 # Development
 
 - Install Deno 2
+- Install `yt-dlp` and `ffmpeg` if you want to use `/video` outside Docker
 - Start the bot with `deno task start`
 - Run checks with `deno task check`
 - Format with `deno task fmt`
