@@ -3,11 +3,11 @@ import type { I18n } from "@grammyjs/i18n";
 import { run } from "@grammyjs/runner";
 import { Bot as TelegramBot, session } from "grammy";
 
+import { downloadController } from "../controllers/download.ts";
 import { mediaDownloadController } from "../controllers/media-download.ts";
 import { searchController } from "../controllers/search.ts";
 import { settingsController } from "../controllers/settings.ts";
 import { startController } from "../controllers/start.ts";
-import { ytVideoDownloadController } from "../controllers/yt-video-download.ts";
 import { getOrCreateChat } from "../services/chat.ts";
 import { createReplyWithTextFunc } from "../services/context.ts";
 import type { CustomContext } from "../types/context.ts";
@@ -55,7 +55,7 @@ function setupControllers(bot: Bot) {
 	bot.use(startController);
 	bot.use(settingsController);
 
-	bot.use(ytVideoDownloadController);
+	bot.use(downloadController);
 
 	bot.use(mediaDownloadController);
 }

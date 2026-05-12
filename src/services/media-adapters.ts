@@ -3,6 +3,12 @@ import { type Api, InputFile } from "grammy";
 import { deletePaths } from "../helpers/fs.ts";
 import type { CustomContext } from "../types/context.ts";
 import { downloadMedia } from "./cobalt.ts";
+import {
+	downloadYoutubeVideo,
+	prepareYoutubeVideo,
+} from "./youtube-video-download.ts";
+
+const MAX_VIDEO_SIZE_MB = 300;
 
 export type MediaSource = {
 	type:
@@ -13,7 +19,8 @@ export type MediaSource = {
 		| "twitter"
 		| "pinterest"
 		| "soundcloud"
-		| "reddit";
+		| "reddit"
+		| "youtubeVideo";
 	match: string | RegExp;
 };
 
@@ -158,4 +165,59 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 	}
 
 	return preview();
+};
+
+export const youtubeVideoDownloadAdapter: MediaAdapter = async (ctx, data) => {
+	const tempDir = await Deno.makeTempDir({
+		prefix: `ummrobot-${data.userId}-`,
+	});
+
+	const cleanup = async () => await deletePaths([tempDir]);
+	const extra = {
+		parse_mode: "HTML" as const,
+		...buildReplyExtra(data.replyId, data.threadId),
+	};
+	const text = (caption: string) =>
+		({
+			kind: "text",
+			file: null,
+			error: null,
+			caption,
+			extra,
+			cleanup,
+		}) as MediaAdapterResult;
+
+	try {
+		const downloadId = `${Date.now()}-${data.userId}`;
+		const prepared = await prepareYoutubeVideo(data.url, downloadId);
+		if (!prepared) {
+			return text(ctx.i18n.t("error.video"));
+		}
+
+		if (prepared.sizeMb > MAX_VIDEO_SIZE_MB) {
+			return text(
+				ctx.i18n.t("error.videoSize", {
+					size: prepared.sizeMb.toFixed(1),
+					limit: MAX_VIDEO_SIZE_MB,
+				}),
+			);
+		}
+
+		const video = await downloadYoutubeVideo(prepared, tempDir);
+
+		return {
+			kind: "video",
+			file: new InputFile(video, `${prepared.title}.${prepared.extension}`),
+			error: null,
+			caption: ctx.i18n.t("downloaded.video", {
+				title: prepared.title,
+				url: data.url,
+			}),
+			extra,
+			cleanup,
+		};
+	} catch (error) {
+		console.error("[Failed to download YouTube video]", error);
+		return text(ctx.i18n.t("error.video"));
+	}
 };
