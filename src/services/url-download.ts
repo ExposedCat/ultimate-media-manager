@@ -31,6 +31,28 @@ export function extractUrlsFromMessage(message?: MessageLike | null) {
 	return urls;
 }
 
+async function reactWithEyes(ctx: CustomContext) {
+	if (!ctx.chat || !ctx.message?.message_id) {
+		return;
+	}
+
+	try {
+		await ctx.api.setMessageReaction(ctx.chat.id, ctx.message.message_id, [
+			{ type: "emoji", emoji: "👀" },
+		]);
+		console.info("[Reaction] Added eyes reaction", {
+			chatId: ctx.chat.id,
+			messageId: ctx.message.message_id,
+		});
+	} catch (error) {
+		console.warn("[Reaction] Failed to add eyes reaction", {
+			chatId: ctx.chat.id,
+			messageId: ctx.message.message_id,
+			error,
+		});
+	}
+}
+
 export async function downloadMatchedUrl(
 	ctx: CustomContext,
 	url: string,
@@ -42,6 +64,10 @@ export async function downloadMatchedUrl(
 
 	const { adapter, type, proxyUrl, match } = matcher(url);
 	if (!adapter || !type || !match) {
+		console.info("[Download] No matcher found", {
+			userId: ctx.from.id,
+			url,
+		});
 		return false;
 	}
 
@@ -49,7 +75,21 @@ export async function downloadMatchedUrl(
 		.filter(Boolean)
 		.join(" ");
 
+	console.info("[Download] Matched URL", {
+		userId: ctx.from.id,
+		sourceType: type,
+		url,
+		proxyUrl,
+	});
+
 	try {
+		await reactWithEyes(ctx);
+		console.info("[Download] Starting adapter", {
+			userId: ctx.from.id,
+			sourceType: type,
+			url,
+		});
+
 		const result = await adapter(ctx, {
 			source: { type, match },
 			userId: ctx.from.id,
@@ -63,6 +103,12 @@ export async function downloadMatchedUrl(
 		});
 
 		try {
+			console.info("[Download] Adapter returned result", {
+				userId: ctx.from.id,
+				sourceType: type,
+				resultKind: result.kind,
+				url,
+			});
 			if (result.kind === "text") {
 				await ctx.reply(result.caption, result.extra);
 			} else if (result.kind === "images") {
@@ -87,15 +133,31 @@ export async function downloadMatchedUrl(
 				});
 			}
 
+			console.info("[Download] Sent result", {
+				userId: ctx.from.id,
+				sourceType: type,
+				resultKind: result.kind,
+				url,
+			});
 			return true;
 		} catch (error) {
 			console.error("[Failed to send media]", error);
 			return false;
 		} finally {
+			console.info("[Download] Cleaning up resources", {
+				userId: ctx.from.id,
+				sourceType: type,
+				url,
+			});
 			await result.cleanup();
 		}
 	} catch (error) {
-		console.error("[Failed to download media]", error);
+		console.error("[Failed to download media]", {
+			userId: ctx.from.id,
+			sourceType: type,
+			url,
+			error,
+		});
 		return false;
 	}
 }

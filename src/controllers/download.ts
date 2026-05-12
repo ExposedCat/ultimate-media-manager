@@ -35,10 +35,30 @@ downloadController
 
 		const url = getCommandUrl(ctx);
 		if (!url) {
+			console.info("[/download] No URL found in command or reply", {
+				userId: ctx.from.id,
+				chatId: ctx.chat.id,
+				messageId: ctx.message.message_id,
+			});
 			await next();
 			return;
 		}
 
-		await downloadMatchedUrl(ctx, url, matchDownloadCommandInput);
+		console.info("[/download] Processing URL", {
+			userId: ctx.from.id,
+			chatId: ctx.chat.id,
+			messageId: ctx.message.message_id,
+			url,
+		});
+
+		const sent = await downloadMatchedUrl(ctx, url, matchDownloadCommandInput);
+
+		console.info("[/download] Completed", {
+			userId: ctx.from.id,
+			chatId: ctx.chat.id,
+			messageId: ctx.message.message_id,
+			url,
+			sent,
+		});
 		return true;
 	});

@@ -73,6 +73,12 @@ export const buildReplyExtra = (
 });
 
 export const downloadAdapter: MediaAdapter = async (ctx, data) => {
+	console.info("[Cobalt] Starting download adapter", {
+		sourceType: data.source.type,
+		url: data.url,
+		userId: data.userId,
+	});
+
 	const caption = (kind: string) =>
 		ctx.i18n.t("promoCaption", {
 			viewUrl: ctx.i18n.t(`viewOn.${data.source.type}`, {
@@ -154,6 +160,14 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 
 	const media = await downloadMedia(data.url, tempDir);
 	if (media) {
+		console.info("[Cobalt] Downloaded media", {
+			sourceType: data.source.type,
+			url: data.url,
+			userId: data.userId,
+			mediaType: media.type,
+			mediaKind: media.type === "single" ? media.mediaKind : "multiple",
+		});
+
 		if (media.type === "single" && media.filename) {
 			const func = { audio, image, video }[media.mediaKind];
 			return func(media.filename);
@@ -164,10 +178,20 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 		}
 	}
 
+	console.info("[Cobalt] Falling back to preview", {
+		sourceType: data.source.type,
+		url: data.url,
+		userId: data.userId,
+	});
 	return preview();
 };
 
 export const youtubeVideoDownloadAdapter: MediaAdapter = async (ctx, data) => {
+	console.info("[YouTube] Starting yt-dlp adapter", {
+		url: data.url,
+		userId: data.userId,
+	});
+
 	const tempDir = await Deno.makeTempDir({
 		prefix: `ummrobot-${data.userId}-`,
 	});
@@ -191,10 +215,20 @@ export const youtubeVideoDownloadAdapter: MediaAdapter = async (ctx, data) => {
 		const downloadId = `${Date.now()}-${data.userId}`;
 		const prepared = await prepareYoutubeVideo(data.url, downloadId);
 		if (!prepared) {
+			console.warn("[YouTube] Failed to prepare video", {
+				url: data.url,
+				userId: data.userId,
+			});
 			return text(ctx.i18n.t("error.video"));
 		}
 
 		if (prepared.sizeMb > MAX_VIDEO_SIZE_MB) {
+			console.warn("[YouTube] Video exceeds size limit", {
+				url: data.url,
+				userId: data.userId,
+				sizeMb: prepared.sizeMb,
+				limitMb: MAX_VIDEO_SIZE_MB,
+			});
 			return text(
 				ctx.i18n.t("error.videoSize", {
 					size: prepared.sizeMb.toFixed(1),
@@ -204,6 +238,13 @@ export const youtubeVideoDownloadAdapter: MediaAdapter = async (ctx, data) => {
 		}
 
 		const video = await downloadYoutubeVideo(prepared, tempDir);
+		console.info("[YouTube] Downloaded video", {
+			url: data.url,
+			userId: data.userId,
+			title: prepared.title,
+			extension: prepared.extension,
+			sizeMb: prepared.sizeMb,
+		});
 
 		return {
 			kind: "video",
@@ -217,7 +258,11 @@ export const youtubeVideoDownloadAdapter: MediaAdapter = async (ctx, data) => {
 			cleanup,
 		};
 	} catch (error) {
-		console.error("[Failed to download YouTube video]", error);
+		console.error("[Failed to download YouTube video]", {
+			url: data.url,
+			userId: data.userId,
+			error,
+		});
 		return text(ctx.i18n.t("error.video"));
 	}
 };

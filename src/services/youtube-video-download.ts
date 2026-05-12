@@ -86,6 +86,7 @@ class YoutubeDlExecYoutubeVideoDownloader implements YoutubeVideoDownloader {
 		url: string,
 		downloadId: string,
 	): Promise<PreparedYoutubeVideo | null> {
+		console.info("[yt-dlp] Preparing video", { url, downloadId });
 		try {
 			const payload = (await this.#youtubeDl(url, {
 				dumpSingleJson: true,
@@ -98,8 +99,7 @@ class YoutubeDlExecYoutubeVideoDownloader implements YoutubeVideoDownloader {
 			})) as YoutubeDlPayload;
 
 			const sizeMb = pickVideoSizeBytes(payload) / BYTES_PER_MB;
-
-			return {
+			const preparedVideo = {
 				downloadId,
 				extension: pickExtension(payload),
 				sizeMb,
@@ -107,13 +107,32 @@ class YoutubeDlExecYoutubeVideoDownloader implements YoutubeVideoDownloader {
 					sanitizeFilenamePart(payload.title) || "Downloaded YouTube Video",
 				url,
 			};
+
+			console.info("[yt-dlp] Prepared video", {
+				url,
+				downloadId,
+				title: preparedVideo.title,
+				extension: preparedVideo.extension,
+				sizeMb: preparedVideo.sizeMb,
+			});
+
+			return preparedVideo;
 		} catch (error) {
-			console.error("Failed to prepare YouTube video", error);
+			console.error("[yt-dlp] Failed to prepare video", {
+				url,
+				downloadId,
+				error,
+			});
 			return null;
 		}
 	}
 
 	async download(preparedVideo: PreparedYoutubeVideo, tempDir: string) {
+		console.info("[yt-dlp] Starting download", {
+			url: preparedVideo.url,
+			downloadId: preparedVideo.downloadId,
+			tempDir,
+		});
 		await this.#youtubeDl(preparedVideo.url, {
 			format: VIDEO_FORMAT,
 			mergeOutputFormat: "mp4",
@@ -129,10 +148,20 @@ class YoutubeDlExecYoutubeVideoDownloader implements YoutubeVideoDownloader {
 				entry.name.startsWith(`${preparedVideo.downloadId}.`) &&
 				!entry.name.endsWith(".part")
 			) {
+				console.info("[yt-dlp] Download completed", {
+					url: preparedVideo.url,
+					downloadId: preparedVideo.downloadId,
+					file: `${tempDir}/${entry.name}`,
+				});
 				return `${tempDir}/${entry.name}`;
 			}
 		}
 
+		console.error("[yt-dlp] Download finished without output file", {
+			url: preparedVideo.url,
+			downloadId: preparedVideo.downloadId,
+			tempDir,
+		});
 		throw new Error("yt-dlp finished without producing a video file");
 	}
 }
