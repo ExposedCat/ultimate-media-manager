@@ -41,6 +41,9 @@ services:
       start_period: 15s
 
   app:
+    build:
+      context: .
+      dockerfile: Containerfile
     image: localhost/ultimate-media-manager:latest
     container_name: ultimate-media-manager-app
     restart: always
