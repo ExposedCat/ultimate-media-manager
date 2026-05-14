@@ -27,7 +27,8 @@
 		"title": "Share post",
 		"description": "Download this post and send it to this chat",
 		"content": "⁠",
-		"button": "⏳ Downloading ${source} post..."
+		"button": "⏳ Downloading ${source} post...",
+		"multiplePhotosUnsupported": "(multiple photos are not supported in inline mode)"
 	},
 	"error": {
 		"viewOn": "${viewOn}\n\n<i>${error}</i>",

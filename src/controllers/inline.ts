@@ -10,6 +10,14 @@ const DOWNLOAD_THUMBNAIL_IMAGE_URL =
 
 export const inlineController = new Composer<CustomContext>();
 
+function getInlineCaption(ctx: CustomContext, result: MediaAdapterResult) {
+	if (result.kind !== "images") {
+		return result.caption;
+	}
+
+	return `${result.caption}\n\n${ctx.i18n.t("inline.multiplePhotosUnsupported")}`;
+}
+
 function getInlineFallbackCaption(ctx: CustomContext, url: string, type: string) {
 	if (!ctx.from) {
 		return url;
@@ -61,16 +69,18 @@ inlineController.on("chosen_inline_result", async (ctx) => {
 			url: ctx.chosenInlineResult.query,
 			proxyUrl: urlMatch.proxyUrl,
 		});
+		const inlineCaption = getInlineCaption(ctx, result);
 
 		if (result.kind === "text") {
-			await editInlineMessageWithCaption(ctx, messageId, result.caption, result);
+			await editInlineMessageWithCaption(ctx, messageId, inlineCaption, result);
 			return;
 		}
 
 		if (
 			result.kind !== "video" &&
 			result.kind !== "audio" &&
-			result.kind !== "image"
+			result.kind !== "image" &&
+			result.kind !== "images"
 		) {
 			await editInlineMessageWithCaption(ctx, messageId, result.caption, result);
 			return;
@@ -83,7 +93,13 @@ inlineController.on("chosen_inline_result", async (ctx) => {
 					? "sendAudio"
 					: "sendPhoto";
 
-		const media = await ctx.api[method](Number(APP_ENV.CACHE_CHAT_ID), result.file);
+		const mediaFile = result.kind === "images" ? result.files[0] : result.file;
+		if (!mediaFile) {
+			await editInlineMessageWithCaption(ctx, messageId, inlineCaption, result);
+			return;
+		}
+
+		const media = await ctx.api[method](Number(APP_ENV.CACHE_CHAT_ID), mediaFile);
 		const fileId =
 			"video" in media
 				? media.video.file_id
@@ -95,14 +111,15 @@ inlineController.on("chosen_inline_result", async (ctx) => {
 						: null;
 
 		if (!fileId) {
-			await editInlineMessageWithCaption(ctx, messageId, result.caption, result);
+			await editInlineMessageWithCaption(ctx, messageId, inlineCaption, result);
 			return;
 		}
 
 		await ctx.api.editMessageMediaInline(messageId, {
-			type: result.kind === "image" ? "photo" : result.kind,
+			type:
+				result.kind === "video" ? "video" : result.kind === "audio" ? "audio" : "photo",
 			media: fileId,
-			caption: result.caption,
+			caption: inlineCaption,
 			parse_mode: "HTML",
 		});
 	} catch (error) {
