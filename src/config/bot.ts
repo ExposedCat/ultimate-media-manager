@@ -5,7 +5,6 @@ import { Bot as TelegramBot, session } from "grammy";
 
 import { downloadController } from "../controllers/download.ts";
 import { mediaDownloadController } from "../controllers/media-download.ts";
-import { searchController } from "../controllers/search.ts";
 import { settingsController } from "../controllers/settings.ts";
 import { startController } from "../controllers/start.ts";
 import { getOrCreateChat } from "../services/chat.ts";
@@ -50,8 +49,6 @@ function setupMiddlewares(bot: Bot, localeEngine: I18n) {
 }
 
 function setupControllers(bot: Bot) {
-	bot.use(searchController);
-
 	bot.use(startController);
 	bot.use(settingsController);
 
