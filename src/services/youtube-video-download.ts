@@ -4,14 +4,18 @@ import { APP_ENV } from "../config/env.ts";
 
 const VIDEO_FORMAT =
 	"bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720][ext=mp4]/bv*[height<=720]+ba/b[height<=720]/b";
+const GENERIC_MEDIA_FORMAT = `${VIDEO_FORMAT}/ba/b`;
 
 const BYTES_PER_MB = 1024 * 1024;
+const AUDIO_EXTENSIONS = ["mp3", "wav", "ogg", "m4a", "aac", "flac", "opus"];
 
 type YoutubeDlPayload = Payload & { filesize?: number | null };
 
 export type PreparedYoutubeVideo = {
 	downloadId: string;
 	extension: string;
+	format: string;
+	mediaKind: "audio" | "video";
 	sizeMb: number;
 	title: string;
 	url: string;
@@ -21,6 +25,8 @@ type YoutubeVideoDownloader = {
 	prepare: (
 		url: string,
 		downloadId: string,
+		format?: string,
+		defaultTitle?: string,
 	) => Promise<PreparedYoutubeVideo | null>;
 	download: (
 		preparedVideo: PreparedYoutubeVideo,
@@ -54,6 +60,11 @@ function pickExtension(payload: YoutubeDlPayload) {
 	return payload.requested_downloads[0]?.ext ?? payload.ext ?? "mp4";
 }
 
+function pickMediaKind(payload: YoutubeDlPayload): "audio" | "video" {
+	const extension = pickExtension(payload).toLowerCase();
+	return AUDIO_EXTENSIONS.includes(extension) ? "audio" : "video";
+}
+
 function sanitizeFilenamePart(value: string) {
 	return Array.from(value)
 		.map((character) => {
@@ -85,12 +96,14 @@ class YoutubeDlExecYoutubeVideoDownloader implements YoutubeVideoDownloader {
 	async prepare(
 		url: string,
 		downloadId: string,
+		format = VIDEO_FORMAT,
+		defaultTitle = "Downloaded Video",
 	): Promise<PreparedYoutubeVideo | null> {
-		console.info("[yt-dlp] Preparing video", { url, downloadId });
+		console.info("[yt-dlp] Preparing media", { url, downloadId, format });
 		try {
 			const payload = (await this.#youtubeDl(url, {
 				dumpSingleJson: true,
-				format: VIDEO_FORMAT,
+				format,
 				mergeOutputFormat: "mp4",
 				noCheckCertificates: true,
 				noPlaylist: true,
@@ -102,23 +115,25 @@ class YoutubeDlExecYoutubeVideoDownloader implements YoutubeVideoDownloader {
 			const preparedVideo = {
 				downloadId,
 				extension: pickExtension(payload),
+				format,
+				mediaKind: pickMediaKind(payload),
 				sizeMb,
-				title:
-					sanitizeFilenamePart(payload.title) || "Downloaded YouTube Video",
+				title: sanitizeFilenamePart(payload.title) || defaultTitle,
 				url,
 			};
 
-			console.info("[yt-dlp] Prepared video", {
+			console.info("[yt-dlp] Prepared media", {
 				url,
 				downloadId,
 				title: preparedVideo.title,
 				extension: preparedVideo.extension,
+				mediaKind: preparedVideo.mediaKind,
 				sizeMb: preparedVideo.sizeMb,
 			});
 
 			return preparedVideo;
 		} catch (error) {
-			console.error("[yt-dlp] Failed to prepare video", {
+			console.error("[yt-dlp] Failed to prepare media", {
 				url,
 				downloadId,
 				error,
@@ -131,10 +146,11 @@ class YoutubeDlExecYoutubeVideoDownloader implements YoutubeVideoDownloader {
 		console.info("[yt-dlp] Starting download", {
 			url: preparedVideo.url,
 			downloadId: preparedVideo.downloadId,
+			format: preparedVideo.format,
 			tempDir,
 		});
 		await this.#youtubeDl(preparedVideo.url, {
-			format: VIDEO_FORMAT,
+			format: preparedVideo.format,
 			mergeOutputFormat: "mp4",
 			noCheckCertificates: true,
 			noPlaylist: true,
@@ -162,15 +178,36 @@ class YoutubeDlExecYoutubeVideoDownloader implements YoutubeVideoDownloader {
 			downloadId: preparedVideo.downloadId,
 			tempDir,
 		});
-		throw new Error("yt-dlp finished without producing a video file");
+		throw new Error("yt-dlp finished without producing a media file");
 	}
 }
 
 const youtubeVideoDownloader: YoutubeVideoDownloader =
 	new YoutubeDlExecYoutubeVideoDownloader();
 
+export async function prepareYtDlpMedia(url: string, downloadId: string) {
+	return await youtubeVideoDownloader.prepare(
+		url,
+		downloadId,
+		GENERIC_MEDIA_FORMAT,
+		"Downloaded Media",
+	);
+}
+
+export async function downloadYtDlpMedia(
+	preparedVideo: PreparedYoutubeVideo,
+	tempDir: string,
+) {
+	return await youtubeVideoDownloader.download(preparedVideo, tempDir);
+}
+
 export async function prepareYoutubeVideo(url: string, downloadId: string) {
-	return await youtubeVideoDownloader.prepare(url, downloadId);
+	return await youtubeVideoDownloader.prepare(
+		url,
+		downloadId,
+		VIDEO_FORMAT,
+		"Downloaded YouTube Video",
+	);
 }
 
 export async function downloadYoutubeVideo(

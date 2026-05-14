@@ -5,7 +5,9 @@ import type { CustomContext } from "../types/context.ts";
 import { downloadMedia } from "./cobalt.ts";
 import {
 	downloadYoutubeVideo,
+	downloadYtDlpMedia,
 	prepareYoutubeVideo,
+	prepareYtDlpMedia,
 } from "./youtube-video-download.ts";
 
 const MAX_VIDEO_SIZE_MB = 300;
@@ -176,6 +178,48 @@ export const downloadAdapter: MediaAdapter = async (ctx, data) => {
 		if (media.type === "multiple") {
 			return images(media.filenames);
 		}
+	}
+
+	console.info("[Cobalt] Download failed, retrying with yt-dlp", {
+		sourceType: data.source.type,
+		url: data.url,
+		userId: data.userId,
+	});
+
+	try {
+		const downloadId = `${Date.now()}-${data.userId}`;
+		const prepared = await prepareYtDlpMedia(data.url, downloadId);
+		if (prepared && prepared.sizeMb <= MAX_VIDEO_SIZE_MB) {
+			const filename = await downloadYtDlpMedia(prepared, tempDir);
+			console.info("[yt-dlp fallback] Downloaded media", {
+				sourceType: data.source.type,
+				url: data.url,
+				userId: data.userId,
+				mediaKind: prepared.mediaKind,
+				extension: prepared.extension,
+				sizeMb: prepared.sizeMb,
+			});
+
+			return prepared.mediaKind === "audio" ? audio(filename) : video(filename);
+		}
+
+		if (prepared) {
+			console.warn("[yt-dlp fallback] Media exceeds size limit", {
+				sourceType: data.source.type,
+				url: data.url,
+				userId: data.userId,
+				mediaKind: prepared.mediaKind,
+				sizeMb: prepared.sizeMb,
+				limitMb: MAX_VIDEO_SIZE_MB,
+			});
+		}
+	} catch (error) {
+		console.error("[yt-dlp fallback] Failed to download media", {
+			sourceType: data.source.type,
+			url: data.url,
+			userId: data.userId,
+			error,
+		});
 	}
 
 	console.info("[Cobalt] Falling back to preview", {
