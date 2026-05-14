@@ -4,6 +4,7 @@ import { run } from "@grammyjs/runner";
 import { Bot as TelegramBot, session } from "grammy";
 
 import { downloadController } from "../controllers/download.ts";
+import { inlineController } from "../controllers/inline.ts";
 import { mediaDownloadController } from "../controllers/media-download.ts";
 import { settingsController } from "../controllers/settings.ts";
 import { startController } from "../controllers/start.ts";
@@ -49,6 +50,8 @@ function setupMiddlewares(bot: Bot, localeEngine: I18n) {
 }
 
 function setupControllers(bot: Bot) {
+	bot.use(inlineController);
+
 	bot.use(startController);
 	bot.use(settingsController);
 

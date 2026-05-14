@@ -32,6 +32,11 @@ See social media posts right in the Telegram Messenger.
 1. Add @UMMRobot to the group chat
 2. Send any supported social media post link to the chat
 
+### Any Chat
+
+1. Type `@UMMRobot` in any chat and paste a supported social media post link
+2. Press "Share post"
+
 ## Direct Downloading
 
 1. Add @UMMRobot to the group chat
