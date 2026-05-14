@@ -1,5 +1,6 @@
 import { Composer, InlineKeyboard, InlineQueryResultBuilder } from "grammy";
 import { APP_ENV } from "../config/env.ts";
+import type { MediaAdapterResult } from "../services/media-adapters.ts";
 import { searchJpegImages } from "../services/search.ts";
 import { matchInput } from "../services/sources.ts";
 
@@ -10,36 +11,67 @@ const DOWNLOAD_THUMBNAIL_IMAGE_URL =
 
 export const searchController = new Composer<CustomContext>();
 
+function getInlineFallbackCaption(ctx: CustomContext, url: string, type: string) {
+	if (!ctx.from) {
+		return url;
+	}
+
+	return ctx.i18n.t("promoCaption", {
+		viewUrl: ctx.i18n.t(`viewOn.${type}`, {
+			kind: "post",
+			postUrl: url,
+			userName: ctx.from.first_name,
+			userId: ctx.from.id,
+		}),
+	});
+}
+
+async function editInlineMessageWithCaption(
+	ctx: CustomContext,
+	messageId: string,
+	caption: string,
+	result?: MediaAdapterResult,
+) {
+	const linkPreviewOptions = result?.extra?.link_preview_options;
+
+	await ctx.api.editMessageTextInline(messageId, caption, {
+		parse_mode: "HTML",
+		...(linkPreviewOptions ? { link_preview_options: linkPreviewOptions } : {}),
+	});
+}
+
 searchController.on("chosen_inline_result", async (ctx) => {
+	if (!ctx.from) {
+		return;
+	}
+
 	const urlMatch = matchInput(ctx.chosenInlineResult.query);
 	if (urlMatch.type) {
-		const result = await urlMatch.adapter(ctx, {
-			source: urlMatch,
-			userId: ctx.from.id,
-			userName: ctx.from.first_name,
-			url: ctx.chosenInlineResult.query,
-			proxyUrl: urlMatch.proxyUrl,
-		});
-		if (result.kind === "text") {
-			await ctx.api.editMessageTextInline(
-				// biome-ignore lint/style/noNonNullAssertion: Button is always attached below
-				ctx.chosenInlineResult.inline_message_id!,
-				result.caption,
-				{
-					parse_mode: "HTML",
-					link_preview_options: {
-						is_disabled: false,
-						url: urlMatch.proxyUrl,
-						show_above_text: true,
-						prefer_large_media: true,
-					},
-				},
-			);
-		} else if (
-			result.kind === "video" ||
-			result.kind === "audio" ||
-			result.kind === "image"
-		) {
+		// biome-ignore lint/style/noNonNullAssertion: Button is always attached below
+		const messageId = ctx.chosenInlineResult.inline_message_id!;
+		let result: MediaAdapterResult | undefined;
+		try {
+			result = await urlMatch.adapter(ctx, {
+				source: urlMatch,
+				userId: ctx.from.id,
+				userName: ctx.from.first_name,
+				url: ctx.chosenInlineResult.query,
+				proxyUrl: urlMatch.proxyUrl,
+			});
+			if (result.kind === "text") {
+				await editInlineMessageWithCaption(ctx, messageId, result.caption, result);
+				return;
+			}
+
+			if (
+				result.kind !== "video" &&
+				result.kind !== "audio" &&
+				result.kind !== "image"
+			) {
+				await editInlineMessageWithCaption(ctx, messageId, result.caption, result);
+				return;
+			}
+
 			const method =
 				result.kind === "video"
 					? "sendVideo"
@@ -62,13 +94,12 @@ searchController.on("chosen_inline_result", async (ctx) => {
 								media.photo.at(-1)!.file_id
 							: null;
 
-			// biome-ignore lint/style/noNonNullAssertion: Button is always attached below
-			const messageId = ctx.chosenInlineResult.inline_message_id!;
-
 			if (!fileId) {
-				await ctx.api.editMessageTextInline(
+				await editInlineMessageWithCaption(
+					ctx,
 					messageId,
-					ctx.i18n.t(`error.${result.kind}`),
+					result.caption,
+					result,
 				);
 				return;
 			}
@@ -79,6 +110,28 @@ searchController.on("chosen_inline_result", async (ctx) => {
 				caption: result.caption,
 				parse_mode: "HTML",
 			});
+		} catch (error) {
+			console.error("[Inline] Failed to send inline result", {
+				userId: ctx.from.id,
+				sourceType: urlMatch.type,
+				url: ctx.chosenInlineResult.query,
+				error,
+			});
+			await editInlineMessageWithCaption(
+				ctx,
+				messageId,
+				result?.caption ??
+					getInlineFallbackCaption(
+						ctx,
+						ctx.chosenInlineResult.query,
+						urlMatch.type,
+					),
+				result,
+			);
+		} finally {
+			if (result) {
+				await result.cleanup();
+			}
 		}
 	}
 });
