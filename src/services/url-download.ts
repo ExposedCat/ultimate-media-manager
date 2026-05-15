@@ -1,4 +1,8 @@
 import type { CustomContext } from "../types/context.ts";
+import {
+	buildDownloadResponse,
+	buildLinkPreviewOptions,
+} from "./download-response.ts";
 import { type InputMatcher, matchInput } from "./sources.ts";
 
 type MessageEntityLike = {
@@ -29,6 +33,20 @@ export function extractUrlsFromMessage(message?: MessageLike | null) {
 	}
 
 	return urls;
+}
+
+function buildReplyExtra(ctx: CustomContext) {
+	return {
+		...(ctx.message?.is_topic_message && {
+			message_thread_id: ctx.message.message_thread_id,
+		}),
+		...(ctx.message?.reply_to_message?.message_id && {
+			reply_parameters: {
+				message_id: ctx.message.reply_to_message.message_id,
+				allow_sending_without_reply: true,
+			},
+		}),
+	};
 }
 
 async function reactWithEyes(ctx: CustomContext) {
@@ -62,8 +80,8 @@ export async function downloadMatchedUrl(
 		return false;
 	}
 
-	const { adapter, type, proxyUrl, match } = matcher(url);
-	if (!adapter || !type || !match) {
+	const { type, fallbackUrl, match } = matcher(url);
+	if (!type || !match) {
 		console.info("[Download] No matcher found", {
 			userId: ctx.from.id,
 			url,
@@ -79,69 +97,106 @@ export async function downloadMatchedUrl(
 		userId: ctx.from.id,
 		sourceType: type,
 		url,
-		proxyUrl,
+		fallbackUrl,
 	});
 
 	try {
 		await reactWithEyes(ctx);
-		console.info("[Download] Starting adapter", {
+		console.info("[Download] Building response", {
 			userId: ctx.from.id,
 			sourceType: type,
 			url,
 		});
 
-		const result = await adapter(ctx, {
-			source: { type, match },
+		const result = await buildDownloadResponse(ctx, {
+			sourceType: type,
 			userId: ctx.from.id,
 			userName,
 			url,
-			proxyUrl,
-			replyId: ctx.message?.reply_to_message?.message_id,
-			threadId: ctx.message?.is_topic_message
-				? ctx.message.message_thread_id
-				: undefined,
+			fallbackUrl: fallbackUrl ?? undefined,
 		});
+		const replyExtra = buildReplyExtra(ctx);
 
 		try {
-			console.info("[Download] Adapter returned result", {
+			console.info("[Download] Built response", {
 				userId: ctx.from.id,
 				sourceType: type,
-				resultKind: result.kind,
+				mediaKind: result.media?.kind ?? "text",
 				url,
 			});
-			if (result.kind === "text") {
-				await ctx.reply(result.caption, result.extra);
-			} else if (result.kind === "images") {
+
+			if (!result.media) {
+				await ctx.reply(result.text, {
+					parse_mode: "HTML",
+					...replyExtra,
+					link_preview_options: buildLinkPreviewOptions(result.previewUrl),
+				});
+			} else if (result.media.kind === "images") {
 				await ctx.replyWithMediaGroup(
-					result.files.map((file, index) => ({
+					result.media.files.map((file, index) => ({
 						type: "photo",
 						media: file,
-						caption: index === 0 ? result.caption : undefined,
-						...result.extra,
+						caption: index === 0 ? result.text : undefined,
+						parse_mode: index === 0 ? "HTML" : undefined,
 					})),
+					replyExtra,
 				);
 			} else {
 				const method =
-					result.kind === "image"
+					result.media.kind === "image"
 						? "replyWithPhoto"
-						: result.kind === "audio"
+						: result.media.kind === "audio"
 							? "replyWithAudio"
 							: "replyWithVideo";
-				await ctx[method](result.file, {
-					caption: result.caption,
-					...result.extra,
+				await ctx[method](result.media.file, {
+					caption: result.text,
+					parse_mode: "HTML",
+					...replyExtra,
 				});
 			}
 
 			console.info("[Download] Sent result", {
 				userId: ctx.from.id,
 				sourceType: type,
-				resultKind: result.kind,
+				mediaKind: result.media?.kind ?? "text",
 				url,
 			});
 			return true;
 		} catch (error) {
-			console.error("[Failed to send media]", error);
+			console.error("[Failed to send media]", {
+				userId: ctx.from.id,
+				sourceType: type,
+				mediaKind: result.media?.kind ?? "text",
+				url,
+				error,
+			});
+
+			if (result.media) {
+				try {
+					await ctx.reply(result.text, {
+						parse_mode: "HTML",
+						...replyExtra,
+						link_preview_options: buildLinkPreviewOptions(result.previewUrl),
+					});
+					console.info(
+						"[Download] Sent text fallback after media send failure",
+						{
+							userId: ctx.from.id,
+							sourceType: type,
+							url,
+						},
+					);
+					return true;
+				} catch (fallbackError) {
+					console.error("[Download] Failed to send text fallback", {
+						userId: ctx.from.id,
+						sourceType: type,
+						url,
+						error: fallbackError,
+					});
+				}
+			}
+
 			return false;
 		} finally {
 			console.info("[Download] Cleaning up resources", {

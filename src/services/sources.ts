@@ -1,9 +1,18 @@
-import {
-	type MediaAdapter,
-	type MediaSource,
-	downloadAdapter,
-	youtubeVideoDownloadAdapter,
-} from "./media-adapters.ts";
+export type SourceType =
+	| "tiktok"
+	| "instagram"
+	| "facebook"
+	| "youtube"
+	| "twitter"
+	| "pinterest"
+	| "soundcloud"
+	| "reddit"
+	| "youtubeVideo";
+
+type MediaSource = {
+	type: SourceType;
+	match: string | RegExp;
+};
 
 const SOURCES: MediaSource[] = [
 	{ type: "tiktok", match: "tiktok.com/" },
@@ -36,8 +45,8 @@ const DOWNLOAD_COMMAND_SOURCES: MediaSource[] = [
 ];
 
 const PROXIES: Record<string, [string, string]> = {
-	instagram: ["instagram", "d.ddinstagram"],
-	twitter: ["x.com", "fxtwitter.com"],
+	instagram: ["instagram.com", "ssinstagram.com"],
+	twitter: ["x.com", "fixupx.com"],
 };
 
 function matchesSource(input: string, match: string | RegExp) {
@@ -47,30 +56,14 @@ function matchesSource(input: string, match: string | RegExp) {
 export type MatchInputResult =
 	| {
 			type: MediaSource["type"];
-			proxyUrl?: string;
-			adapter: MediaAdapter;
+			fallbackUrl?: string;
 			match: string | RegExp;
 	  }
 	| {
 			type: null;
-			proxyUrl: null;
-			adapter: null;
+			fallbackUrl: null;
 			match: null;
 	  };
-
-function getSourceAdapter(type: MediaSource["type"]) {
-	return {
-		instagram: downloadAdapter,
-		tiktok: downloadAdapter,
-		facebook: downloadAdapter,
-		youtube: downloadAdapter,
-		twitter: downloadAdapter,
-		pinterest: downloadAdapter,
-		soundcloud: downloadAdapter,
-		reddit: downloadAdapter,
-		youtubeVideo: youtubeVideoDownloadAdapter,
-	}[type];
-}
 
 function matchWithSources(
 	input: string,
@@ -78,14 +71,14 @@ function matchWithSources(
 ): MatchInputResult {
 	for (const { type, match } of sources) {
 		if (matchesSource(input, match)) {
-			const adapter = getSourceAdapter(type);
+			const fallbackUrl = PROXIES[type]
+				? input.replace(...PROXIES[type])
+				: input;
 
-			const proxyUrl = PROXIES[type] ? input.replace(...PROXIES[type]) : input;
-
-			return { type, proxyUrl, adapter, match };
+			return { type, fallbackUrl, match };
 		}
 	}
-	return { type: null, proxyUrl: null, adapter: null, match: null };
+	return { type: null, fallbackUrl: null, match: null };
 }
 
 export type InputMatcher = (input: string) => MatchInputResult;

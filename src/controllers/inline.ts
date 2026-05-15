@@ -1,7 +1,11 @@
 import { Composer, InlineKeyboard, InlineQueryResultBuilder } from "grammy";
 
 import { APP_ENV } from "../config/env.ts";
-import type { MediaAdapterResult } from "../services/media-adapters.ts";
+import {
+	type DownloadResponse,
+	buildDownloadResponse,
+	buildLinkPreviewOptions,
+} from "../services/download-response.ts";
 import { matchInput } from "../services/sources.ts";
 import type { CustomContext } from "../types/context.ts";
 
@@ -10,40 +14,23 @@ const DOWNLOAD_THUMBNAIL_IMAGE_URL =
 
 export const inlineController = new Composer<CustomContext>();
 
-function getInlineCaption(ctx: CustomContext, result: MediaAdapterResult) {
-	if (result.kind !== "images") {
-		return result.caption;
+function getInlineText(ctx: CustomContext, result: DownloadResponse) {
+	if (result.media?.kind !== "images") {
+		return result.text;
 	}
 
-	return `${result.caption}\n\n${ctx.i18n.t("inline.multiplePhotosUnsupported")}`;
-}
-
-function getInlineFallbackCaption(ctx: CustomContext, url: string, type: string) {
-	if (!ctx.from) {
-		return url;
-	}
-
-	return ctx.i18n.t("promoCaption", {
-		viewUrl: ctx.i18n.t(`viewOn.${type}`, {
-			kind: "post",
-			postUrl: url,
-			userName: ctx.from.first_name,
-			userId: ctx.from.id,
-		}),
-	});
+	return `${result.text}\n\n${ctx.i18n.t("inline.multiplePhotosUnsupported")}`;
 }
 
 async function editInlineMessageWithCaption(
 	ctx: CustomContext,
 	messageId: string,
-	caption: string,
-	result?: MediaAdapterResult,
+	text: string,
+	previewUrl: string,
 ) {
-	const linkPreviewOptions = result?.extra?.link_preview_options;
-
-	await ctx.api.editMessageTextInline(messageId, caption, {
+	await ctx.api.editMessageTextInline(messageId, text, {
 		parse_mode: "HTML",
-		...(linkPreviewOptions ? { link_preview_options: linkPreviewOptions } : {}),
+		link_preview_options: buildLinkPreviewOptions(previewUrl),
 	});
 }
 
@@ -53,53 +40,60 @@ inlineController.on("chosen_inline_result", async (ctx) => {
 	}
 
 	const urlMatch = matchInput(ctx.chosenInlineResult.query);
-	if (!urlMatch.type || !urlMatch.adapter) {
+	if (!urlMatch.type) {
 		return;
 	}
 
 	// biome-ignore lint/style/noNonNullAssertion: Telegram supplies this for inline messages
 	const messageId = ctx.chosenInlineResult.inline_message_id!;
-	let result: MediaAdapterResult | undefined;
+	let result: DownloadResponse | undefined;
+	let inlineText: string | undefined;
 
 	try {
-		result = await urlMatch.adapter(ctx, {
-			source: urlMatch,
+		result = await buildDownloadResponse(ctx, {
+			sourceType: urlMatch.type,
 			userId: ctx.from.id,
 			userName: ctx.from.first_name,
 			url: ctx.chosenInlineResult.query,
-			proxyUrl: urlMatch.proxyUrl,
+			fallbackUrl: urlMatch.fallbackUrl ?? undefined,
 		});
-		const inlineCaption = getInlineCaption(ctx, result);
+		inlineText = getInlineText(ctx, result);
 
-		if (result.kind === "text") {
-			await editInlineMessageWithCaption(ctx, messageId, inlineCaption, result);
-			return;
-		}
-
-		if (
-			result.kind !== "video" &&
-			result.kind !== "audio" &&
-			result.kind !== "image" &&
-			result.kind !== "images"
-		) {
-			await editInlineMessageWithCaption(ctx, messageId, result.caption, result);
+		if (!result.media) {
+			await editInlineMessageWithCaption(
+				ctx,
+				messageId,
+				inlineText,
+				result.previewUrl,
+			);
 			return;
 		}
 
 		const method =
-			result.kind === "video"
+			result.media.kind === "video"
 				? "sendVideo"
-				: result.kind === "audio"
+				: result.media.kind === "audio"
 					? "sendAudio"
 					: "sendPhoto";
 
-		const mediaFile = result.kind === "images" ? result.files[0] : result.file;
+		const mediaFile =
+			result.media.kind === "images"
+				? result.media.files[0]
+				: result.media.file;
 		if (!mediaFile) {
-			await editInlineMessageWithCaption(ctx, messageId, inlineCaption, result);
+			await editInlineMessageWithCaption(
+				ctx,
+				messageId,
+				inlineText,
+				result.previewUrl,
+			);
 			return;
 		}
 
-		const media = await ctx.api[method](Number(APP_ENV.CACHE_CHAT_ID), mediaFile);
+		const media = await ctx.api[method](
+			Number(APP_ENV.CACHE_CHAT_ID),
+			mediaFile,
+		);
 		const fileId =
 			"video" in media
 				? media.video.file_id
@@ -111,15 +105,24 @@ inlineController.on("chosen_inline_result", async (ctx) => {
 						: null;
 
 		if (!fileId) {
-			await editInlineMessageWithCaption(ctx, messageId, inlineCaption, result);
+			await editInlineMessageWithCaption(
+				ctx,
+				messageId,
+				inlineText,
+				result.previewUrl,
+			);
 			return;
 		}
 
 		await ctx.api.editMessageMediaInline(messageId, {
 			type:
-				result.kind === "video" ? "video" : result.kind === "audio" ? "audio" : "photo",
+				result.media.kind === "video"
+					? "video"
+					: result.media.kind === "audio"
+						? "audio"
+						: "photo",
 			media: fileId,
-			caption: inlineCaption,
+			caption: inlineText,
 			parse_mode: "HTML",
 		});
 	} catch (error) {
@@ -133,9 +136,10 @@ inlineController.on("chosen_inline_result", async (ctx) => {
 		await editInlineMessageWithCaption(
 			ctx,
 			messageId,
-			result?.caption ??
-				getInlineFallbackCaption(ctx, ctx.chosenInlineResult.query, urlMatch.type),
-			result,
+			inlineText ?? result?.text ?? ctx.chosenInlineResult.query,
+			result?.previewUrl ??
+				urlMatch.fallbackUrl ??
+				ctx.chosenInlineResult.query,
 		);
 	} finally {
 		if (result) {
