@@ -23,12 +23,6 @@
 		"audio": "🔉 <a href=\"${url}\">${title}</a>",
 		"video": "🎥 <a href=\"${url}\">${title}</a>"
 	},
-	"inline": {
-		"title": "Share post",
-		"description": "Download this post and send it to this chat",
-		"content": "⁠",
-		"button": "⏳ Downloading ${source} post..."
-	},
 	"error": {
 		"viewOn": "${viewOn}\n\n<i>${error}</i>",
 		"audio": "😢 Failed to download audio",

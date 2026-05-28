@@ -1,0 +1,17 @@
+{
+	"name": "ultimate-media-manager-cobalt-function",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"main": "src/functions/*.js",
+	"scripts": {
+		"start": "bash scripts/func.sh start --javascript",
+		"publish": "bash scripts/func.sh azure functionapp publish --javascript"
+	},
+	"dependencies": {
+		"@azure/functions": "^4.7.3"
+	},
+	"devDependencies": {
+		"azure-functions-core-tools": "^4.0.7030"
+	}
+}

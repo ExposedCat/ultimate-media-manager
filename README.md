@@ -76,3 +76,23 @@ local HTTP trigger that behaves like the Azure Function endpoint:
 
 The emulator accepts the same `x-functions-key` header that production Azure
 Functions use and forwards requests to the local Cobalt API.
+
+## Azure Cobalt Function
+
+This repo includes an Azure Functions HTTP trigger at
+`azure-functions/cobalt-proxy`. It exposes `POST /api/cobalt` and forwards the
+request to `COBALT_UPSTREAM_URL`.
+
+1. Install dependencies with `deno task function:install`
+2. Configure your Function App settings:
+   - `COBALT_UPSTREAM_URL`
+   - `COBALT_API_KEY` if the upstream Cobalt API requires `Authorization:
+     Api-Key`
+3. Publish to your existing Function App with
+   `deno task function:publish <function-app-name>`
+4. Set the bot env:
+   - `COBALT_API_URL=https://<function-app-name>.azurewebsites.net/api/cobalt`
+   - `COBALT_AZURE_FUNCTION_KEY=<function-specific-key>`
+
+The Function App must be able to reach `COBALT_UPSTREAM_URL`. Azure cannot call
+`127.0.0.1` on your development machine after deployment.
