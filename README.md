@@ -42,11 +42,19 @@ See social media posts right in the Telegram Messenger.
 1. Add @UMMRobot to the group chat
 2. Use `/download link` or just `/download` **in reply** to the message
    containing a link
+3. Or mention the bot in that reply to trigger the same download flow without the slash command
 
 # Development
 
 - Install Deno 2
-- Install `yt-dlp` and `ffmpeg` if you want to use `/download` outside Docker
+- Set `COBALT_API_URL` to your hosted Cobalt API endpoint. For an Azure
+  Function HTTP trigger, this is usually
+  `https://<app>.azurewebsites.net/api/<route>`.
+- Set `COBALT_API_KEY` if your Cobalt instance requires `Authorization: Api-Key`.
+- Set `COBALT_AZURE_FUNCTION_KEY` if your Azure Function requires an
+  `x-functions-key` header.
+- Install `yt-dlp` and `ffmpeg` if you want the fallback downloader outside the
+  app container
 - Start the bot with `deno task start`
 - Run checks with `deno task check`
 - Format with `deno task fmt`
@@ -54,3 +62,17 @@ See social media posts right in the Telegram Messenger.
 - Run the full verification pass with `deno task verify`
 - Run the existing migration with `deno task migrate:add-chat-settings`
 - Runtime tasks load local variables from `.env` via Deno's `--env-file`
+
+## Local Cobalt Function Emulation
+
+For local development, you can run a Cobalt container with Podman and a tiny
+local HTTP trigger that behaves like the Azure Function endpoint:
+
+1. Set local Cobalt values in `.env`:
+   - `COBALT_API_URL=http://127.0.0.1:7071/api/cobalt`
+   - `COBALT_AZURE_FUNCTION_KEY=local-dev-key`
+   - `LOCAL_COBALT_UPSTREAM_URL=http://127.0.0.1:9000`
+2. Start everything with `deno task dev:local`
+
+The emulator accepts the same `x-functions-key` header that production Azure
+Functions use and forwards requests to the local Cobalt API.

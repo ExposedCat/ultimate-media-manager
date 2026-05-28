@@ -1,8 +1,7 @@
 import { Composer } from "grammy";
-import {
-	downloadMatchedUrl,
-	extractUrlsFromMessage,
-} from "../services/url-download.ts";
+
+import { extractUrlsFromMessage } from "../services/context-message.ts";
+import { downloadMatchedUrl } from "../services/url-download.ts";
 import type { CustomContext } from "../types/context.ts";
 
 export const mediaDownloadController = new Composer<CustomContext>();

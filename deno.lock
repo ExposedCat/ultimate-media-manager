@@ -2,10 +2,10 @@
   "version": "5",
   "specifiers": {
     "npm:@biomejs/biome@1.9.4": "1.9.4",
-    "npm:@grammyjs/auto-retry@2.0.2": "2.0.2_grammy@1.24.0",
+    "npm:@grammyjs/auto-retry@2.0.2": "2.0.2_grammy@1.43.0",
     "npm:@grammyjs/i18n@0.5.1": "0.5.1",
-    "npm:@grammyjs/runner@2.0.3": "2.0.3_grammy@1.24.0",
-    "npm:grammy@1.24.0": "1.24.0",
+    "npm:@grammyjs/runner@2.0.3": "2.0.3_grammy@1.43.0",
+    "npm:grammy@1.43.0": "1.43.0",
     "npm:mongodb@4.17.2": "4.17.2",
     "npm:youtube-dl-exec@3.1.6": "3.1.6"
   },
@@ -504,7 +504,7 @@
       "os": ["win32"],
       "cpu": ["x64"]
     },
-    "@grammyjs/auto-retry@2.0.2_grammy@1.24.0": {
+    "@grammyjs/auto-retry@2.0.2_grammy@1.43.0": {
       "integrity": "sha512-b4A4p5jlYDiQtW0c0FXYe11WMkYoiW+5rvOaDMCOk1h7Pu2SDl7B7gmFF8cthWCx2+M2nWLOsBxAgbBG4kKWYg==",
       "dependencies": [
         "debug",
@@ -519,15 +519,15 @@
         "js-yaml"
       ]
     },
-    "@grammyjs/runner@2.0.3_grammy@1.24.0": {
+    "@grammyjs/runner@2.0.3_grammy@1.43.0": {
       "integrity": "sha512-nckmTs1dPWfVQteK9cxqxzE+0m1VRvluLWB8UgFzsjg62w3qthPJt0TYtJBEdG7OedvfQq4vnFAyE6iaMkR42A==",
       "dependencies": [
         "abort-controller",
         "grammy"
       ]
     },
-    "@grammyjs/types@3.8.0": {
-      "integrity": "sha512-5r2rUJ/s939iQEt6j2gyl1owbWwKAYAg2gQH7FfWIP1swL2assZ97vRUl8cBU3UEp7es9c/VioWeQjKbV6g4eg=="
+    "@grammyjs/types@3.27.3": {
+      "integrity": "sha512-yUKMLliGsGbnxu96YUJ7km7B0zy4PzeH/Jvti5705R/LeKDMqkDV4DckMSt+OrliWQpTwQljHE0QLol5zgxBkg=="
     },
     "@kikobeats/time-span@1.0.13": {
       "integrity": "sha512-CfBK4/EZ73uN/6b5/wOfvWju1Ev/6H+uXqS2Vqd7/dEQTyOsvv4BdOHDqESp4Efa9YyrPPvN3IHU+C4z9FAo3Q=="
@@ -1031,8 +1031,8 @@
     "get-stream@8.0.1": {
       "integrity": "sha512-VaUJspBffn/LMCJVoMvSAdmscJyS1auj5Zulnn5UoYcY531UWmdwhRWkcGKnGU93m5HSXP9LP2usOryrBtQowA=="
     },
-    "grammy@1.24.0": {
-      "integrity": "sha512-cHeUC4jOwqEF4405b0phwr40IwIzudDSBHsSni5z6JyI7u3xCYpvD+11FOmxjgjrk9L9xEumC6VKL1yR1LRWTA==",
+    "grammy@1.43.0": {
+      "integrity": "sha512-7dYm06A945mXuIk/5HUlSjeyIYChW8vCEiU2dkOKKqJJzwAWxTkCc91Eqbz7TgODh2rtFFKWI/fekowWHOkmjQ==",
       "dependencies": [
         "@grammyjs/types",
         "abort-controller",
@@ -1285,7 +1285,7 @@
       "npm:@grammyjs/auto-retry@2.0.2",
       "npm:@grammyjs/i18n@0.5.1",
       "npm:@grammyjs/runner@2.0.3",
-      "npm:grammy@1.24.0",
+      "npm:grammy@1.43.0",
       "npm:mongodb@4.17.2",
       "npm:youtube-dl-exec@3.1.6"
     ]

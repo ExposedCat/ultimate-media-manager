@@ -3,13 +3,13 @@ version: "3.8"
 services:
   cobalt:
     image: ghcr.io/imputnet/cobalt:11
-    container_name: ultimate-media-manager-cobalt
-    restart: always
+    container_name: ultimate-media-manager-cobalt-dev
+    restart: unless-stopped
     read_only: true
+    profiles:
+      - local-cobalt
     environment:
-      API_URL: http://cobalt:9000/
-    networks:
-      - dev-infra
+      API_URL: http://127.0.0.1:9000/
     ports:
       - "127.0.0.1:9000:9000"
     healthcheck:
@@ -27,19 +27,14 @@ services:
     container_name: ultimate-media-manager-app
     restart: always
     env_file: .env
-    environment:
-      COBALT_API_URL: http://cobalt:9000
-    depends_on:
-      cobalt:
-        condition: service_healthy
     networks:
       - dev-infra
     healthcheck:
       test: [ "CMD", "deno", "eval", "const response = await fetch('http://127.0.0.1:3000').catch(() => null); Deno.exit(response?.ok ? 0 : 1)" ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
+      interval: 1s
+      timeout: 2s
+      retries: 5
+      start_period: 3s
 
 networks:
   dev-infra:

@@ -1,10 +1,11 @@
 import { Composer } from "grammy";
 
-import { matchDownloadCommandInput } from "../services/sources.ts";
 import {
-	downloadMatchedUrl,
+	extractMessageText,
 	extractUrlsFromMessage,
-} from "../services/url-download.ts";
+} from "../services/context-message.ts";
+import { matchDownloadCommandInput } from "../services/sources.ts";
+import { downloadMatchedUrl } from "../services/url-download.ts";
 import type { CustomContext } from "../types/context.ts";
 
 function getCommandUrl(ctx: CustomContext) {
@@ -17,8 +18,7 @@ function getCommandUrl(ctx: CustomContext) {
 	const repliedMessage = ctx.message?.reply_to_message;
 	return (
 		extractUrlsFromMessage(repliedMessage)[0] ??
-		repliedMessage?.text?.trim() ??
-		repliedMessage?.caption?.trim() ??
+		extractMessageText(repliedMessage) ??
 		null
 	);
 }

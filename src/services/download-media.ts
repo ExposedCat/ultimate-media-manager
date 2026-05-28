@@ -14,11 +14,14 @@ export type DownloadedMedia =
 	| {
 			kind: "image" | "video" | "audio";
 			file: InputFile;
+			extension?: string;
+			publicUrl?: string;
 			title?: string;
 	  }
 	| {
 			kind: "images";
 			files: InputFile[];
+			publicUrls?: string[];
 	  };
 
 type DownloadMode = "generic" | "video";
@@ -42,13 +45,16 @@ export async function downloadMediaForUrl(
 			return {
 				kind: "images",
 				files: cobaltMedia.filenames.map((filename) => new InputFile(filename)),
+				publicUrls: cobaltMedia.publicUrls,
 			};
 		}
 
 		if (cobaltMedia.filename) {
 			return {
 				kind: cobaltMedia.mediaKind,
+				extension: cobaltMedia.extension,
 				file: new InputFile(cobaltMedia.filename),
+				publicUrl: cobaltMedia.publicUrl,
 			};
 		}
 	}
@@ -96,6 +102,7 @@ export async function downloadMediaForUrl(
 
 		return {
 			kind: prepared.mediaKind,
+			extension: prepared.extension,
 			file: new InputFile(
 				filename,
 				mode === "video"
