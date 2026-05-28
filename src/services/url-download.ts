@@ -1,4 +1,8 @@
+import { InputFile } from "grammy";
+
 import type { CustomContext } from "../types/context.ts";
+import { cacheDownloadedMedia } from "./cache-media.ts";
+import { createImageCollage } from "./collage.ts";
 import { type MessageLike, extractUrlsFromMessage } from "./context-message.ts";
 import {
 	type DownloadResponse,
@@ -81,9 +85,10 @@ function buildGuestArticleResult(result: DownloadResponse): GuestQueryResult {
 	};
 }
 
-function buildGuestMediaQueryResult(
+async function buildGuestMediaQueryResult(
+	ctx: CustomContext,
 	result: DownloadResponse,
-): GuestQueryResult {
+): Promise<GuestQueryResult> {
 	const plainText = stripHtml(result.text);
 	const title = plainText.slice(0, 64) || "Download result";
 	const media = result.media;
@@ -92,8 +97,48 @@ function buildGuestMediaQueryResult(
 	}
 
 	if (media.kind === "images") {
+		try {
+			const collageFilename = await createImageCollage(media.filenames);
+			if (collageFilename) {
+				const cachedMedia = await cacheDownloadedMedia(ctx, {
+					kind: "image",
+					file: new InputFile(collageFilename),
+					extension: "jpg",
+				});
+
+				if (cachedMedia?.type === "photo") {
+					return {
+						type: "photo",
+						id: crypto.randomUUID(),
+						photo_file_id: cachedMedia.fileId,
+						title,
+						description: plainText.slice(0, 128) || undefined,
+						caption: result.text,
+						parse_mode: "HTML",
+					};
+				}
+
+				console.info(
+					"[GuestQuery] Falling back from collage to public photo URL: cache did not return a photo",
+					{ imageCount: media.filenames.length },
+				);
+			}
+		} catch (error) {
+			console.error(
+				"[GuestQuery] Falling back from collage to public photo URL: failed to build or cache collage",
+				{
+					imageCount: media.filenames.length,
+					error,
+				},
+			);
+		}
+
 		const photoUrl = media.publicUrls?.[0];
 		if (!photoUrl) {
+			console.info(
+				"[GuestQuery] Falling back from image media to article result: no public photo URL",
+				{ imageCount: media.filenames.length },
+			);
 			return buildGuestArticleResult(result);
 		}
 
@@ -172,7 +217,7 @@ async function buildGuestQueryResult(
 					? Boolean(result.media.publicUrl)
 					: false,
 	});
-	return buildGuestMediaQueryResult(result);
+	return await buildGuestMediaQueryResult(ctx, result);
 }
 
 function getCaptionAuthor(ctx: CustomContext): CaptionAuthor | null {
@@ -207,6 +252,79 @@ function getCaptionAuthor(ctx: CustomContext): CaptionAuthor | null {
 			.filter(Boolean)
 			.join(" "),
 	};
+}
+
+async function answerGuestQueryWithFallback(
+	ctx: CustomContext,
+	result: DownloadResponse,
+	sourceType: string,
+	url: string,
+) {
+	let guestResult: GuestQueryResult;
+	try {
+		guestResult = await buildGuestQueryResult(ctx, result);
+	} catch (error) {
+		console.error("[GuestQuery] Failed to build guest query result", {
+			userId: ctx.from?.id,
+			sourceType,
+			mediaKind: result.media?.kind ?? "text",
+			url,
+			error,
+		});
+		return false;
+	}
+
+	try {
+		await ctx.answerGuestQuery(guestResult);
+		console.info("[GuestQuery] Answered guest query", {
+			userId: ctx.from?.id,
+			sourceType,
+			mediaKind: result.media?.kind ?? "text",
+			resultType: guestResult.type,
+			url,
+		});
+		return true;
+	} catch (error) {
+		console.error("[GuestQuery] Failed to answer guest query", {
+			userId: ctx.from?.id,
+			sourceType,
+			mediaKind: result.media?.kind ?? "text",
+			resultType: guestResult.type,
+			url,
+			error,
+		});
+	}
+
+	console.info(
+		"[GuestQuery] Falling back to direct text reply after answerGuestQuery failure",
+		{
+			userId: ctx.from?.id,
+			sourceType,
+			mediaKind: result.media?.kind ?? "text",
+			url,
+		},
+	);
+
+	try {
+		await ctx.reply(result.text, {
+			parse_mode: "HTML",
+			link_preview_options: buildLinkPreviewOptions(result.previewUrl),
+		});
+		console.info("[GuestQuery] Sent direct text fallback", {
+			userId: ctx.from?.id,
+			sourceType,
+			url,
+		});
+		return true;
+	} catch (fallbackError) {
+		console.error("[GuestQuery] Failed to send direct text fallback", {
+			userId: ctx.from?.id,
+			sourceType,
+			url,
+			error: fallbackError,
+		});
+		return false;
+	}
 }
 
 export async function downloadMatchedUrl(
@@ -263,8 +381,10 @@ export async function downloadMatchedUrl(
 			});
 
 			if (ctx.guestMessage) {
-				await ctx.answerGuestQuery(await buildGuestQueryResult(ctx, result));
-			} else if (!result.media) {
+				return await answerGuestQueryWithFallback(ctx, result, type, url);
+			}
+
+			if (!result.media) {
 				await ctx.reply(result.text, {
 					parse_mode: "HTML",
 					...replyExtra,

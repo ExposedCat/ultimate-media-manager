@@ -20,6 +20,7 @@ export type DownloadedMedia =
 	  }
 	| {
 			kind: "images";
+			filenames: string[];
 			files: InputFile[];
 			publicUrls?: string[];
 	  };
@@ -44,6 +45,7 @@ export async function downloadMediaForUrl(
 		if (cobaltMedia.type === "multiple") {
 			return {
 				kind: "images",
+				filenames: cobaltMedia.filenames,
 				files: cobaltMedia.filenames.map((filename) => new InputFile(filename)),
 				publicUrls: cobaltMedia.publicUrls,
 			};

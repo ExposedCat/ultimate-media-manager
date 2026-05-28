@@ -9,10 +9,6 @@ mediaDownloadController.on(
 	["message::url", "message::text_link"],
 	async (ctx, next) => {
 		if (ctx.message.forward_origin) {
-			console.info("[AutoDownload] Skipping forwarded message", {
-				chatId: ctx.chat.id,
-				messageId: ctx.message.message_id,
-			});
 			return;
 		}
 

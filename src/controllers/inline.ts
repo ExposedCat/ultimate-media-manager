@@ -1,6 +1,12 @@
-import { Composer, InlineKeyboard, InlineQueryResultBuilder } from "grammy";
+import {
+	Composer,
+	InlineKeyboard,
+	InlineQueryResultBuilder,
+	InputFile,
+} from "grammy";
 
 import { cacheDownloadedMedia } from "../services/cache-media.ts";
+import { createImageCollage } from "../services/collage.ts";
 import {
 	type DownloadResponse,
 	buildDownloadResponse,
@@ -27,14 +33,6 @@ function getChosenInlineLogContext(ctx: CustomContext) {
 		query: ctx.chosenInlineResult?.query ?? null,
 		inlineMessageId: ctx.chosenInlineResult?.inline_message_id ?? null,
 	};
-}
-
-function getInlineText(ctx: CustomContext, result: DownloadResponse) {
-	if (result.media?.kind !== "images") {
-		return result.text;
-	}
-
-	return `${result.text}\n\n${ctx.i18n.t("inline.multiplePhotosUnsupported")}`;
 }
 
 async function editInlineMessageWithCaption(
@@ -89,7 +87,7 @@ inlineController.on("chosen_inline_result", async (ctx) => {
 			url: ctx.chosenInlineResult.query,
 			fallbackUrl: urlMatch.fallbackUrl ?? undefined,
 		});
-		inlineText = getInlineText(ctx, result);
+		inlineText = result.text;
 		console.info("[InlineChosen] Built inline response", {
 			...getChosenInlineLogContext(ctx),
 			sourceType: urlMatch.type,
@@ -111,33 +109,19 @@ inlineController.on("chosen_inline_result", async (ctx) => {
 			return;
 		}
 
-		const method =
-			result.media.kind === "video"
-				? "sendVideo"
-				: result.media.kind === "audio"
-					? "sendAudio"
-					: "sendPhoto";
-
-		const mediaFile =
-			result.media.kind === "images"
-				? result.media.files[0]
-				: result.media.file;
-		if (!mediaFile) {
-			console.info("[InlineChosen] Missing media file, falling back to text", {
-				...getChosenInlineLogContext(ctx),
-				sourceType: urlMatch.type,
-				mediaKind: result.media.kind,
-			});
-			await editInlineMessageWithCaption(
-				ctx,
-				messageId,
-				inlineText,
-				result.previewUrl,
-			);
-			return;
+		let media = result.media;
+		if (result.media.kind === "images") {
+			const collageFilename = await createImageCollage(result.media.filenames);
+			if (collageFilename) {
+				media = {
+					kind: "image",
+					file: new InputFile(collageFilename),
+					extension: "jpg",
+				};
+			}
 		}
 
-		const cachedMedia = await cacheDownloadedMedia(ctx, result.media);
+		const cachedMedia = await cacheDownloadedMedia(ctx, media);
 		if (!cachedMedia) {
 			console.info(
 				"[InlineChosen] Missing cached file id, falling back to text",

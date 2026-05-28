@@ -18,5 +18,6 @@ export const APP_ENV = {
 	COBALT_API_URL: requireEnv("COBALT_API_URL"),
 	COBALT_API_KEY: optionalEnv("COBALT_API_KEY"),
 	COBALT_AZURE_FUNCTION_KEY: optionalEnv("COBALT_AZURE_FUNCTION_KEY"),
+	FFMPEG_PATH: Deno.env.get("FFMPEG_PATH") ?? "ffmpeg",
 	YT_DLP_PATH: Deno.env.get("YT_DLP_PATH") ?? "yt-dlp",
 };

@@ -21,7 +21,7 @@ function getLogContext(ctx: CustomContext) {
 
 function getMentionedReplyUrl(ctx: CustomContext) {
 	const message = ctx.msg;
-	if (!message?.reply_to_message) {
+	if (!message) {
 		return null;
 	}
 
@@ -29,10 +29,16 @@ function getMentionedReplyUrl(ctx: CustomContext) {
 		return null;
 	}
 
-	return (
-		extractUrlsFromMessage(message.reply_to_message)[0] ??
-		extractMessageText(message.reply_to_message)
-	);
+	const repliedUrl = message.reply_to_message
+		? (extractUrlsFromMessage(message.reply_to_message)[0] ??
+			extractMessageText(message.reply_to_message))
+		: null;
+
+	if (repliedUrl || !ctx.guestMessage) {
+		return repliedUrl;
+	}
+
+	return extractUrlsFromMessage(message)[0] ?? extractMessageText(message);
 }
 
 export const contextMessageController = new Composer<CustomContext>();
@@ -47,11 +53,6 @@ contextMessageController
 			"guest_message:caption",
 		],
 		async (ctx, next) => {
-			console.info("[MentionDownload] Received candidate message", {
-				...getLogContext(ctx),
-				text: ctx.msg?.text ?? ctx.msg?.caption ?? null,
-			});
-
 			if (!ctx.from || !ctx.chat || !ctx.msg) {
 				console.warn(
 					"[MentionDownload] Missing context fields",
@@ -61,38 +62,31 @@ contextMessageController
 				return;
 			}
 
-			if (!ctx.msg.reply_to_message) {
-				console.info(
-					"[MentionDownload] Skipping non-reply message",
-					getLogContext(ctx),
-				);
+			if (!ctx.guestMessage && !ctx.msg.reply_to_message) {
 				await next();
 				return;
 			}
 
 			if (!ctx.guestMessage && !isBotMentioned(ctx.msg, ctx.me.username)) {
-				console.info("[MentionDownload] Skipping reply without bot mention", {
-					...getLogContext(ctx),
-					botUsername: ctx.me.username,
-				});
 				await next();
 				return;
 			}
 
 			const url = getMentionedReplyUrl(ctx);
 			if (!url) {
-				console.info("[MentionDownload] No URL found in replied message", {
+				console.info("[MentionDownload] No URL found in context message", {
 					...getLogContext(ctx),
 					repliedText:
-						ctx.msg.reply_to_message.text ??
-						ctx.msg.reply_to_message.caption ??
+						ctx.msg.reply_to_message?.text ??
+						ctx.msg.reply_to_message?.caption ??
 						null,
+					triggerText: ctx.msg.text ?? ctx.msg.caption ?? null,
 				});
 				await next();
 				return;
 			}
 
-			console.info("[MentionDownload] Processing replied URL", {
+			console.info("[MentionDownload] Processing context URL", {
 				...getLogContext(ctx),
 				url,
 			});
