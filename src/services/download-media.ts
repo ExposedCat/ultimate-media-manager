@@ -1,27 +1,54 @@
 import { InputFile } from "grammy";
 
-import { downloadMedia } from "./cobalt.ts";
+import { type DownloadMediaFile, downloadMedia } from "./cobalt.ts";
+
+export type DownloadedImage = DownloadMediaFile & {
+	path?: string;
+};
 
 export type DownloadedMedia =
 	| {
 			kind: "image" | "video" | "audio";
 			file: InputFile;
+			bytes?: Uint8Array;
 			extension?: string;
-			publicUrl?: string;
+			filename?: string;
 			title?: string;
 	  }
 	| {
 			kind: "images";
-			filenames: string[];
 			files: InputFile[];
-			publicUrls?: string[];
+			images: DownloadedImage[];
 	  };
+
+function sanitizeFilename(filename: string) {
+	return filename.replaceAll("/", "_").replaceAll("\\", "_");
+}
+
+export async function materializeImageFiles(
+	media: Extract<DownloadedMedia, { kind: "images" }>,
+	tempDir: string,
+) {
+	const filenames: string[] = [];
+	for (const [index, image] of media.images.entries()) {
+		if (!image.path) {
+			const filename = `${tempDir}/${index}-${sanitizeFilename(
+				image.filename || `image.${image.extension || "jpg"}`,
+			)}`;
+			await Deno.writeFile(filename, image.data);
+			image.path = filename;
+		}
+
+		filenames.push(image.path);
+	}
+
+	return filenames;
+}
 
 export async function downloadMediaForUrl(
 	url: string,
-	tempDir: string,
 ): Promise<DownloadedMedia | null> {
-	const cobaltMedia = await downloadMedia(url, tempDir);
+	const cobaltMedia = await downloadMedia(url);
 	if (cobaltMedia) {
 		console.info("[DownloadMedia] Downloaded media with Cobalt", {
 			url,
@@ -33,20 +60,20 @@ export async function downloadMediaForUrl(
 		if (cobaltMedia.type === "multiple") {
 			return {
 				kind: "images",
-				filenames: cobaltMedia.filenames,
-				files: cobaltMedia.filenames.map((filename) => new InputFile(filename)),
-				publicUrls: cobaltMedia.publicUrls,
+				files: cobaltMedia.files.map(
+					(file) => new InputFile(file.data, file.filename),
+				),
+				images: cobaltMedia.files,
 			};
 		}
 
-		if (cobaltMedia.filename) {
-			return {
-				kind: cobaltMedia.mediaKind,
-				extension: cobaltMedia.extension,
-				file: new InputFile(cobaltMedia.filename),
-				publicUrl: cobaltMedia.publicUrl,
-			};
-		}
+		return {
+			kind: cobaltMedia.mediaKind,
+			bytes: cobaltMedia.file.data,
+			extension: cobaltMedia.extension,
+			file: new InputFile(cobaltMedia.file.data, cobaltMedia.file.filename),
+			filename: cobaltMedia.file.filename,
+		};
 	}
 
 	console.info("[DownloadMedia] Cobalt failed to download media", { url });

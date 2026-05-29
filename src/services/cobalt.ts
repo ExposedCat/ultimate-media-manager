@@ -3,17 +3,22 @@ import { APP_ENV } from "../config/env.ts";
 export type DownloadMediaResult =
 	| {
 			type: "single";
-			filename: string | null;
+			file: DownloadMediaFile;
 			mediaKind: "image" | "video" | "audio";
-			publicUrl: string;
 			extension: string;
 	  }
 	| {
 			type: "multiple";
-			filenames: string[];
+			files: DownloadMediaFile[];
 			mediaKind: "image";
-			publicUrls: string[];
 	  };
+
+export type DownloadMediaFile = {
+	contentType?: string;
+	data: Uint8Array;
+	extension: string;
+	filename: string;
+};
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];
 const AUDIO_EXTENSIONS = ["mp3", "wav", "ogg", "m4a"];
@@ -29,11 +34,15 @@ const EXTENSIONS_BY_CONTENT_TYPE = new Map([
 	["audio/mp4", "m4a"],
 ]);
 
-type CobaltResponse =
-	| { status: "redirect" | "tunnel"; url: string; filename: string }
-	| { status: "picker"; picker: { type: "photo"; url: string }[] }
-	| { status: "local-processing" }
-	| { status: "error"; error: { code: string } };
+type CobaltBundleManifest = {
+	status: "bundle";
+	files: {
+		filename: string;
+		contentType: string;
+		size: number;
+		offset: number;
+	}[];
+};
 
 function buildCobaltHeaders() {
 	const headers = new Headers({
@@ -52,63 +61,104 @@ function buildCobaltHeaders() {
 	return headers;
 }
 
-function getExtensionFromUrl(url: string) {
-	try {
-		const pathname = new URL(url).pathname;
-		return pathname.split(".").at(-1)?.toLowerCase() ?? "";
-	} catch {
-		return "";
-	}
-}
-
 function sanitizeFilename(filename: string) {
 	return filename.replaceAll("/", "_").replaceAll("\\", "_");
 }
 
-function getExtension(response: Response, url: string, fallback: string) {
-	const contentType = response.headers
-		.get("Content-Type")
-		?.split(";")[0]
-		.trim();
-	if (contentType) {
-		const extension = EXTENSIONS_BY_CONTENT_TYPE.get(contentType);
-		if (extension) {
-			return extension;
-		}
-	}
-
-	return getExtensionFromUrl(url) || fallback;
+function getExtensionFromFilename(filename: string) {
+	return filename.split(".").at(-1)?.toLowerCase() ?? "";
 }
 
-async function downloadFile(
-	url: string,
-	filename: string,
-): Promise<string | null> {
-	const response = await fetch(url);
-	if (!response.ok) {
-		console.warn("[Cobalt] Failed to download prepared media URL", {
-			url,
-			status: response.status,
-			statusText: response.statusText,
+function getExtensionFromContentType(contentType: string) {
+	return EXTENSIONS_BY_CONTENT_TYPE.get(contentType.split(";")[0].trim()) ?? "";
+}
+
+function getMediaKind(extension: string) {
+	const isImage = IMAGE_EXTENSIONS.includes(extension);
+	const isAudio = AUDIO_EXTENSIONS.includes(extension);
+	return isImage ? "image" : isAudio ? "audio" : "video";
+}
+
+async function parseBundleResponse(
+	response: Response,
+): Promise<DownloadMediaResult | null> {
+	const buffer = await response.arrayBuffer();
+	if (buffer.byteLength < 4) {
+		console.warn("[Cobalt] Bundle response was too small");
+		return null;
+	}
+
+	const view = new DataView(buffer);
+	const manifestLength = view.getUint32(0);
+	const manifestStart = 4;
+	const manifestEnd = manifestStart + manifestLength;
+	if (manifestEnd > buffer.byteLength) {
+		console.warn("[Cobalt] Bundle manifest length exceeded response size", {
+			manifestLength,
+			responseSize: buffer.byteLength,
 		});
 		return null;
 	}
 
-	const buffer = await response.arrayBuffer();
-	if (buffer.byteLength === 0) {
-		console.warn("[Cobalt] Prepared media URL returned an empty body", { url });
+	const manifest = JSON.parse(
+		new TextDecoder().decode(buffer.slice(manifestStart, manifestEnd)),
+	) as CobaltBundleManifest;
+	if (manifest.status !== "bundle" || manifest.files.length === 0) {
+		console.warn("[Cobalt] Bundle manifest did not contain files");
 		return null;
 	}
 
-	await Deno.writeFile(filename, new Uint8Array(buffer));
-	return filename;
+	const files: DownloadMediaFile[] = [];
+	for (const [index, file] of manifest.files.entries()) {
+		const fileStart = manifestEnd + file.offset;
+		const fileEnd = fileStart + file.size;
+		if (fileEnd > buffer.byteLength || file.size <= 0) {
+			console.warn("[Cobalt] Bundle file range was invalid", {
+				index,
+				filename: file.filename,
+				size: file.size,
+				offset: file.offset,
+			});
+			continue;
+		}
+
+		const extension =
+			getExtensionFromFilename(file.filename) ||
+			getExtensionFromContentType(file.contentType) ||
+			"bin";
+		const filename = `${index}-${sanitizeFilename(file.filename || `media.${extension}`)}`;
+		files.push({
+			contentType: file.contentType,
+			data: new Uint8Array(buffer.slice(fileStart, fileEnd)),
+			extension,
+			filename,
+		});
+	}
+
+	if (files.length === 0) {
+		return null;
+	}
+
+	if (files.length > 1) {
+		return {
+			type: "multiple",
+			files,
+			mediaKind: "image",
+		};
+	}
+
+	const file = files[0];
+	return {
+		type: "single",
+		file,
+		mediaKind: getMediaKind(file.extension),
+		extension: file.extension,
+	};
 }
 
 export async function downloadMedia(
 	url: string,
-	tempDir: string,
 ): Promise<DownloadMediaResult | null> {
-	const filenames: string[] = [];
 	try {
 		const directUrl = await fetch(APP_ENV.COBALT_API_URL, {
 			method: "POST",
@@ -125,85 +175,18 @@ export async function downloadMedia(
 			return null;
 		}
 
-		const body = (await directUrl.json()) as CobaltResponse;
-
-		if (body.status === "error") {
-			console.warn("[Cobalt] API returned an error", {
+		const contentType = directUrl.headers.get("Content-Type") ?? "";
+		if (
+			contentType.split(";")[0].trim() !== "application/x-umm-cobalt-bundle"
+		) {
+			console.warn("[Cobalt] API returned unsupported response type", {
 				url,
-				code: body.error.code,
+				contentType,
 			});
 			return null;
 		}
 
-		if (body.status === "local-processing") {
-			console.warn("[Cobalt] API requested local processing", { url });
-			return null;
-		}
-
-		if (body.status === "picker") {
-			for (const [index, item] of body.picker.entries()) {
-				const response = await fetch(item.url);
-				if (!response.ok) {
-					console.warn("[Cobalt] Failed to download picker image", {
-						url: item.url,
-						status: response.status,
-						statusText: response.statusText,
-					});
-					continue;
-				}
-
-				const buffer = await response.arrayBuffer();
-				if (buffer.byteLength === 0) {
-					console.warn("[Cobalt] Picker image returned an empty body", {
-						url: item.url,
-					});
-					continue;
-				}
-
-				const extension = getExtension(response, item.url, "jpg");
-				const filename = `${tempDir}/${index}.${extension}`;
-				await Deno.writeFile(filename, new Uint8Array(buffer));
-				filenames.push(filename);
-			}
-
-			if (filenames.length === 0) {
-				console.warn(
-					"[Cobalt] Picker did not produce any downloadable images",
-					{
-						url,
-						imageCount: body.picker.length,
-					},
-				);
-				return null;
-			}
-
-			return {
-				type: "multiple",
-				filenames,
-				mediaKind: "image",
-				publicUrls: body.picker.map((item) => item.url),
-			};
-		}
-
-		const extension = body.filename.split(".").at(-1)?.toLowerCase() ?? "";
-		const isImage = IMAGE_EXTENSIONS.includes(extension);
-		const isAudio = AUDIO_EXTENSIONS.includes(extension);
-
-		const filename = `${tempDir}/${sanitizeFilename(body.filename)}`;
-		const downloadedFilename = await downloadFile(body.url, filename);
-		if (!downloadedFilename) {
-			return null;
-		}
-
-		filenames.push(filename);
-
-		return {
-			type: "single",
-			filename: downloadedFilename,
-			mediaKind: isImage ? "image" : isAudio ? "audio" : "video",
-			publicUrl: body.url,
-			extension,
-		};
+		return await parseBundleResponse(directUrl);
 	} catch (error) {
 		console.log("Cobalt failed to prepare media", error);
 		return null;

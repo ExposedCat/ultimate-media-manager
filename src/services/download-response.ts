@@ -5,6 +5,7 @@ import type { SourceType } from "./sources.ts";
 
 export type DownloadResponse = {
 	cleanup: () => Promise<unknown>;
+	getTempDir: () => Promise<string>;
 	media: DownloadedMedia | null;
 	previewUrl: string;
 	text: string;
@@ -17,6 +18,8 @@ type DownloadResponseData = {
 	url: string;
 	fallbackUrl?: string;
 };
+
+type DownloadResponseMediaKind = NonNullable<DownloadResponse["media"]>["kind"];
 
 export function buildLinkPreviewOptions(url: string) {
 	return {
@@ -42,6 +45,39 @@ function getPromoText(
 	});
 }
 
+export function buildDownloadResponseText(
+	ctx: CustomContext,
+	data: DownloadResponseData,
+	mediaKind: DownloadResponseMediaKind | null,
+	title?: string,
+) {
+	if (!mediaKind) {
+		return data.sourceType === "youtubeVideo"
+			? ctx.i18n.t("error.video")
+			: getPromoText(ctx, data, "post");
+	}
+
+	if (data.sourceType === "youtubeVideo") {
+		const resourceKey =
+			mediaKind === "audio" ? "downloaded.audio" : "downloaded.video";
+		return ctx.i18n.t(resourceKey, {
+			title: title ?? "Downloaded Video",
+			url: data.url,
+		});
+	}
+
+	const kind =
+		mediaKind === "images"
+			? "slider"
+			: mediaKind === "audio"
+				? "audio"
+				: mediaKind === "image"
+					? "image"
+					: "video";
+
+	return getPromoText(ctx, data, kind);
+}
+
 export async function buildDownloadResponse(
 	ctx: CustomContext,
 	data: DownloadResponseData,
@@ -52,22 +88,24 @@ export async function buildDownloadResponse(
 		userId: data.userId,
 	});
 
-	const tempDir = await Deno.makeTempDir({
-		prefix: `ummrobot-${data.userId}-`,
-	});
-	const cleanup = async () => await deletePaths([tempDir]);
+	let tempDir: string | null = null;
+	const getTempDir = async () => {
+		tempDir ??= await Deno.makeTempDir({
+			prefix: `ummrobot-${data.userId}-`,
+		});
+		return tempDir;
+	};
+	const cleanup = async () => await deletePaths(tempDir ? [tempDir] : []);
 	const previewUrl = data.fallbackUrl ?? data.url;
-	const media = await downloadMediaForUrl(data.url, tempDir);
+	const media = await downloadMediaForUrl(data.url);
 
 	if (!media) {
 		return {
 			cleanup,
+			getTempDir,
 			media: null,
 			previewUrl,
-			text:
-				data.sourceType === "youtubeVideo"
-					? ctx.i18n.t("error.video")
-					: getPromoText(ctx, data, "post"),
+			text: buildDownloadResponseText(ctx, data, null),
 		};
 	}
 
@@ -76,32 +114,20 @@ export async function buildDownloadResponse(
 			media.kind === "images"
 				? "Downloaded Video"
 				: (media.title ?? "Downloaded Video");
-		const resourceKey =
-			media.kind === "audio" ? "downloaded.audio" : "downloaded.video";
 		return {
 			cleanup,
+			getTempDir,
 			media,
 			previewUrl,
-			text: ctx.i18n.t(resourceKey, {
-				title,
-				url: data.url,
-			}),
+			text: buildDownloadResponseText(ctx, data, media.kind, title),
 		};
 	}
 
-	const kind =
-		media.kind === "images"
-			? "slider"
-			: media.kind === "audio"
-				? "audio"
-				: media.kind === "image"
-					? "image"
-					: "video";
-
 	return {
 		cleanup,
+		getTempDir,
 		media,
 		previewUrl,
-		text: getPromoText(ctx, data, kind),
+		text: buildDownloadResponseText(ctx, data, media.kind),
 	};
 }
