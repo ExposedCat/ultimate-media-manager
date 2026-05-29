@@ -21,6 +21,14 @@ type DownloadResponseData = {
 
 type DownloadResponseMediaKind = NonNullable<DownloadResponse["media"]>["kind"];
 
+function escapeHtml(value: string | number) {
+	return String(value)
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;");
+}
+
 export function buildLinkPreviewOptions(url: string) {
 	return {
 		is_disabled: false,
@@ -38,8 +46,8 @@ function getPromoText(
 	return ctx.i18n.t("promoCaption", {
 		viewUrl: ctx.i18n.t(`viewOn.${data.sourceType}`, {
 			kind,
-			postUrl: data.url,
-			userName: data.userName,
+			postUrl: escapeHtml(data.url),
+			userName: escapeHtml(data.userName),
 			userId: data.userId,
 		}),
 	});
@@ -61,8 +69,8 @@ export function buildDownloadResponseText(
 		const resourceKey =
 			mediaKind === "audio" ? "downloaded.audio" : "downloaded.video";
 		return ctx.i18n.t(resourceKey, {
-			title: title ?? "Downloaded Video",
-			url: data.url,
+			title: escapeHtml(title ?? "Downloaded Video"),
+			url: escapeHtml(data.url),
 		});
 	}
 

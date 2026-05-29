@@ -61,6 +61,11 @@ function buildCobaltHeaders() {
 	return headers;
 }
 
+async function readResponseBodyPreview(response: Response) {
+	const body = await response.text();
+	return body.length > 1000 ? `${body.slice(0, 1000)}...` : body;
+}
+
 function sanitizeFilename(filename: string) {
 	return filename.replaceAll("/", "_").replaceAll("\\", "_");
 }
@@ -171,6 +176,7 @@ export async function downloadMedia(
 				url,
 				status: directUrl.status,
 				statusText: directUrl.statusText,
+				body: await readResponseBodyPreview(directUrl),
 			});
 			return null;
 		}

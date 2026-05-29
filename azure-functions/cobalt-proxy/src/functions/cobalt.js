@@ -12,6 +12,26 @@ function normalizeEndpoint(url) {
 	return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
+function truncateBody(body) {
+	return body.length > 1000 ? `${body.slice(0, 1000)}...` : body;
+}
+
+function formatLogPayload(value) {
+	return truncateBody(JSON.stringify(value));
+}
+
+async function readJsonResponse(response) {
+	const body = await response.text();
+	try {
+		return JSON.parse(body);
+	} catch (error) {
+		throw new Error(
+			`upstream returned invalid JSON: ${response.status} ${response.statusText} ${truncateBody(body)}`,
+			{ cause: error },
+		);
+	}
+}
+
 function getPublicApiUrl(request) {
 	return `${new URL(request.url).origin}/`;
 }
@@ -178,7 +198,16 @@ app.http("cobalt", {
 				headers,
 				body: await request.text(),
 			});
-			const cobaltResponse = await upstreamResponse.json();
+			const cobaltResponse = await readJsonResponse(upstreamResponse);
+			if (!upstreamResponse.ok) {
+				context.warn("[CobaltFunction] Upstream rejected request", {
+					cobaltApiUrl,
+					status: upstreamResponse.status,
+					statusText: upstreamResponse.statusText,
+					response: formatLogPayload(cobaltResponse),
+				});
+			}
+
 			const resolved = await resolveCobaltResponse(cobaltResponse);
 
 			if ("bundle" in resolved) {

@@ -126,6 +126,32 @@ function stripHtml(text: string) {
 	return text.replace(/<[^>]+>/g, "").trim();
 }
 
+async function replyWithPreviewFallback(
+	ctx: CustomContext,
+	result: DownloadResponse,
+	replyExtra: ReturnType<typeof buildReplyExtra>,
+) {
+	try {
+		await ctx.reply(result.text, {
+			parse_mode: "HTML",
+			...replyExtra,
+			link_preview_options: buildLinkPreviewOptions(result.previewUrl),
+		});
+		return true;
+	} catch (htmlError) {
+		console.warn("[Download] Preview fallback failed", {
+			userId: ctx.from?.id,
+			error: htmlError,
+		});
+	}
+
+	await ctx.reply(stripHtml(result.text), {
+		...replyExtra,
+		link_preview_options: buildLinkPreviewOptions(result.previewUrl),
+	});
+	return true;
+}
+
 function buildGuestMediaMetadata(text: string): GuestMediaMetadata {
 	const plainText = stripHtml(text);
 	return {
@@ -581,11 +607,7 @@ export async function downloadMatchedUrl(
 			}
 
 			if (!result.media) {
-				await ctx.reply(result.text, {
-					parse_mode: "HTML",
-					...replyExtra,
-					link_preview_options: buildLinkPreviewOptions(result.previewUrl),
-				});
+				await replyWithPreviewFallback(ctx, result, replyExtra);
 			} else if (result.media.kind === "images") {
 				const sentMessages = await ctx.replyWithMediaGroup(
 					result.media.files.map((file, index) => ({
@@ -649,13 +671,9 @@ export async function downloadMatchedUrl(
 
 			if (result.media) {
 				try {
-					await ctx.reply(result.text, {
-						parse_mode: "HTML",
-						...replyExtra,
-						link_preview_options: buildLinkPreviewOptions(result.previewUrl),
-					});
+					await replyWithPreviewFallback(ctx, result, replyExtra);
 					console.info(
-						"[Download] Sent text fallback after media send failure",
+						"[Download] Sent preview fallback after media send failure",
 						{
 							userId: ctx.from.id,
 							sourceType: type,
