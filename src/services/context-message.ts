@@ -8,6 +8,9 @@ export type MessageEntityLike = {
 export type MessageLike = {
 	text?: string;
 	caption?: string;
+	from?: {
+		id: number;
+	};
 	entities?: MessageEntityLike[];
 	caption_entities?: MessageEntityLike[];
 	reply_to_message?: MessageLike | null;

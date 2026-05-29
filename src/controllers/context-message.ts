@@ -19,9 +19,20 @@ function getLogContext(ctx: CustomContext) {
 	};
 }
 
+function isGuestReplyToBotMessage(ctx: CustomContext) {
+	return (
+		Boolean(ctx.guestMessage) &&
+		ctx.msg?.reply_to_message?.from?.id === ctx.me.id
+	);
+}
+
 function getMentionedReplyUrlSource(ctx: CustomContext) {
 	const message = ctx.msg;
 	if (!message) {
+		return null;
+	}
+
+	if (isGuestReplyToBotMessage(ctx)) {
 		return null;
 	}
 
@@ -80,6 +91,7 @@ contextMessageController
 			if (!urlSource) {
 				console.info("[MentionDownload] No URL found in context message", {
 					...getLogContext(ctx),
+					isBotGuestReply: isGuestReplyToBotMessage(ctx),
 					repliedText:
 						ctx.msg.reply_to_message?.text ??
 						ctx.msg.reply_to_message?.caption ??
