@@ -184,7 +184,6 @@ function buildGuestArticleResult(result: DownloadResponse): GuestQueryResult {
 		id: crypto.randomUUID(),
 		title,
 		description,
-		url: result.previewUrl,
 		input_message_content: {
 			message_text: result.text,
 			parse_mode: "HTML",
