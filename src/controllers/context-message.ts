@@ -19,7 +19,7 @@ function getLogContext(ctx: CustomContext) {
 	};
 }
 
-function getMentionedReplyUrl(ctx: CustomContext) {
+function getMentionedReplyUrlSource(ctx: CustomContext) {
 	const message = ctx.msg;
 	if (!message) {
 		return null;
@@ -35,10 +35,14 @@ function getMentionedReplyUrl(ctx: CustomContext) {
 		: null;
 
 	if (repliedUrl || !ctx.guestMessage) {
-		return repliedUrl;
+		return repliedUrl
+			? { url: repliedUrl, sourceMessage: message.reply_to_message }
+			: null;
 	}
 
-	return extractUrlsFromMessage(message)[0] ?? extractMessageText(message);
+	const messageUrl =
+		extractUrlsFromMessage(message)[0] ?? extractMessageText(message);
+	return messageUrl ? { url: messageUrl, sourceMessage: message } : null;
 }
 
 export const contextMessageController = new Composer<CustomContext>();
@@ -72,8 +76,8 @@ contextMessageController
 				return;
 			}
 
-			const url = getMentionedReplyUrl(ctx);
-			if (!url) {
+			const urlSource = getMentionedReplyUrlSource(ctx);
+			if (!urlSource) {
 				console.info("[MentionDownload] No URL found in context message", {
 					...getLogContext(ctx),
 					repliedText:
@@ -88,18 +92,19 @@ contextMessageController
 
 			console.info("[MentionDownload] Processing context URL", {
 				...getLogContext(ctx),
-				url,
+				url: urlSource.url,
 			});
 
 			const sent = await downloadMatchedUrl(
 				ctx,
-				url,
+				urlSource.url,
 				matchDownloadCommandInput,
+				urlSource.sourceMessage,
 			);
 			if (!sent) {
 				console.info("[MentionDownload] Matched flow did not send a response", {
 					...getLogContext(ctx),
-					url,
+					url: urlSource.url,
 				});
 				await next();
 				return;
@@ -107,7 +112,7 @@ contextMessageController
 
 			console.info("[MentionDownload] Completed", {
 				...getLogContext(ctx),
-				url,
+				url: urlSource.url,
 			});
 		},
 	);

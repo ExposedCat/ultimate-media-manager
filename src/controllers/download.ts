@@ -8,19 +8,19 @@ import { matchDownloadCommandInput } from "../services/sources.ts";
 import { downloadMatchedUrl } from "../services/url-download.ts";
 import type { CustomContext } from "../types/context.ts";
 
-function getCommandUrl(ctx: CustomContext) {
+function getCommandUrlSource(ctx: CustomContext) {
 	const directUrl =
 		typeof ctx.match === "string" ? ctx.match.trim() : ctx.match?.[0]?.trim();
 	if (directUrl) {
-		return directUrl;
+		return { url: directUrl, sourceMessage: ctx.message };
 	}
 
 	const repliedMessage = ctx.message?.reply_to_message;
-	return (
+	const repliedUrl =
 		extractUrlsFromMessage(repliedMessage)[0] ??
-		extractMessageText(repliedMessage) ??
-		null
-	);
+		extractMessageText(repliedMessage);
+
+	return repliedUrl ? { url: repliedUrl, sourceMessage: repliedMessage } : null;
 }
 
 export const downloadController = new Composer<CustomContext>();
@@ -33,8 +33,8 @@ downloadController
 			return;
 		}
 
-		const url = getCommandUrl(ctx);
-		if (!url) {
+		const urlSource = getCommandUrlSource(ctx);
+		if (!urlSource) {
 			console.info("[/download] No URL found in command or reply", {
 				userId: ctx.from.id,
 				chatId: ctx.chat.id,
@@ -48,16 +48,21 @@ downloadController
 			userId: ctx.from.id,
 			chatId: ctx.chat.id,
 			messageId: ctx.message.message_id,
-			url,
+			url: urlSource.url,
 		});
 
-		const sent = await downloadMatchedUrl(ctx, url, matchDownloadCommandInput);
+		const sent = await downloadMatchedUrl(
+			ctx,
+			urlSource.url,
+			matchDownloadCommandInput,
+			urlSource.sourceMessage,
+		);
 
 		console.info("[/download] Completed", {
 			userId: ctx.from.id,
 			chatId: ctx.chat.id,
 			messageId: ctx.message.message_id,
-			url,
+			url: urlSource.url,
 			sent,
 		});
 		return true;

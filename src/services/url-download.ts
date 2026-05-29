@@ -117,6 +117,16 @@ type GuestMediaMetadata = {
 	title: string;
 };
 
+type MessageAuthor = {
+	id: number;
+	first_name: string;
+	last_name?: string;
+};
+
+type MessageWithAuthor = MessageLike & {
+	from?: MessageAuthor;
+};
+
 type SingleMediaKind = Extract<
 	CachedMedia["kind"],
 	"image" | "audio" | "video"
@@ -395,23 +405,17 @@ async function buildGuestQueryResult(
 	return await buildGuestMediaQueryResult(ctx, result, url);
 }
 
-function getCaptionAuthor(ctx: CustomContext): CaptionAuthor | null {
-	const repliedUser = (
-		ctx.msg?.reply_to_message as
-			| {
-					from?: {
-						id: number;
-						first_name: string;
-						last_name?: string;
-					};
-			  }
-			| undefined
-	)?.from;
+function getCaptionAuthor(
+	ctx: CustomContext,
+	sourceMessage: MessageLike | null | undefined,
+): CaptionAuthor | null {
+	const sourceUser = (sourceMessage as MessageWithAuthor | null | undefined)
+		?.from;
 
-	if (repliedUser) {
+	if (sourceUser) {
 		return {
-			userId: repliedUser.id,
-			userName: [repliedUser.first_name, repliedUser.last_name]
+			userId: sourceUser.id,
+			userName: [sourceUser.first_name, sourceUser.last_name]
 				.filter(Boolean)
 				.join(" "),
 		};
@@ -506,8 +510,9 @@ export async function downloadMatchedUrl(
 	ctx: CustomContext,
 	url: string,
 	matcher: InputMatcher = matchInput,
+	sourceMessage: MessageLike | null | undefined = ctx.msg,
 ) {
-	const captionAuthor = getCaptionAuthor(ctx);
+	const captionAuthor = getCaptionAuthor(ctx, sourceMessage);
 	if (!ctx.from || !captionAuthor) {
 		return false;
 	}

@@ -31,7 +31,7 @@ mediaDownloadController.on(
 				messageId: ctx.message.message_id,
 				url,
 			});
-			const sent = await downloadMatchedUrl(ctx, url);
+			const sent = await downloadMatchedUrl(ctx, url, undefined, ctx.message);
 			if (sent) {
 				somethingSent = true;
 				if (!shouldCleanup && text === url) {
