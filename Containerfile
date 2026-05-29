@@ -1,8 +1,6 @@
 FROM docker.io/denoland/deno:2.7.11 AS cache
 
 ENV DENO_DIR=/deno-dir
-ENV YOUTUBE_DL_SKIP_DOWNLOAD=true
-ENV YOUTUBE_DL_SKIP_PYTHON_CHECK=true
 
 WORKDIR /app
 
@@ -14,15 +12,13 @@ RUN deno cache --lock=deno.lock --frozen src/index.ts src/migrations/add-chat-se
 FROM docker.io/denoland/deno:2.7.11
 
 ENV DENO_DIR=/deno-dir
-ENV YOUTUBE_DL_SKIP_DOWNLOAD=true
-ENV YOUTUBE_DL_SKIP_PYTHON_CHECK=true
 
 WORKDIR /app
 
 USER root
 
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends ffmpeg python3 yt-dlp \
+	&& apt-get install -y --no-install-recommends ffmpeg \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY --from=cache /deno-dir /deno-dir

@@ -3,7 +3,7 @@
 	"Values": {
 		"AzureWebJobsStorage": "UseDevelopmentStorage=true",
 		"FUNCTIONS_WORKER_RUNTIME": "node",
-		"COBALT_UPSTREAM_URL": "http://127.0.0.1:9000",
-		"COBALT_API_KEY": ""
+		"COBALT_API_KEY": "",
+		"COBALT_INTERNAL_PORT": "9000"
 	}
 }

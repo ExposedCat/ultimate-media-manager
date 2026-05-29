@@ -57,8 +57,7 @@ export async function buildDownloadResponse(
 	});
 	const cleanup = async () => await deletePaths([tempDir]);
 	const previewUrl = data.fallbackUrl ?? data.url;
-	const mode = data.sourceType === "youtubeVideo" ? "video" : "generic";
-	const media = await downloadMediaForUrl(data.url, tempDir, mode);
+	const media = await downloadMediaForUrl(data.url, tempDir);
 
 	if (!media) {
 		return {

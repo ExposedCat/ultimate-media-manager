@@ -17,6 +17,17 @@ export type DownloadMediaResult =
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];
 const AUDIO_EXTENSIONS = ["mp3", "wav", "ogg", "m4a"];
+const EXTENSIONS_BY_CONTENT_TYPE = new Map([
+	["image/jpeg", "jpg"],
+	["image/png", "png"],
+	["image/webp", "webp"],
+	["image/gif", "gif"],
+	["video/mp4", "mp4"],
+	["audio/mpeg", "mp3"],
+	["audio/wav", "wav"],
+	["audio/ogg", "ogg"],
+	["audio/mp4", "m4a"],
+]);
 
 type CobaltResponse =
 	| { status: "redirect" | "tunnel"; url: string; filename: string }
@@ -39,6 +50,58 @@ function buildCobaltHeaders() {
 	}
 
 	return headers;
+}
+
+function getExtensionFromUrl(url: string) {
+	try {
+		const pathname = new URL(url).pathname;
+		return pathname.split(".").at(-1)?.toLowerCase() ?? "";
+	} catch {
+		return "";
+	}
+}
+
+function sanitizeFilename(filename: string) {
+	return filename.replaceAll("/", "_").replaceAll("\\", "_");
+}
+
+function getExtension(response: Response, url: string, fallback: string) {
+	const contentType = response.headers
+		.get("Content-Type")
+		?.split(";")[0]
+		.trim();
+	if (contentType) {
+		const extension = EXTENSIONS_BY_CONTENT_TYPE.get(contentType);
+		if (extension) {
+			return extension;
+		}
+	}
+
+	return getExtensionFromUrl(url) || fallback;
+}
+
+async function downloadFile(
+	url: string,
+	filename: string,
+): Promise<string | null> {
+	const response = await fetch(url);
+	if (!response.ok) {
+		console.warn("[Cobalt] Failed to download prepared media URL", {
+			url,
+			status: response.status,
+			statusText: response.statusText,
+		});
+		return null;
+	}
+
+	const buffer = await response.arrayBuffer();
+	if (buffer.byteLength === 0) {
+		console.warn("[Cobalt] Prepared media URL returned an empty body", { url });
+		return null;
+	}
+
+	await Deno.writeFile(filename, new Uint8Array(buffer));
+	return filename;
 }
 
 export async function downloadMedia(
@@ -78,17 +141,40 @@ export async function downloadMedia(
 		}
 
 		if (body.status === "picker") {
-			const responses = await Promise.all(
-				body.picker.map((item) => fetch(item.url)),
-			);
-			const buffers = await Promise.all(
-				responses.map((response) => response.arrayBuffer()),
-			);
+			for (const [index, item] of body.picker.entries()) {
+				const response = await fetch(item.url);
+				if (!response.ok) {
+					console.warn("[Cobalt] Failed to download picker image", {
+						url: item.url,
+						status: response.status,
+						statusText: response.statusText,
+					});
+					continue;
+				}
 
-			for (const [index, buffer] of buffers.entries()) {
-				const filename = `${tempDir}/${index}.jpg`;
+				const buffer = await response.arrayBuffer();
+				if (buffer.byteLength === 0) {
+					console.warn("[Cobalt] Picker image returned an empty body", {
+						url: item.url,
+					});
+					continue;
+				}
+
+				const extension = getExtension(response, item.url, "jpg");
+				const filename = `${tempDir}/${index}.${extension}`;
 				await Deno.writeFile(filename, new Uint8Array(buffer));
 				filenames.push(filename);
+			}
+
+			if (filenames.length === 0) {
+				console.warn(
+					"[Cobalt] Picker did not produce any downloadable images",
+					{
+						url,
+						imageCount: body.picker.length,
+					},
+				);
+				return null;
 			}
 
 			return {
@@ -103,16 +189,17 @@ export async function downloadMedia(
 		const isImage = IMAGE_EXTENSIONS.includes(extension);
 		const isAudio = AUDIO_EXTENSIONS.includes(extension);
 
-		const response = await fetch(body.url);
-		const buffer = await response.arrayBuffer();
+		const filename = `${tempDir}/${sanitizeFilename(body.filename)}`;
+		const downloadedFilename = await downloadFile(body.url, filename);
+		if (!downloadedFilename) {
+			return null;
+		}
 
-		const filename = `${tempDir}/${body.filename}`;
-		await Deno.writeFile(filename, new Uint8Array(buffer));
 		filenames.push(filename);
 
 		return {
 			type: "single",
-			filename,
+			filename: downloadedFilename,
 			mediaKind: isImage ? "image" : isAudio ? "audio" : "video",
 			publicUrl: body.url,
 			extension,

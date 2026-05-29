@@ -1,12 +1,5 @@
 import { app } from "@azure/functions";
-
-function requiredEnv(name) {
-	const value = process.env[name];
-	if (!value?.trim()) {
-		throw new Error(`Required app setting "${name}" is not configured`);
-	}
-	return value;
-}
+import { ensureCobaltStarted, getCobaltUrl } from "../cobalt-server.js";
 
 function optionalEnv(name) {
 	const value = process.env[name];
@@ -17,12 +10,18 @@ function normalizeEndpoint(url) {
 	return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
+function getPublicApiUrl(request) {
+	return `${new URL(request.url).origin}/`;
+}
+
 app.http("cobalt", {
 	methods: ["POST"],
 	authLevel: "function",
-	route: "cobalt",
+	route: "api/cobalt",
 	handler: async (request, context) => {
-		const upstreamUrl = normalizeEndpoint(requiredEnv("COBALT_UPSTREAM_URL"));
+		await ensureCobaltStarted(context, getPublicApiUrl(request));
+
+		const cobaltApiUrl = normalizeEndpoint(getCobaltUrl());
 		const cobaltApiKey = optionalEnv("COBALT_API_KEY");
 		const headers = {
 			"Content-Type": request.headers.get("content-type") ?? "application/json",
@@ -34,7 +33,7 @@ app.http("cobalt", {
 		}
 
 		try {
-			const upstreamResponse = await fetch(upstreamUrl, {
+			const upstreamResponse = await fetch(cobaltApiUrl, {
 				method: "POST",
 				headers,
 				body: await request.text(),
@@ -51,7 +50,7 @@ app.http("cobalt", {
 			};
 		} catch (error) {
 			context.error("[CobaltFunction] Upstream request failed", {
-				upstreamUrl,
+				cobaltApiUrl,
 				error,
 			});
 

@@ -53,8 +53,7 @@ See social media posts right in the Telegram Messenger.
 - Set `COBALT_API_KEY` if your Cobalt instance requires `Authorization: Api-Key`.
 - Set `COBALT_AZURE_FUNCTION_KEY` if your Azure Function requires an
   `x-functions-key` header.
-- Install `yt-dlp` and `ffmpeg` if you want the fallback downloader outside the
-  app container
+- Install `ffmpeg` if you want collage generation outside the app container
 - Start the bot with `deno task start`
 - Run checks with `deno task check`
 - Format with `deno task fmt`
@@ -65,34 +64,26 @@ See social media posts right in the Telegram Messenger.
 
 ## Local Cobalt Function Emulation
 
-For local development, you can run a Cobalt container with Podman and a tiny
-local HTTP trigger that behaves like the Azure Function endpoint:
+For local development, you can run a Cobalt container with Podman and point the
+bot at it directly:
 
 1. Set local Cobalt values in `.env`:
-   - `COBALT_API_URL=http://127.0.0.1:7071/api/cobalt`
-   - `COBALT_AZURE_FUNCTION_KEY=local-dev-key`
-   - `LOCAL_COBALT_UPSTREAM_URL=http://127.0.0.1:9000`
+   - `COBALT_API_URL=http://127.0.0.1:9000`
+   - `COBALT_AZURE_FUNCTION_KEY=`
 2. Start everything with `deno task dev:local`
-
-The emulator accepts the same `x-functions-key` header that production Azure
-Functions use and forwards requests to the local Cobalt API.
 
 ## Azure Cobalt Function
 
 This repo includes an Azure Functions HTTP trigger at
-`azure-functions/cobalt-proxy`. It exposes `POST /api/cobalt` and forwards the
-request to `COBALT_UPSTREAM_URL`.
+`azure-functions/cobalt-proxy`. It exposes `POST /api/cobalt` and `GET /tunnel`,
+boots Cobalt API inside the Function worker on cold start, and forwards requests
+to that internal Cobalt server.
 
 1. Install dependencies with `deno task function:install`
 2. Configure your Function App settings:
-   - `COBALT_UPSTREAM_URL`
-   - `COBALT_API_KEY` if the upstream Cobalt API requires `Authorization:
-     Api-Key`
+   - `COBALT_INTERNAL_PORT=9000`
 3. Publish to your existing Function App with
    `deno task function:publish <function-app-name>`
 4. Set the bot env:
    - `COBALT_API_URL=https://<function-app-name>.azurewebsites.net/api/cobalt`
    - `COBALT_AZURE_FUNCTION_KEY=<function-specific-key>`
-
-The Function App must be able to reach `COBALT_UPSTREAM_URL`. Azure cannot call
-`127.0.0.1` on your development machine after deployment.
