@@ -2,10 +2,28 @@ import { app } from "@azure/functions";
 import { ensureCobaltStarted, getCobaltUrl } from "../cobalt-server.js";
 
 const BUNDLE_CONTENT_TYPE = "application/x-umm-cobalt-bundle";
+const DOWNLOAD_TIMEOUT_MS = optionalPositiveIntegerEnv(
+	"COBALT_DOWNLOAD_TIMEOUT_MS",
+	120_000,
+);
+const DOWNLOAD_RETRIES = optionalNonNegativeIntegerEnv(
+	"COBALT_DOWNLOAD_RETRIES",
+	2,
+);
 
 function optionalEnv(name) {
 	const value = process.env[name];
 	return value?.trim() || undefined;
+}
+
+function optionalPositiveIntegerEnv(name, fallback) {
+	const value = Number.parseInt(process.env[name] ?? "", 10);
+	return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
+
+function optionalNonNegativeIntegerEnv(name, fallback) {
+	const value = Number.parseInt(process.env[name] ?? "", 10);
+	return Number.isSafeInteger(value) && value >= 0 ? value : fallback;
 }
 
 function normalizeEndpoint(url) {
@@ -18,6 +36,10 @@ function truncateBody(body) {
 
 function formatLogPayload(value) {
 	return truncateBody(JSON.stringify(value));
+}
+
+function formatErrorMessage(error) {
+	return error instanceof Error ? error.message : String(error);
 }
 
 async function readJsonResponse(response) {
@@ -75,16 +97,112 @@ function resolveInternalCobaltUrl(url) {
 	return url;
 }
 
-async function downloadResolvedFile(url, filename) {
-	const response = await fetch(resolveInternalCobaltUrl(url));
+function getUrlLogDetails(originalUrl, resolvedUrl) {
+	const original = new URL(originalUrl);
+	const resolved = new URL(resolvedUrl);
+	return {
+		originalOrigin: original.origin,
+		originalPath: original.pathname,
+		resolvedOrigin: resolved.origin,
+		resolvedPath: resolved.pathname,
+		internalTunnel:
+			resolved.origin === getCobaltUrl() && resolved.pathname === "/tunnel",
+	};
+}
+
+function isRetryableStatus(status) {
+	return status === 408 || status === 429 || status >= 500;
+}
+
+async function wait(ms) {
+	await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchResolvedBuffer(url, purpose, context) {
+	const resolvedUrl = resolveInternalCobaltUrl(url);
+	const urlLogDetails = getUrlLogDetails(url, resolvedUrl);
+	const attempts = DOWNLOAD_RETRIES + 1;
+	let lastError;
+
+	for (let attempt = 1; attempt <= attempts; attempt += 1) {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => {
+			controller.abort(
+				new Error(
+					`resolved media download timed out after ${DOWNLOAD_TIMEOUT_MS}ms`,
+				),
+			);
+		}, DOWNLOAD_TIMEOUT_MS);
+
+		try {
+			const response = await fetch(resolvedUrl, {
+				signal: controller.signal,
+			});
+			if (!response.ok) {
+				const error = new Error(
+					`failed to download ${purpose}: ${response.status} ${response.statusText}`,
+				);
+				error.retryable = isRetryableStatus(response.status);
+				if (attempt < attempts && isRetryableStatus(response.status)) {
+					lastError = error;
+					context.warn("[CobaltFunction] Resolved media download retrying", {
+						purpose,
+						attempt,
+						attempts,
+						status: response.status,
+						statusText: response.statusText,
+						...urlLogDetails,
+					});
+					await wait(500 * attempt);
+					continue;
+				}
+
+				throw error;
+			}
+
+			return {
+				response,
+				data: Buffer.from(await response.arrayBuffer()),
+			};
+		} catch (error) {
+			lastError = error;
+			if (attempt < attempts && error?.retryable !== false) {
+				context.warn("[CobaltFunction] Resolved media download retrying", {
+					purpose,
+					attempt,
+					attempts,
+					error: formatErrorMessage(error),
+					...urlLogDetails,
+				});
+				await wait(500 * attempt);
+				continue;
+			}
+
+			break;
+		} finally {
+			clearTimeout(timeout);
+		}
+	}
+
+	throw new Error(
+		`failed to download ${purpose} from ${urlLogDetails.resolvedOrigin}${urlLogDetails.resolvedPath}: ${formatErrorMessage(lastError)}`,
+		{ cause: lastError },
+	);
+}
+
+async function downloadResolvedFile(url, filename, context) {
+	const { response, data } = await fetchResolvedBuffer(
+		url,
+		"resolved media",
+		context,
+	);
 	if (!response.ok) {
 		throw new Error(
 			`failed to download resolved media: ${response.status} ${response.statusText}`,
 		);
 	}
 
-	const buffer = Buffer.from(await response.arrayBuffer());
-	if (buffer.length === 0) {
+	if (data.length === 0) {
 		throw new Error("resolved media was empty");
 	}
 
@@ -92,7 +210,7 @@ async function downloadResolvedFile(url, filename) {
 		filename,
 		contentType:
 			response.headers.get("content-type") ?? "application/octet-stream",
-		data: buffer,
+		data,
 	};
 }
 
@@ -127,7 +245,7 @@ function createBundle(files) {
 	]);
 }
 
-async function resolveCobaltResponse(responseBody) {
+async function resolveCobaltResponse(responseBody, context) {
 	if (
 		responseBody.status === "error" ||
 		responseBody.status === "local-processing"
@@ -139,14 +257,11 @@ async function resolveCobaltResponse(responseBody) {
 		const files = [];
 
 		for (const [index, item] of responseBody.picker.entries()) {
-			const response = await fetch(resolveInternalCobaltUrl(item.url));
-			if (!response.ok) {
-				throw new Error(
-					`failed to download picker item: ${response.status} ${response.statusText}`,
-				);
-			}
-
-			const data = Buffer.from(await response.arrayBuffer());
+			const { response, data } = await fetchResolvedBuffer(
+				item.url,
+				"picker item",
+				context,
+			);
 			if (data.length === 0) {
 				throw new Error("picker item was empty");
 			}
@@ -167,6 +282,7 @@ async function resolveCobaltResponse(responseBody) {
 		const file = await downloadResolvedFile(
 			responseBody.url,
 			sanitizeFilename(responseBody.filename ?? "media"),
+			context,
 		);
 		return { bundle: createBundle([file]) };
 	}
@@ -208,7 +324,7 @@ app.http("cobalt", {
 				});
 			}
 
-			const resolved = await resolveCobaltResponse(cobaltResponse);
+			const resolved = await resolveCobaltResponse(cobaltResponse, context);
 
 			if ("bundle" in resolved) {
 				return {
@@ -228,7 +344,7 @@ app.http("cobalt", {
 				jsonBody: resolved,
 			};
 		} catch (error) {
-			context.error("[CobaltFunction] Upstream request failed", {
+			context.error("[CobaltFunction] Cobalt request failed", {
 				cobaltApiUrl,
 				error,
 			});

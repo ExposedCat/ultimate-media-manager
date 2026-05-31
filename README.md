@@ -82,6 +82,8 @@ to that internal Cobalt server.
 1. Install dependencies with `deno task function:install`
 2. Configure your Function App settings:
    - `COBALT_INTERNAL_PORT=9000`
+   - `COBALT_DOWNLOAD_TIMEOUT_MS=120000`
+   - `COBALT_DOWNLOAD_RETRIES=2`
 3. Publish to your existing Function App with
    `deno task function:publish <function-app-name>`
 4. Set the bot env:
