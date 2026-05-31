@@ -8,7 +8,11 @@ const DOWNLOAD_TIMEOUT_MS = optionalPositiveIntegerEnv(
 );
 const DOWNLOAD_RETRIES = optionalNonNegativeIntegerEnv(
 	"COBALT_DOWNLOAD_RETRIES",
-	2,
+	5,
+);
+const DOWNLOAD_RETRY_DELAY_MS = optionalPositiveIntegerEnv(
+	"COBALT_DOWNLOAD_RETRY_DELAY_MS",
+	1_000,
 );
 
 function optionalEnv(name) {
@@ -153,7 +157,7 @@ async function fetchResolvedBuffer(url, purpose, context) {
 						statusText: response.statusText,
 						...urlLogDetails,
 					});
-					await wait(500 * attempt);
+					await wait(DOWNLOAD_RETRY_DELAY_MS);
 					continue;
 				}
 
@@ -174,7 +178,7 @@ async function fetchResolvedBuffer(url, purpose, context) {
 					error: formatErrorMessage(error),
 					...urlLogDetails,
 				});
-				await wait(500 * attempt);
+				await wait(DOWNLOAD_RETRY_DELAY_MS);
 				continue;
 			}
 

@@ -83,7 +83,8 @@ to that internal Cobalt server.
 2. Configure your Function App settings:
    - `COBALT_INTERNAL_PORT=9000`
    - `COBALT_DOWNLOAD_TIMEOUT_MS=120000`
-   - `COBALT_DOWNLOAD_RETRIES=2`
+   - `COBALT_DOWNLOAD_RETRIES=5`
+   - `COBALT_DOWNLOAD_RETRY_DELAY_MS=1000`
 3. Publish to your existing Function App with
    `deno task function:publish <function-app-name>`
 4. Set the bot env:
