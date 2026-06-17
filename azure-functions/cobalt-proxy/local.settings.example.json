@@ -4,6 +4,8 @@
 		"AzureWebJobsStorage": "UseDevelopmentStorage=true",
 		"FUNCTIONS_WORKER_RUNTIME": "node",
 		"COBALT_API_KEY": "",
-		"COBALT_INTERNAL_PORT": "9000"
+		"COBALT_INTERNAL_PORT": "9000",
+		"YTDLP_TIMEOUT_MS": "120000",
+		"YTDLP_PLAYLIST_LIMIT": "50"
 	}
 }

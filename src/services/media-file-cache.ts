@@ -13,8 +13,13 @@ export type CachedMedia =
 	  }
 	| {
 			kind: "images";
-			fileIds: string[];
+			items: CachedMediaGroupItem[];
 	  };
+
+export type CachedMediaGroupItem = {
+	kind: "image" | "video";
+	fileId: string;
+};
 
 const MAX_CACHE_ENTRIES = 50;
 const mediaCache = new Map<string, CachedMedia>();
@@ -83,9 +88,22 @@ export function getCachedMediaFromSingleMessage(
 export function getCachedMediaFromMediaGroup(
 	messages: unknown[],
 ): Extract<CachedMedia, { kind: "images" }> | null {
-	const fileIds = messages
-		.map((message) => (message as TelegramMediaMessage).photo?.at(-1)?.file_id)
-		.filter((fileId): fileId is string => Boolean(fileId));
+	const items = messages
+		.map((message): CachedMediaGroupItem | null => {
+			const mediaMessage = message as TelegramMediaMessage;
+			const photoFileId = mediaMessage.photo?.at(-1)?.file_id;
+			if (photoFileId) {
+				return { kind: "image", fileId: photoFileId };
+			}
 
-	return fileIds.length > 0 ? { kind: "images", fileIds } : null;
+			const videoFileId = mediaMessage.video?.file_id;
+			if (videoFileId) {
+				return { kind: "video", fileId: videoFileId };
+			}
+
+			return null;
+		})
+		.filter((item): item is CachedMediaGroupItem => Boolean(item));
+
+	return items.length > 0 ? { kind: "images", items } : null;
 }

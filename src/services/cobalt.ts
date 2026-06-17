@@ -10,7 +10,7 @@ export type DownloadMediaResult =
 	| {
 			type: "multiple";
 			files: DownloadMediaFile[];
-			mediaKind: "image";
+			mediaKind: "mixed";
 	  };
 
 export type DownloadMediaFile = {
@@ -18,6 +18,7 @@ export type DownloadMediaFile = {
 	data: Uint8Array;
 	extension: string;
 	filename: string;
+	mediaKind: "image" | "video" | "audio";
 };
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];
@@ -131,12 +132,14 @@ async function parseBundleResponse(
 			getExtensionFromFilename(file.filename) ||
 			getExtensionFromContentType(file.contentType) ||
 			"bin";
+		const mediaKind = getMediaKind(extension);
 		const filename = `${index}-${sanitizeFilename(file.filename || `media.${extension}`)}`;
 		files.push({
 			contentType: file.contentType,
 			data: new Uint8Array(buffer.slice(fileStart, fileEnd)),
 			extension,
 			filename,
+			mediaKind,
 		});
 	}
 
@@ -148,7 +151,7 @@ async function parseBundleResponse(
 		return {
 			type: "multiple",
 			files,
-			mediaKind: "image",
+			mediaKind: "mixed",
 		};
 	}
 
@@ -156,7 +159,7 @@ async function parseBundleResponse(
 	return {
 		type: "single",
 		file,
-		mediaKind: getMediaKind(file.extension),
+		mediaKind: file.mediaKind,
 		extension: file.extension,
 	};
 }

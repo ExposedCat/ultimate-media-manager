@@ -76,8 +76,8 @@ bot at it directly:
 
 This repo includes an Azure Functions HTTP trigger at
 `azure-functions/cobalt-proxy`. It exposes `POST /api/cobalt` and `GET /tunnel`,
-boots Cobalt API inside the Function worker on cold start, and forwards requests
-to that internal Cobalt server.
+tries yt-dlp first, and falls back to Cobalt by booting the Cobalt API inside
+the Function worker on demand.
 
 1. Install dependencies with `deno task function:install`
 2. Configure your Function App settings:
@@ -85,6 +85,9 @@ to that internal Cobalt server.
    - `COBALT_DOWNLOAD_TIMEOUT_MS=120000`
    - `COBALT_DOWNLOAD_RETRIES=5`
    - `COBALT_DOWNLOAD_RETRY_DELAY_MS=1000`
+   - `YTDLP_TIMEOUT_MS=120000`
+   - `YTDLP_PLAYLIST_LIMIT=50`
+   - Optional: `YOUTUBE_DL_PATH` or `YT_DLP_PATH` to use a specific yt-dlp binary
 3. Publish to your existing Function App with
    `deno task function:publish <function-app-name>`
 4. Set the bot env:

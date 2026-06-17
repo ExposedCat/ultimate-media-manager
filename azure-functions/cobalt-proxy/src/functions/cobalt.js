@@ -1,5 +1,6 @@
 import { app } from "@azure/functions";
 import { ensureCobaltStarted, getCobaltUrl } from "../cobalt-server.js";
+import { downloadWithYtdlp } from "../ytdlp.js";
 
 const BUNDLE_CONTENT_TYPE = "application/x-umm-cobalt-bundle";
 const DOWNLOAD_TIMEOUT_MS = optionalPositiveIntegerEnv(
@@ -299,7 +300,22 @@ app.http("cobalt", {
 	authLevel: "function",
 	route: "api/cobalt",
 	handler: async (request, context) => {
-		await ensureCobaltStarted(context, getPublicApiUrl(request));
+		const requestBody = await request.text();
+
+		try {
+			const files = await downloadWithYtdlp(requestBody, context);
+			return {
+				status: 200,
+				headers: {
+					"Content-Type": BUNDLE_CONTENT_TYPE,
+				},
+				body: createBundle(files),
+			};
+		} catch (error) {
+			context.warn("[CobaltFunction] yt-dlp failed; falling back to Cobalt", {
+				error: formatErrorMessage(error),
+			});
+		}
 
 		const cobaltApiUrl = normalizeEndpoint(getCobaltUrl());
 		const cobaltApiKey = optionalEnv("COBALT_API_KEY");
@@ -313,10 +329,12 @@ app.http("cobalt", {
 		}
 
 		try {
+			await ensureCobaltStarted(context, getPublicApiUrl(request));
+
 			const upstreamResponse = await fetch(cobaltApiUrl, {
 				method: "POST",
 				headers,
-				body: await request.text(),
+				body: requestBody,
 			});
 			const cobaltResponse = await readJsonResponse(upstreamResponse);
 			if (!upstreamResponse.ok) {

@@ -6,6 +6,12 @@ export type DownloadedImage = DownloadMediaFile & {
 	path?: string;
 };
 
+export type DownloadedMediaGroupItem = {
+	file: InputFile;
+	media: DownloadMediaFile;
+	kind: "image" | "video";
+};
+
 export type DownloadedMedia =
 	| {
 			kind: "image" | "video" | "audio";
@@ -17,7 +23,7 @@ export type DownloadedMedia =
 	  }
 	| {
 			kind: "images";
-			files: InputFile[];
+			files: DownloadedMediaGroupItem[];
 			images: DownloadedImage[];
 	  };
 
@@ -58,12 +64,40 @@ export async function downloadMediaForUrl(
 		});
 
 		if (cobaltMedia.type === "multiple") {
+			const files = cobaltMedia.files
+				.filter(
+					(
+						file,
+					): file is DownloadMediaFile & { mediaKind: "image" | "video" } =>
+						file.mediaKind === "image" || file.mediaKind === "video",
+				)
+				.map((file) => ({
+					kind: file.mediaKind,
+					file: new InputFile(file.data, file.filename),
+					media: file,
+				}));
+
+			if (files.length === 0) {
+				return null;
+			}
+
+			if (files.length === 1) {
+				const [item] = files;
+				return {
+					kind: item.kind,
+					bytes: item.media.data,
+					extension: item.media.extension,
+					file: item.file,
+					filename: item.media.filename,
+				};
+			}
+
 			return {
 				kind: "images",
-				files: cobaltMedia.files.map(
-					(file) => new InputFile(file.data, file.filename),
-				),
-				images: cobaltMedia.files,
+				files,
+				images: files
+					.filter((item) => item.kind === "image")
+					.map((item) => item.media),
 			};
 		}
 

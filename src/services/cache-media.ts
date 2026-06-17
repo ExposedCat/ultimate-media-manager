@@ -27,8 +27,15 @@ function toCacheChatMedia(media: CachedFileMedia): CachedMedia | null {
 	}
 
 	if (media.kind === "images") {
-		const fileId = media.fileIds[0];
-		return fileId ? { type: "photo", fileId } : null;
+		const item = media.items[0];
+		if (!item) {
+			return null;
+		}
+
+		return {
+			type: item.kind === "image" ? "photo" : "video",
+			fileId: item.fileId,
+		};
 	}
 
 	return { type: media.kind, fileId: media.fileId };
@@ -61,9 +68,13 @@ export async function cacheDownloadedMedia(
 			? "sendVideo"
 			: media.kind === "audio"
 				? "sendAudio"
-				: "sendPhoto";
+				: media.kind === "images"
+					? media.files[0]?.kind === "video"
+						? "sendVideo"
+						: "sendPhoto"
+					: "sendPhoto";
 
-	const mediaFile = media.kind === "images" ? media.files[0] : media.file;
+	const mediaFile = media.kind === "images" ? media.files[0]?.file : media.file;
 	if (!mediaFile) {
 		return null;
 	}

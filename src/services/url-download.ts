@@ -1,4 +1,5 @@
 import { InputFile } from "grammy";
+import type { InputMediaPhoto, InputMediaVideo } from "grammy/types";
 
 import type { CustomContext } from "../types/context.ts";
 import {
@@ -53,22 +54,10 @@ async function replyWithCachedMedia(
 	replyExtra: ReturnType<typeof buildReplyExtra>,
 ) {
 	if (media.kind === "images") {
-		if (media.fileIds.length === 1) {
-			await ctx.replyWithPhoto(media.fileIds[0], {
-				caption: text,
-				parse_mode: "HTML",
-				...replyExtra,
-			});
-			return;
-		}
-
-		await ctx.replyWithMediaGroup(
-			media.fileIds.map((fileId, index) => ({
-				type: "photo",
-				media: fileId,
-				caption: index === 0 ? text : undefined,
-				parse_mode: index === 0 ? "HTML" : undefined,
-			})),
+		await replyWithMediaItems(
+			ctx,
+			media.items.map((item) => ({ kind: item.kind, media: item.fileId })),
+			text,
 			replyExtra,
 		);
 		return;
@@ -131,6 +120,13 @@ type SingleMediaKind = Extract<
 	CachedMedia["kind"],
 	"image" | "audio" | "video"
 >;
+type MediaGroupKind = Extract<CachedMedia["kind"], "image" | "video">;
+type SendableMediaGroupItem = {
+	kind: MediaGroupKind;
+	media: string | InputFile;
+};
+
+const MAX_MEDIA_GROUP_SIZE = 10;
 
 function stripHtml(text: string) {
 	return text.replace(/<[^>]+>/g, "").trim();
@@ -179,6 +175,58 @@ function getReplyMethod(kind: SingleMediaKind) {
 			: "replyWithVideo";
 }
 
+function buildMediaGroupInput(
+	item: SendableMediaGroupItem,
+	caption?: string,
+): InputMediaPhoto | InputMediaVideo {
+	return {
+		type: item.kind === "image" ? "photo" : "video",
+		media: item.media,
+		caption,
+		parse_mode: caption ? "HTML" : undefined,
+	};
+}
+
+async function replyWithMediaItems(
+	ctx: CustomContext,
+	items: SendableMediaGroupItem[],
+	text: string,
+	replyExtra: ReturnType<typeof buildReplyExtra>,
+) {
+	if (items.length === 0) {
+		return [];
+	}
+
+	const sentMessages = [];
+	for (let index = 0; index < items.length; index += MAX_MEDIA_GROUP_SIZE) {
+		const chunk = items.slice(index, index + MAX_MEDIA_GROUP_SIZE);
+		const caption = index === 0 ? text : undefined;
+
+		if (chunk.length === 1) {
+			const [item] = chunk;
+			const method = getReplyMethod(item.kind);
+			const sentMessage = await ctx[method](item.media, {
+				caption,
+				parse_mode: caption ? "HTML" : undefined,
+				...replyExtra,
+			});
+			sentMessages.push(sentMessage);
+			continue;
+		}
+
+		sentMessages.push(
+			...(await ctx.replyWithMediaGroup(
+				chunk.map((item, chunkIndex) =>
+					buildMediaGroupInput(item, chunkIndex === 0 ? caption : undefined),
+				),
+				replyExtra,
+			)),
+		);
+	}
+
+	return sentMessages;
+}
+
 function toFileCacheMedia(media: CachedChatMedia): CachedMedia {
 	return {
 		kind: media.type === "photo" ? "image" : media.type,
@@ -209,15 +257,27 @@ function buildGuestCachedMediaQueryResult(
 	const { title, description } = buildGuestMediaMetadata(text);
 
 	if (media.kind === "images") {
-		const fileId = media.fileIds[0];
-		if (!fileId) {
+		const item = media.items[0];
+		if (!item) {
 			return null;
 		}
 
+		if (item.kind === "image") {
+			return {
+				type: "photo",
+				id: crypto.randomUUID(),
+				photo_file_id: item.fileId,
+				title,
+				description,
+				caption: text,
+				parse_mode: "HTML",
+			};
+		}
+
 		return {
-			type: "photo",
+			type: "video",
 			id: crypto.randomUUID(),
-			photo_file_id: fileId,
+			video_file_id: item.fileId,
 			title,
 			description,
 			caption: text,
@@ -314,7 +374,7 @@ async function buildGuestMediaQueryResult(
 		return buildGuestArticleResult(result);
 	}
 
-	if (media.kind === "images") {
+	if (media.kind === "images" && media.images.length > 0) {
 		try {
 			const imageFilenames = await materializeImageFiles(
 				media,
@@ -613,13 +673,13 @@ export async function downloadMatchedUrl(
 			if (!result.media) {
 				await replyWithPreviewFallback(ctx, result, replyExtra);
 			} else if (result.media.kind === "images") {
-				const sentMessages = await ctx.replyWithMediaGroup(
-					result.media.files.map((file, index) => ({
-						type: "photo",
-						media: file,
-						caption: index === 0 ? result.text : undefined,
-						parse_mode: index === 0 ? "HTML" : undefined,
+				const sentMessages = await replyWithMediaItems(
+					ctx,
+					result.media.files.map((item) => ({
+						kind: item.kind,
+						media: item.file,
 					})),
+					result.text,
 					replyExtra,
 				);
 				const cachedMedia = getCachedMediaFromMediaGroup(sentMessages);
@@ -629,7 +689,7 @@ export async function downloadMatchedUrl(
 						userId: ctx.from.id,
 						sourceType: type,
 						mediaKind: cachedMedia.kind,
-						fileCount: cachedMedia.fileIds.length,
+						fileCount: cachedMedia.items.length,
 						url,
 						normalizedUrl,
 					});
