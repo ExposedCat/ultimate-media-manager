@@ -187,7 +187,7 @@ export async function downloadWithYtdlp(requestBody, context) {
 			throw new Error("yt-dlp did not download any supported media files");
 		}
 
-		context.log("[CobaltFunction] yt-dlp downloaded media", {
+		context.log("[MediaFunction] yt-dlp downloaded media", {
 			fileCount: files.length,
 			url,
 		});

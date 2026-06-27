@@ -35,7 +35,7 @@ const EXTENSIONS_BY_CONTENT_TYPE = new Map([
 	["audio/mp4", "m4a"],
 ]);
 
-type CobaltBundleManifest = {
+type MediaBundleManifest = {
 	status: "bundle";
 	files: {
 		filename: string;
@@ -45,18 +45,14 @@ type CobaltBundleManifest = {
 	}[];
 };
 
-function buildCobaltHeaders() {
+function buildHeaders() {
 	const headers = new Headers({
 		"Content-Type": "application/json",
 		Accept: "application/json",
 	});
 
-	if (APP_ENV.COBALT_API_KEY) {
-		headers.set("Authorization", `Api-Key ${APP_ENV.COBALT_API_KEY}`);
-	}
-
-	if (APP_ENV.COBALT_AZURE_FUNCTION_KEY) {
-		headers.set("x-functions-key", APP_ENV.COBALT_AZURE_FUNCTION_KEY);
+	if (APP_ENV.MEDIA_AZURE_FUNCTION_KEY) {
+		headers.set("x-functions-key", APP_ENV.MEDIA_AZURE_FUNCTION_KEY);
 	}
 
 	return headers;
@@ -90,7 +86,7 @@ async function parseBundleResponse(
 ): Promise<DownloadMediaResult | null> {
 	const buffer = await response.arrayBuffer();
 	if (buffer.byteLength < 4) {
-		console.warn("[Cobalt] Bundle response was too small");
+		console.warn("[Media] Bundle response was too small");
 		return null;
 	}
 
@@ -99,7 +95,7 @@ async function parseBundleResponse(
 	const manifestStart = 4;
 	const manifestEnd = manifestStart + manifestLength;
 	if (manifestEnd > buffer.byteLength) {
-		console.warn("[Cobalt] Bundle manifest length exceeded response size", {
+		console.warn("[Media] Bundle manifest length exceeded response size", {
 			manifestLength,
 			responseSize: buffer.byteLength,
 		});
@@ -108,9 +104,9 @@ async function parseBundleResponse(
 
 	const manifest = JSON.parse(
 		new TextDecoder().decode(buffer.slice(manifestStart, manifestEnd)),
-	) as CobaltBundleManifest;
+	) as MediaBundleManifest;
 	if (manifest.status !== "bundle" || manifest.files.length === 0) {
-		console.warn("[Cobalt] Bundle manifest did not contain files");
+		console.warn("[Media] Bundle manifest did not contain files");
 		return null;
 	}
 
@@ -119,7 +115,7 @@ async function parseBundleResponse(
 		const fileStart = manifestEnd + file.offset;
 		const fileEnd = fileStart + file.size;
 		if (fileEnd > buffer.byteLength || file.size <= 0) {
-			console.warn("[Cobalt] Bundle file range was invalid", {
+			console.warn("[Media] Bundle file range was invalid", {
 				index,
 				filename: file.filename,
 				size: file.size,
@@ -168,14 +164,14 @@ export async function downloadMedia(
 	url: string,
 ): Promise<DownloadMediaResult | null> {
 	try {
-		const directUrl = await fetch(APP_ENV.COBALT_API_URL, {
+		const directUrl = await fetch(APP_ENV.MEDIA_API_URL, {
 			method: "POST",
-			headers: buildCobaltHeaders(),
+			headers: buildHeaders(),
 			body: JSON.stringify({ url, localProcessing: "disabled" }),
 		});
 
 		if (!directUrl.ok) {
-			console.warn("[Cobalt] Failed to prepare media", {
+			console.warn("[Media] Failed to prepare media", {
 				url,
 				status: directUrl.status,
 				statusText: directUrl.statusText,
@@ -185,10 +181,8 @@ export async function downloadMedia(
 		}
 
 		const contentType = directUrl.headers.get("Content-Type") ?? "";
-		if (
-			contentType.split(";")[0].trim() !== "application/x-umm-cobalt-bundle"
-		) {
-			console.warn("[Cobalt] API returned unsupported response type", {
+		if (contentType.split(";")[0].trim() !== "application/x-umm-media-bundle") {
+			console.warn("[Media] API returned unsupported response type", {
 				url,
 				contentType,
 			});
@@ -197,7 +191,7 @@ export async function downloadMedia(
 
 		return await parseBundleResponse(directUrl);
 	} catch (error) {
-		console.log("Cobalt failed to prepare media", error);
+		console.log("Media function failed to prepare media", error);
 		return null;
 	}
 }

@@ -29,7 +29,7 @@ start() {
 
 trap cleanup EXIT INT TERM
 
-start "local cobalt" deno task dev:cobalt
+start "media function" deno task function:start
 start "bot" deno task dev
 
 wait -n "${pids[@]}"

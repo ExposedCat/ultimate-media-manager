@@ -47,11 +47,9 @@ See social media posts right in the Telegram Messenger.
 # Development
 
 - Install Deno 2
-- Set `COBALT_API_URL` to your hosted Cobalt API endpoint. For an Azure
-  Function HTTP trigger, this is usually
-  `https://<app>.azurewebsites.net/api/<route>`.
-- Set `COBALT_API_KEY` if your Cobalt instance requires `Authorization: Api-Key`.
-- Set `COBALT_AZURE_FUNCTION_KEY` if your Azure Function requires an
+- Set `MEDIA_API_URL` to your media function endpoint — an Azure Function HTTP
+  trigger at `https://<app>.azurewebsites.net/api/media`.
+- Set `MEDIA_AZURE_FUNCTION_KEY` if your Azure Function requires an
   `x-functions-key` header.
 - Install `ffmpeg` if you want collage generation outside the app container
 - Start the bot with `deno task start`
@@ -62,34 +60,32 @@ See social media posts right in the Telegram Messenger.
 - Run the existing migration with `deno task migrate:add-chat-settings`
 - Runtime tasks load local variables from `.env` via Deno's `--env-file`
 
-## Local Cobalt Function Emulation
+## Local development
 
-For local development, you can run a Cobalt container with Podman and point the
-bot at it directly:
+The media function runs locally with the Azure Functions Core Tools. Install its
+dependencies once with `deno task function:install`, then start the function and
+the bot together with `deno task dev:local` — the function serves
+`http://localhost:7071/api/media`.
 
-1. Set local Cobalt values in `.env`:
-   - `COBALT_API_URL=http://127.0.0.1:9000`
-   - `COBALT_AZURE_FUNCTION_KEY=`
-2. Start everything with `deno task dev:local`
+Point the bot at the local function in `.env`:
 
-## Azure Cobalt Function
+- `MEDIA_API_URL=http://localhost:7071/api/media`
+- `MEDIA_AZURE_FUNCTION_KEY=`
+
+## Azure Media Function
 
 This repo includes an Azure Functions HTTP trigger at
-`azure-functions/cobalt-proxy`. It exposes `POST /api/cobalt` and `GET /tunnel`,
-tries yt-dlp first, and falls back to Cobalt by booting the Cobalt API inside
-the Function worker on demand.
+`azure-functions/media-function`. It exposes `POST /api/media`, resolves posts
+with [postfetch](https://github.com/chelokot/postfetch), and falls back to yt-dlp
+inside the Function worker on demand.
 
 1. Install dependencies with `deno task function:install`
 2. Configure your Function App settings:
-   - `COBALT_INTERNAL_PORT=9000`
-   - `COBALT_DOWNLOAD_TIMEOUT_MS=120000`
-   - `COBALT_DOWNLOAD_RETRIES=5`
-   - `COBALT_DOWNLOAD_RETRY_DELAY_MS=1000`
    - `YTDLP_TIMEOUT_MS=120000`
    - `YTDLP_PLAYLIST_LIMIT=50`
    - Optional: `YOUTUBE_DL_PATH` or `YT_DLP_PATH` to use a specific yt-dlp binary
 3. Publish to your existing Function App with
    `deno task function:publish <function-app-name>`
 4. Set the bot env:
-   - `COBALT_API_URL=https://<function-app-name>.azurewebsites.net/api/cobalt`
-   - `COBALT_AZURE_FUNCTION_KEY=<function-specific-key>`
+   - `MEDIA_API_URL=https://<function-app-name>.azurewebsites.net/api/media`
+   - `MEDIA_AZURE_FUNCTION_KEY=<function-specific-key>`

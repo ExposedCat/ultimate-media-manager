@@ -1,24 +1,6 @@
 version: "3.8"
 
 services:
-  cobalt:
-    image: ghcr.io/imputnet/cobalt:11
-    container_name: ultimate-media-manager-cobalt-dev
-    restart: unless-stopped
-    read_only: true
-    profiles:
-      - local-cobalt
-    environment:
-      API_URL: http://127.0.0.1:9000/
-    ports:
-      - "127.0.0.1:9000:9000"
-    healthcheck:
-      test: [ "CMD", "node", "-e", "fetch('http://127.0.0.1:9000').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" ]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-
   app:
     build:
       context: .

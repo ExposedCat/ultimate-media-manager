@@ -1,6 +1,6 @@
 import { InputFile } from "grammy";
 
-import { type DownloadMediaFile, downloadMedia } from "./cobalt.ts";
+import { type DownloadMediaFile, downloadMedia } from "./media-function.ts";
 
 export type DownloadedImage = DownloadMediaFile & {
 	path?: string;
@@ -54,17 +54,16 @@ export async function materializeImageFiles(
 export async function downloadMediaForUrl(
 	url: string,
 ): Promise<DownloadedMedia | null> {
-	const cobaltMedia = await downloadMedia(url);
-	if (cobaltMedia) {
-		console.info("[DownloadMedia] Downloaded media with Cobalt", {
+	const media = await downloadMedia(url);
+	if (media) {
+		console.info("[DownloadMedia] Downloaded media", {
 			url,
-			mediaType: cobaltMedia.type,
-			mediaKind:
-				cobaltMedia.type === "single" ? cobaltMedia.mediaKind : "multiple",
+			mediaType: media.type,
+			mediaKind: media.type === "single" ? media.mediaKind : "multiple",
 		});
 
-		if (cobaltMedia.type === "multiple") {
-			const files = cobaltMedia.files
+		if (media.type === "multiple") {
+			const files = media.files
 				.filter(
 					(
 						file,
@@ -102,14 +101,16 @@ export async function downloadMediaForUrl(
 		}
 
 		return {
-			kind: cobaltMedia.mediaKind,
-			bytes: cobaltMedia.file.data,
-			extension: cobaltMedia.extension,
-			file: new InputFile(cobaltMedia.file.data, cobaltMedia.file.filename),
-			filename: cobaltMedia.file.filename,
+			kind: media.mediaKind,
+			bytes: media.file.data,
+			extension: media.extension,
+			file: new InputFile(media.file.data, media.file.filename),
+			filename: media.file.filename,
 		};
 	}
 
-	console.info("[DownloadMedia] Cobalt failed to download media", { url });
+	console.info("[DownloadMedia] Media function failed to download media", {
+		url,
+	});
 	return null;
 }
