@@ -2,8 +2,6 @@
 	"IsEncrypted": false,
 	"Values": {
 		"AzureWebJobsStorage": "UseDevelopmentStorage=true",
-		"FUNCTIONS_WORKER_RUNTIME": "node",
-		"COBALT_API_KEY": "",
-		"COBALT_INTERNAL_PORT": "9000"
+		"FUNCTIONS_WORKER_RUNTIME": "node"
 	}
 }
