@@ -6,6 +6,8 @@ services:
     image: localhost/ultimate-media-manager-warp:latest
     container_name: ultimate-media-manager-warp
     restart: always
+    environment:
+      WARP_ROTATE_MINUTES: "30"
     networks:
       - dev-infra
     healthcheck:
