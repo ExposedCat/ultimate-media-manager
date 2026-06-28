@@ -22,7 +22,7 @@ export async function downloadWithPostfetch(
 		});
 		return bundle(files);
 	} catch (error) {
-		console.warn("[Postfetch] Could not resolve; falling back to yt-dlp", {
+		console.warn("[Postfetch] Could not resolve", {
 			url,
 			error: error instanceof Error ? error.message : String(error),
 		});

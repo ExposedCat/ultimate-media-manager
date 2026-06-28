@@ -112,7 +112,7 @@ export async function downloadMediaForUrl(
 		};
 	}
 
-	console.info("[DownloadMedia] Media function failed to download media", {
+	console.info("[DownloadMedia] No resolver could download media", {
 		url,
 	});
 	return null;
