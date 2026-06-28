@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [reddit, instagram, tiktok, twitter, pinterest, soundcloud, youtube]
+        platform: [reddit, instagram, tiktok, twitter, facebook, pinterest, soundcloud, youtube]
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2

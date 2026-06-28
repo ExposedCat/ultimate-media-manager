@@ -36,6 +36,16 @@ Deno.test({
 	));
 
 Deno.test({
+	name: "reddit hosted video downloads as a muxed video",
+	ignore: !runs("reddit"),
+	...options,
+}, () =>
+	downloads(
+		"https://www.reddit.com/r/catvideos/comments/ftoeo7/luna_doesnt_want_to_be_bothered_while_shes_napping/",
+		"video",
+	));
+
+Deno.test({
 	name: "instagram reel downloads as a video",
 	ignore: !runs("instagram"),
 	...options,
@@ -48,10 +58,46 @@ Deno.test({
 }, () => downloads("https://vt.tiktok.com/ZSxpHvCUM/", "video"));
 
 Deno.test({
-	name: "x status downloads as a video",
+	name: "x i/status link downloads as a video",
 	ignore: !runs("twitter"),
 	...options,
 }, () => downloads("https://x.com/i/status/2034598055668769263", "video"));
+
+Deno.test({
+	name: "x handle status with /video/1 suffix downloads as a video",
+	ignore: !runs("twitter"),
+	...options,
+}, () =>
+	downloads(
+		"https://x.com/klara_sjo/status/2036281665748717831/video/1",
+		"video",
+	));
+
+Deno.test({
+	name: "x status with tracking query downloads as a video",
+	ignore: !runs("twitter"),
+	...options,
+}, () =>
+	downloads(
+		"https://x.com/NothingIsArt/status/2054224375545565681?s=20",
+		"video",
+	));
+
+Deno.test({
+	name: "x handle status downloads as a video",
+	ignore: !runs("twitter"),
+	...options,
+}, () =>
+	downloads(
+		"https://x.com/phantompain281/status/2030252928682905845",
+		"video",
+	));
+
+Deno.test({
+	name: "facebook share link downloads as a video",
+	ignore: !runs("facebook"),
+	...options,
+}, () => downloads("https://www.facebook.com/share/v/19MXsYX58F/", "video"));
 
 Deno.test({
 	name: "pinterest video pin downloads as a video",
@@ -70,7 +116,13 @@ Deno.test({
 	));
 
 Deno.test({
-	name: "youtube downloads as a video (through WARP)",
+	name: "youtube watch downloads as a video (through WARP)",
 	ignore: !runs("youtube"),
 	...options,
 }, () => downloads("https://www.youtube.com/watch?v=jNQXAC9IVRw", "video"));
+
+Deno.test({
+	name: "youtube shorts downloads as a video (through WARP)",
+	ignore: !runs("youtube"),
+	...options,
+}, () => downloads("https://www.youtube.com/shorts/OR9PgMqSjtw", "video"));
