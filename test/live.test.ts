@@ -116,13 +116,19 @@ Deno.test({
 	));
 
 Deno.test({
-	name: "youtube watch downloads as a video (through WARP)",
+	name: "youtube watch downloads as a video",
 	ignore: !runs("youtube"),
 	...options,
 }, () => downloads("https://www.youtube.com/watch?v=jNQXAC9IVRw", "video"));
 
 Deno.test({
-	name: "youtube shorts downloads as a video (through WARP)",
+	name: "youtube shorts downloads as a video",
 	ignore: !runs("youtube"),
 	...options,
 }, () => downloads("https://www.youtube.com/shorts/OR9PgMqSjtw", "video"));
+
+Deno.test({
+	name: "youtu.be shortlink downloads as a video",
+	ignore: !runs("youtube"),
+	...options,
+}, () => downloads("https://youtu.be/VYXAND8enUo", "video"));
