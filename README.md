@@ -67,5 +67,5 @@ with `docker compose up`.
 ## Media resolution
 
 - Resolved in-process by [postfetch](https://github.com/chelokot/postfetch) (zero-dependency, remuxes the DASH/HLS splits itself), with `yt-dlp` as the fallback
-- Fetched through a **Cloudflare WARP** sidecar, so the datacenter egress IP becomes a Cloudflare consumer IP — what gets YouTube past its datacenter-IP bot gate
+- Fetched through a **Cloudflare WARP** sidecar (`warp/`, a self-built userspace-WireGuard image — no privileges, no host tweaks), so the datacenter egress IP becomes a Cloudflare consumer IP — what gets YouTube past its datacenter-IP bot gate
 - `WARP_PROXY` points the bot at the WARP SOCKS5 proxy; leave it empty to fetch directly (fine on a residential IP, gated on a datacenter one)

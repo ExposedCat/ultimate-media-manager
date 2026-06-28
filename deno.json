@@ -2,7 +2,7 @@
 	"tasks": {
 		"start": "deno run -A --env-file=.env src/index.ts",
 		"dev": "deno run -A --env-file=.env --watch src/index.ts",
-		"warp": "docker run -d --name umm-warp -p 1080:1080 --privileged --sysctl net.ipv4.conf.all.src_valid_mark=1 docker.io/caomingjun/warp",
+		"warp": "docker build -t umm-warp warp && docker run -d --name umm-warp -p 1080:1080 umm-warp",
 		"dev:local": "bash scripts/dev-local.sh",
 		"check": "deno check src/index.ts src/migrations/add-chat-settings.ts",
 		"test": "deno test -A test/",
