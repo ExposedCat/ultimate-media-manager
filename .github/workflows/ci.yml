@@ -37,25 +37,22 @@ jobs:
           sudo curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
           sudo chmod a+rx /usr/local/bin/yt-dlp
 
-      - name: Start Cloudflare WARP (proxy mode)
+      - name: Start the WARP sidecar
         run: |
-          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
-          sudo apt-get update -qq && sudo apt-get install -y -qq cloudflare-warp
-          sudo systemctl start warp-svc 2>/dev/null || (sudo warp-svc >/tmp/warp.log 2>&1 &)
-          sleep 6
-          warp-cli --accept-tos registration new 2>/dev/null || warp-cli --accept-tos register 2>/dev/null || true
-          warp-cli --accept-tos mode proxy
-          warp-cli --accept-tos connect
-          sleep 8
+          docker build -t umm-warp warp
+          docker run -d --name umm-warp -p 1080:1080 umm-warp
+          for _ in $(seq 1 30); do
+            curl -fsS -x socks5h://127.0.0.1:1080 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null | grep -q 'warp=on' && break
+            sleep 2
+          done
           echo "host IP: $(curl -s https://api.ipify.org)"
-          echo "WARP IP: $(curl -s --socks5-hostname 127.0.0.1:40000 https://api.ipify.org)"
+          curl -s -x socks5h://127.0.0.1:1080 https://www.cloudflare.com/cdn-cgi/trace | grep -E '^(ip|warp)='
 
       - name: Download ${{ matrix.platform }} through WARP
         env:
           UMM_LIVE: "1"
           UMM_LIVE_PLATFORM: ${{ matrix.platform }}
-          WARP_PROXY: socks5://127.0.0.1:40000
+          WARP_PROXY: socks5://127.0.0.1:1080
           TOKEN: ci
           DB_CONNECTION_STRING: ci
           CACHE_CHAT_ID: ci
