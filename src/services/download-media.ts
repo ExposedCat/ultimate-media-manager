@@ -1,6 +1,8 @@
 import { InputFile } from "grammy";
 
-import { type DownloadMediaFile, downloadMedia } from "./media-function.ts";
+import type { DownloadMediaFile } from "./media.ts";
+import { downloadWithPostfetch } from "./postfetch.ts";
+import { downloadWithYtdlp } from "./ytdlp.ts";
 
 export type DownloadedImage = DownloadMediaFile & {
 	path?: string;
@@ -54,7 +56,8 @@ export async function materializeImageFiles(
 export async function downloadMediaForUrl(
 	url: string,
 ): Promise<DownloadedMedia | null> {
-	const media = await downloadMedia(url);
+	const media =
+		(await downloadWithPostfetch(url)) ?? (await downloadWithYtdlp(url));
 	if (media) {
 		console.info("[DownloadMedia] Downloaded media", {
 			url,
@@ -109,7 +112,7 @@ export async function downloadMediaForUrl(
 		};
 	}
 
-	console.info("[DownloadMedia] Media function failed to download media", {
+	console.info("[DownloadMedia] No resolver could download media", {
 		url,
 	});
 	return null;

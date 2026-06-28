@@ -1,12 +1,29 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@postfetch/core@0.3": "0.3.0",
+    "jsr:@std/assert@1": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.12",
     "npm:@biomejs/biome@1.9.4": "1.9.4",
     "npm:@grammyjs/auto-retry@2.0.2": "2.0.2_grammy@1.43.0",
     "npm:@grammyjs/i18n@0.5.1": "0.5.1",
     "npm:@grammyjs/runner@2.0.3": "2.0.3_grammy@1.43.0",
     "npm:grammy@1.43.0": "1.43.0",
     "npm:mongodb@4.17.2": "4.17.2"
+  },
+  "jsr": {
+    "@postfetch/core@0.3.0": {
+      "integrity": "3230261c9992c87f539eb8b0f60e5692b6adbdf895a1b84581c47fde3c019374"
+    },
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.12": {
+      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    }
   },
   "npm": {
     "@aws-crypto/sha256-browser@5.2.0": {
@@ -850,7 +867,8 @@
         "@smithy/service-error-classification",
         "@smithy/types",
         "tslib"
-      ]
+      ],
+      "deprecated": true
     },
     "@smithy/util-stream@4.5.25": {
       "integrity": "sha512-/PFpG4k8Ze8Ei+mMKj3oiPICYekthuzePZMgZbCqMiXIHHf4n2aZ4Ps0aSRShycFTGuj/J6XldmC0x0DwednIA==",
@@ -1079,6 +1097,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@postfetch/core@0.3",
       "npm:@biomejs/biome@1.9.4",
       "npm:@grammyjs/auto-retry@2.0.2",
       "npm:@grammyjs/i18n@0.5.1",

@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno task verify
+
+  live:
+    # one job per platform for at-a-glance visibility, downloading through WARP; non-gating
+    name: live (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [reddit, instagram, tiktok, twitter, facebook, pinterest, soundcloud, youtube]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install ffmpeg + yt-dlp
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          sudo curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
+
+      - name: Start the WARP sidecar
+        run: |
+          docker build -t umm-warp warp
+          docker run -d --name umm-warp -p 1080:1080 umm-warp
+          for _ in $(seq 1 30); do
+            curl -fsS -x socks5h://127.0.0.1:1080 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null | grep -q 'warp=on' && break
+            sleep 2
+          done
+          echo "host IP: $(curl -s https://api.ipify.org)"
+          curl -s -x socks5h://127.0.0.1:1080 https://www.cloudflare.com/cdn-cgi/trace | grep -E '^(ip|warp)='
+
+      - name: Download ${{ matrix.platform }} through WARP
+        env:
+          UMM_LIVE: "1"
+          UMM_LIVE_PLATFORM: ${{ matrix.platform }}
+          WARP_PROXY: socks5://127.0.0.1:1080
+          TOKEN: ci
+          DB_CONNECTION_STRING: ci
+          CACHE_CHAT_ID: ci
+        run: deno task test
