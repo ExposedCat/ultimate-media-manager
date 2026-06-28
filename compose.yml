@@ -1,6 +1,27 @@
 version: "3.8"
 
 services:
+  warp:
+    image: docker.io/caomingjun/warp
+    container_name: ultimate-media-manager-warp
+    restart: always
+    cap_add:
+      - MKNOD
+      - AUDIT_WRITE
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    volumes:
+      - warp-data:/var/lib/cloudflare-warp
+    networks:
+      - dev-infra
+    healthcheck:
+      test: [ "CMD", "curl", "-fsS", "-x", "socks5h://127.0.0.1:1080", "https://www.cloudflare.com/cdn-cgi/trace" ]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 25s
+
   app:
     build:
       context: .
@@ -9,6 +30,11 @@ services:
     container_name: ultimate-media-manager-app
     restart: always
     env_file: .env
+    environment:
+      WARP_PROXY: socks5://warp:1080
+    depends_on:
+      warp:
+        condition: service_healthy
     networks:
       - dev-infra
     healthcheck:
@@ -17,6 +43,9 @@ services:
       timeout: 2s
       retries: 5
       start_period: 3s
+
+volumes:
+  warp-data:
 
 networks:
   dev-infra:

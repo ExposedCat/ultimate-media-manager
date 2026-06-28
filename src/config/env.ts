@@ -15,7 +15,7 @@ export const APP_ENV = {
 	TOKEN: requireEnv("TOKEN"),
 	DB_CONNECTION_STRING: requireEnv("DB_CONNECTION_STRING"),
 	CACHE_CHAT_ID: requireEnv("CACHE_CHAT_ID"),
-	MEDIA_API_URL: requireEnv("MEDIA_API_URL"),
-	MEDIA_AZURE_FUNCTION_KEY: optionalEnv("MEDIA_AZURE_FUNCTION_KEY"),
+	WARP_PROXY: optionalEnv("WARP_PROXY"),
+	YT_DLP_PATH: Deno.env.get("YT_DLP_PATH") ?? "yt-dlp",
 	FFMPEG_PATH: Deno.env.get("FFMPEG_PATH") ?? "ffmpeg",
 };

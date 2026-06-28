@@ -47,10 +47,7 @@ See social media posts right in the Telegram Messenger.
 # Development
 
 - Install Deno 2
-- Set `MEDIA_API_URL` to your media function endpoint — an Azure Function HTTP
-  trigger at `https://<app>.azurewebsites.net/api/media`.
-- Set `MEDIA_AZURE_FUNCTION_KEY` if your Azure Function requires an
-  `x-functions-key` header.
+- Install `yt-dlp` if you want the yt-dlp fallback outside the app container
 - Install `ffmpeg` if you want collage generation outside the app container
 - Start the bot with `deno task start`
 - Run checks with `deno task check`
@@ -62,30 +59,13 @@ See social media posts right in the Telegram Messenger.
 
 ## Local development
 
-The media function runs locally with the Azure Functions Core Tools. Install its
-dependencies once with `deno task function:install`, then start the function and
-the bot together with `deno task dev:local` — the function serves
-`http://localhost:7071/api/media`.
+Set `WARP_PROXY=socks5://127.0.0.1:1080` in `.env`, then `deno task dev:local` starts
+the WARP sidecar and the bot together (and stops the sidecar on exit). Or run the
+pieces yourself with `deno task warp` + `deno task dev`, or the full container setup
+with `docker compose up`.
 
-Point the bot at the local function in `.env`:
+## Media resolution
 
-- `MEDIA_API_URL=http://localhost:7071/api/media`
-- `MEDIA_AZURE_FUNCTION_KEY=`
-
-## Azure Media Function
-
-This repo includes an Azure Functions HTTP trigger at
-`azure-functions/media-function`. It exposes `POST /api/media`, resolves posts
-with [postfetch](https://github.com/chelokot/postfetch), and falls back to yt-dlp
-inside the Function worker on demand.
-
-1. Install dependencies with `deno task function:install`
-2. Configure your Function App settings:
-   - `YTDLP_TIMEOUT_MS=120000`
-   - `YTDLP_PLAYLIST_LIMIT=50`
-   - Optional: `YOUTUBE_DL_PATH` or `YT_DLP_PATH` to use a specific yt-dlp binary
-3. Publish to your existing Function App with
-   `deno task function:publish <function-app-name>`
-4. Set the bot env:
-   - `MEDIA_API_URL=https://<function-app-name>.azurewebsites.net/api/media`
-   - `MEDIA_AZURE_FUNCTION_KEY=<function-specific-key>`
+- Resolved in-process by [postfetch](https://github.com/chelokot/postfetch) (zero-dependency, remuxes the DASH/HLS splits itself), with `yt-dlp` as the fallback
+- Fetched through a **Cloudflare WARP** sidecar, so the datacenter egress IP becomes a Cloudflare consumer IP — what gets YouTube past its datacenter-IP bot gate
+- `WARP_PROXY` points the bot at the WARP SOCKS5 proxy; leave it empty to fetch directly (fine on a residential IP, gated on a datacenter one)

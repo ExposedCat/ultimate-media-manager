@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno task verify
+
+  live:
+    # one job per platform for at-a-glance visibility, downloading through WARP; non-gating
+    name: live (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [reddit, instagram, tiktok, twitter, pinterest, soundcloud, youtube]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install ffmpeg + yt-dlp
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          sudo curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
+
+      - name: Start Cloudflare WARP (proxy mode)
+        run: |
+          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq cloudflare-warp
+          sudo systemctl start warp-svc 2>/dev/null || (sudo warp-svc >/tmp/warp.log 2>&1 &)
+          sleep 6
+          warp-cli --accept-tos registration new 2>/dev/null || warp-cli --accept-tos register 2>/dev/null || true
+          warp-cli --accept-tos mode proxy
+          warp-cli --accept-tos connect
+          sleep 8
+          echo "host IP: $(curl -s https://api.ipify.org)"
+          echo "WARP IP: $(curl -s --socks5-hostname 127.0.0.1:40000 https://api.ipify.org)"
+
+      - name: Download ${{ matrix.platform }} through WARP
+        env:
+          UMM_LIVE: "1"
+          UMM_LIVE_PLATFORM: ${{ matrix.platform }}
+          WARP_PROXY: socks5://127.0.0.1:40000
+          TOKEN: ci
+          DB_CONNECTION_STRING: ci
+          CACHE_CHAT_ID: ci
+        run: deno task test

@@ -1,9 +1,0 @@
-{
-	"IsEncrypted": false,
-	"Values": {
-		"AzureWebJobsStorage": "UseDevelopmentStorage=true",
-		"FUNCTIONS_WORKER_RUNTIME": "node",
-		"YTDLP_TIMEOUT_MS": "120000",
-		"YTDLP_PLAYLIST_LIMIT": "50"
-	}
-}
