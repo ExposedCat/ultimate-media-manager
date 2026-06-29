@@ -1,8 +1,15 @@
 import type { I18nContextFlavor, TemplateData } from "@grammyjs/i18n";
 import type { Context, SessionFlavor } from "grammy";
 
-import type { Chat, Database } from "./database.ts";
+import type { Chat, Database, UserSettings } from "./database.ts";
 import type { Extra } from "./telegram.ts";
+
+export type ContextObjects = {
+	chat: Chat | null;
+	user: UserSettings | null;
+	guestReceiverUser: UserSettings | null;
+	guestSenderUser: UserSettings | null;
+};
 
 export type CustomContextFields = {
 	text: (
@@ -11,7 +18,7 @@ export type CustomContextFields = {
 		extra?: Extra,
 	) => ReturnType<Context["reply"]>;
 
-	objects: { chat: Chat | null };
+	objects: ContextObjects;
 
 	db: Database;
 };

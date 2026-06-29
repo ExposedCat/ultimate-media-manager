@@ -1,6 +1,11 @@
 import type { UpdateResult } from "mongodb";
 
-import type { Chat, Database, Settings } from "../types/database.ts";
+import type {
+	Chat,
+	Database,
+	Settings,
+	UserSettings,
+} from "../types/database.ts";
 
 export const DEFAULT_SETTINGS: Settings = {
 	cleanup: true,
@@ -56,6 +61,51 @@ export function setChatSetting(args: {
 }): Promise<UpdateResult> {
 	return args.db.chat.updateOne(
 		{ chatId: args.chatId },
+		{ $set: { [`settings.${args.key}`]: args.value } },
+	);
+}
+
+export function getUserSettings(args: {
+	db: Database;
+	userId: number;
+}): Promise<UserSettings | null> {
+	return args.db.userSettings.findOne({ userId: args.userId });
+}
+
+async function createUserSettings(args: {
+	db: Database;
+	userId: number;
+}): Promise<UserSettings> {
+	const userSettings: UserSettings = {
+		userId: args.userId,
+		settings: { ...DEFAULT_SETTINGS },
+	};
+
+	await args.db.userSettings.insertOne(userSettings);
+
+	return userSettings;
+}
+
+export async function getOrCreateUserSettings(args: {
+	db: Database;
+	userId: number;
+}): Promise<UserSettings> {
+	const userSettings = await getUserSettings(args);
+	if (userSettings) {
+		return userSettings;
+	}
+
+	return createUserSettings(args);
+}
+
+export function setUserSetting(args: {
+	db: Database;
+	userId: number;
+	key: keyof Settings;
+	value: boolean;
+}): Promise<UpdateResult> {
+	return args.db.userSettings.updateOne(
+		{ userId: args.userId },
 		{ $set: { [`settings.${args.key}`]: args.value } },
 	);
 }

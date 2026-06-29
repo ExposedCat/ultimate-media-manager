@@ -41,7 +41,7 @@
 		"deleted": "🗑 This post was removed",
 		"notFound": "🗑 This post doesn't exist or was removed"
 	},
-	"settingsGroupOnly": "Settings are only available in group chats.",
+	"settingsGroupOnly": "Settings are only available in group chats and direct messages with the bot.",
 	"settings": "Chat settings:\n\n${options}\n\nClick command to toggle",
 	"option": {
 		"cleanup": "Delete links",

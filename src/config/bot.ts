@@ -8,10 +8,14 @@ import { downloadController } from "../controllers/download.ts";
 import { mediaDownloadController } from "../controllers/media-download.ts";
 import { settingsController } from "../controllers/settings.ts";
 import { startController } from "../controllers/start.ts";
-import { getOrCreateChat } from "../services/chat.ts";
+import {
+	getOrCreateChat,
+	getOrCreateUserSettings,
+	getUserSettings,
+} from "../services/chat.ts";
 import { createReplyWithTextFunc } from "../services/context.ts";
 import type { CustomContext } from "../types/context.ts";
-import type { Chat, Database } from "../types/database.ts";
+import type { Chat, Database, UserSettings } from "../types/database.ts";
 import type { Bot } from "../types/telegram.ts";
 import { APP_ENV } from "./env.ts";
 import { initLocaleEngine } from "./locale-engine.ts";
@@ -20,10 +24,38 @@ function extendContext(bot: Bot, database: Database) {
 	bot.use(async (ctx, next) => {
 		ctx.text = createReplyWithTextFunc(ctx);
 		ctx.db = database;
+		ctx.objects = {
+			chat: null,
+			user: null,
+			guestReceiverUser: null,
+			guestSenderUser: null,
+		};
 
 		if (ctx.chat && ctx.from) {
 			let chat: Chat | null = null;
-			if (ctx.chat.type !== "private") {
+			let user: UserSettings | null = null;
+			let guestReceiverUser: UserSettings | null = null;
+			let guestSenderUser: UserSettings | null = null;
+
+			if (ctx.chat.type === "private") {
+				if (ctx.guestMessage) {
+					guestReceiverUser = await getUserSettings({
+						db: database,
+						userId: ctx.chat.id,
+					});
+					if (ctx.from.id !== ctx.chat.id) {
+						guestSenderUser = await getUserSettings({
+							db: database,
+							userId: ctx.from.id,
+						});
+					}
+				} else {
+					user = await getOrCreateUserSettings({
+						db: database,
+						userId: ctx.from.id,
+					});
+				}
+			} else {
 				chat = await getOrCreateChat({
 					db: database,
 					chatId: ctx.chat.id,
@@ -31,7 +63,7 @@ function extendContext(bot: Bot, database: Database) {
 				});
 			}
 
-			ctx.objects = { chat };
+			ctx.objects = { chat, user, guestReceiverUser, guestSenderUser };
 		}
 
 		await next();

@@ -31,6 +31,22 @@ type DownloadResponseData = {
 
 type DownloadResponseMediaKind = NonNullable<DownloadResponse["media"]>["kind"];
 
+function getResponseSettings(ctx: CustomContext) {
+	if (ctx.guestMessage && ctx.chat?.type === "private") {
+		return (
+			ctx.objects?.guestReceiverUser?.settings ??
+			ctx.objects?.guestSenderUser?.settings ??
+			DEFAULT_SETTINGS
+		);
+	}
+
+	return (
+		ctx.objects?.chat?.settings ??
+		ctx.objects?.user?.settings ??
+		DEFAULT_SETTINGS
+	);
+}
+
 export function buildLinkPreviewOptions(url: string) {
 	return {
 		is_disabled: false,
@@ -63,7 +79,7 @@ export function buildDownloadResponseText(
 	meta?: PostCaptionMeta | null,
 ) {
 	const base = buildBaseText(ctx, data, mediaKind, title);
-	const settings = ctx.objects?.chat?.settings ?? DEFAULT_SETTINGS;
+	const settings = getResponseSettings(ctx);
 	if (!meta || !captionEnabled(settings, data.sourceType)) {
 		return base;
 	}

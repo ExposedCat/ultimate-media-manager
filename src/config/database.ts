@@ -1,6 +1,6 @@
 import { MongoClient } from "mongodb";
 
-import type { Chat, Database } from "../types/database.ts";
+import type { Chat, Database, UserSettings } from "../types/database.ts";
 import { APP_ENV } from "./env.ts";
 
 export async function connectToDb() {
@@ -8,6 +8,7 @@ export async function connectToDb() {
 	await client.connect();
 	const mongoDb = client.db();
 	const chat = mongoDb.collection<Chat>("chat");
-	const database: Database = { chat };
+	const userSettings = mongoDb.collection<UserSettings>("userSettings");
+	const database: Database = { chat, userSettings };
 	return { database, client };
 }

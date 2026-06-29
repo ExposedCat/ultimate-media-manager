@@ -18,6 +18,12 @@ export type Chat = {
 	settings: Settings;
 };
 
+export type UserSettings = {
+	userId: number;
+	settings: Settings;
+};
+
 export type Database = {
 	chat: Collection<Chat>;
+	userSettings: Collection<UserSettings>;
 };

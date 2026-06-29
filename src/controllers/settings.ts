@@ -1,7 +1,7 @@
 import { Composer } from "grammy";
 
 import { APP_ENV } from "../config/env.ts";
-import { setChatSetting } from "../services/chat.ts";
+import { setChatSetting, setUserSetting } from "../services/chat.ts";
 import type { CustomContext } from "../types/context.ts";
 import type { Settings } from "../types/database.ts";
 
@@ -68,6 +68,11 @@ const SETTING_COMMANDS = OPTIONS.flatMap((option) => [
 	`set_${option.commandId}_on`,
 	`set_${option.commandId}_off`,
 ]);
+type SettingsTarget = {
+	settings: Settings;
+	replace: (settings: Settings) => void;
+	set: (key: keyof Settings, value: boolean) => Promise<unknown>;
+};
 
 function isAdmin(userId: number | undefined) {
 	return APP_ENV.ADMIN_ID !== undefined && String(userId) === APP_ENV.ADMIN_ID;
@@ -108,18 +113,61 @@ async function replySettings(ctx: CustomContext, settings: Settings) {
 	await ctx.text("settings", { options: renderSettingsOptions(ctx, settings) });
 }
 
+function getSettingsTarget(ctx: CustomContext): SettingsTarget | null {
+	if (ctx.objects.chat && ctx.chat) {
+		const chatId = ctx.chat.id;
+		return {
+			settings: ctx.objects.chat.settings,
+			replace: (settings) => {
+				if (ctx.objects.chat) {
+					ctx.objects.chat.settings = settings;
+				}
+			},
+			set: (key, value) =>
+				setChatSetting({
+					db: ctx.db,
+					chatId,
+					key,
+					value,
+				}),
+		};
+	}
+
+	if (ctx.chat?.type === "private" && ctx.objects.user) {
+		const userId = ctx.objects.user.userId;
+		return {
+			settings: ctx.objects.user.settings,
+			replace: (settings) => {
+				if (ctx.objects.user) {
+					ctx.objects.user.settings = settings;
+				}
+			},
+			set: (key, value) =>
+				setUserSetting({
+					db: ctx.db,
+					userId,
+					key,
+					value,
+				}),
+		};
+	}
+
+	return null;
+}
+
 export const settingsController = new Composer<CustomContext>();
 settingsController.command("settings", async (ctx) => {
 	if (!ctx.message) {
 		return;
 	}
 
-	if (!ctx.objects.chat) {
+	const settingsTarget = getSettingsTarget(ctx);
+	if (!settingsTarget) {
 		await ctx.text("settingsGroupOnly");
 		return;
 	}
 
-	await replySettings(ctx, ctx.objects.chat.settings);
+	await replySettings(ctx, settingsTarget.settings);
 });
 
 for (const command of SETTING_COMMANDS) {
@@ -128,14 +176,15 @@ for (const command of SETTING_COMMANDS) {
 			return;
 		}
 
-		if (!ctx.objects.chat) {
+		const settingsTarget = getSettingsTarget(ctx);
+		if (!settingsTarget) {
 			await ctx.text("settingsGroupOnly");
 			return;
 		}
 
 		const parsed = parseSettingCommand(ctx.message.text);
 		if (!parsed) {
-			await replySettings(ctx, ctx.objects.chat.settings);
+			await replySettings(ctx, settingsTarget.settings);
 			return;
 		}
 
@@ -147,14 +196,9 @@ for (const command of SETTING_COMMANDS) {
 			return;
 		}
 
-		const settings = { ...ctx.objects.chat.settings, [target.key]: value };
-		ctx.objects.chat.settings = settings;
-		await setChatSetting({
-			db: ctx.db,
-			chatId: ctx.chat.id,
-			key: target.key,
-			value,
-		});
+		const settings = { ...settingsTarget.settings, [target.key]: value };
+		settingsTarget.replace(settings);
+		await settingsTarget.set(target.key, value);
 
 		await replySettings(ctx, settings);
 	});
