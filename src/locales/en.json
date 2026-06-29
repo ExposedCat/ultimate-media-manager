@@ -25,6 +25,7 @@
 	},
 	"error": {
 		"viewOn": "${viewOn}\n\n<i>${error}</i>",
+		"report": "${viewOn}\n\n<i>Failed to download: ${error}</i>",
 		"audio": "😢 Failed to download audio",
 		"video": "😢 Failed to download video",
 		"image": "😢 Failed to download photo",
@@ -32,11 +33,31 @@
 		"videoSize": "🫨 Video is too big to download: ${size} Mb out of ${limit} Mb limit"
 	},
 	"promoCaption": "${viewUrl}",
+	"reasonNotice": "${viewOn}\n\n${reason}",
+	"reason": {
+		"ageRestricted": "🔞 This post is age-restricted (18+)",
+		"private": "🔒 This account is private",
+		"loginRequired": "🔒 This post requires a login to view",
+		"deleted": "🗑 This post was removed",
+		"notFound": "🗑 This post doesn't exist or was removed"
+	},
 	"settingsGroupOnly": "Settings are only available in group chats.",
-	"settings": "Chat settings:\n\n${cleanup} ${cleanupOption} (<code>cleanup</code>)\n\n/settings OPTION yes|no",
+	"settings": "Chat settings:\n\n${options}\n\n/settings OPTION yes|no",
+	"option": {
+		"cleanup": "Delete links",
+		"captionReddit": "Captions: Reddit",
+		"captionSoundcloud": "Captions: SoundCloud",
+		"captionInstagram": "Captions: Instagram",
+		"captionTiktok": "Captions: TikTok",
+		"captionTwitter": "Captions: Twitter",
+		"captionYoutube": "Captions: YouTube",
+		"captionPinterest": "Captions: Pinterest",
+		"errors": "Show errors"
+	},
 	"unknownOption": "Unknown option \"${option}\"\nSee /settings",
-	"cleanupOption": "Delete links",
 	"settingsUpdated": "\"${option}\" was set to \"${value}\"",
+	"optionAdminOnly": "\"${option}\" can only be changed by the admin.",
+	"adminOnly": "admin only",
 	"enabled": "🟢",
 	"disabled": "🔴"
 }

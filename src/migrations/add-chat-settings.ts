@@ -1,11 +1,12 @@
 import { connectToDb } from "../config/database.ts";
 import { APP_ENV } from "../config/env.ts";
+import { DEFAULT_SETTINGS } from "../services/chat.ts";
 import type { Database } from "../types/database.ts";
 
 void APP_ENV;
 
 async function migrate(database: Database) {
-	await database.chat.updateMany({}, { $set: { settings: { cleanup: true } } });
+	await database.chat.updateMany({}, { $set: { settings: DEFAULT_SETTINGS } });
 }
 
 console.info("Connecting…");
