@@ -106,6 +106,9 @@ type GuestMediaMetadata = {
 	plainText: string;
 	title: string;
 };
+type GuestArticleOptions = {
+	enablePreview?: boolean;
+};
 
 type MessageAuthor = {
 	id: number;
@@ -291,8 +294,12 @@ function toFileCacheMedia(media: CachedChatMedia): CachedMedia {
 	};
 }
 
-function buildGuestArticleResult(result: DownloadResponse): GuestQueryResult {
+function buildGuestArticleResult(
+	result: DownloadResponse,
+	options: GuestArticleOptions = {},
+): GuestQueryResult {
 	const { title, description } = buildGuestMediaMetadata(result.text);
+	const { enablePreview = false } = options;
 
 	return {
 		type: "article",
@@ -302,7 +309,9 @@ function buildGuestArticleResult(result: DownloadResponse): GuestQueryResult {
 		input_message_content: {
 			message_text: result.text,
 			parse_mode: "HTML",
-			link_preview_options: buildLinkPreviewOptions(result.previewUrl),
+			link_preview_options: enablePreview
+				? buildLinkPreviewOptions(result.previewUrl)
+				: { is_disabled: true },
 		},
 	};
 }
@@ -480,7 +489,7 @@ async function buildGuestMediaQueryResult(
 			"[GuestQuery] Falling back from image media to article result: collage was not available",
 			{ imageCount: media.images.length },
 		);
-		return buildGuestArticleResult(result);
+		return buildGuestArticleResult(result, { enablePreview: true });
 	}
 
 	const cachedMedia = await cacheDownloadedMedia(ctx, media, url);
@@ -498,7 +507,7 @@ async function buildGuestMediaQueryResult(
 		"[GuestQuery] Falling back from media to article result: cache upload did not produce reusable media",
 		{ mediaKind: media.kind },
 	);
-	return buildGuestArticleResult(result);
+	return buildGuestArticleResult(result, { enablePreview: true });
 }
 
 async function buildGuestQueryResult(
@@ -506,13 +515,11 @@ async function buildGuestQueryResult(
 	result: DownloadResponse,
 	url: string,
 ): Promise<GuestQueryResult> {
-	const plainText = stripHtml(result.text);
-
 	if (!result.media) {
 		console.info("[GuestQuery] Using article result for text-only response", {
 			previewUrl: result.previewUrl,
 		});
-		return buildGuestArticleResult(result);
+		return buildGuestArticleResult(result, { enablePreview: !result.metadata });
 	}
 
 	console.info("[GuestQuery] Building direct guest media result", {
