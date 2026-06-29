@@ -1,19 +1,25 @@
+import type { PostCaptionMeta } from "./caption.ts";
+
 export type CachedMedia =
 	| {
 			kind: "image";
 			fileId: string;
+			metadata?: PostCaptionMeta;
 	  }
 	| {
 			kind: "video";
 			fileId: string;
+			metadata?: PostCaptionMeta;
 	  }
 	| {
 			kind: "audio";
 			fileId: string;
+			metadata?: PostCaptionMeta;
 	  }
 	| {
 			kind: "images";
 			items: CachedMediaGroupItem[];
+			metadata?: PostCaptionMeta;
 	  };
 
 export type CachedMediaGroupItem = {

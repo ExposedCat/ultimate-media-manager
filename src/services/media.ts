@@ -1,14 +1,22 @@
+import type { PostCaptionMeta } from "./caption.ts";
+
 export type DownloadMediaResult =
 	| {
 			type: "single";
 			file: DownloadMediaFile;
 			mediaKind: "image" | "video" | "audio";
 			extension: string;
+			metadata?: PostCaptionMeta;
 	  }
 	| {
 			type: "multiple";
 			files: DownloadMediaFile[];
 			mediaKind: "mixed";
+			metadata?: PostCaptionMeta;
+	  }
+	| {
+			type: "text";
+			metadata?: PostCaptionMeta;
 	  };
 
 export type DownloadMediaFile = {

@@ -1,6 +1,18 @@
 import type { UpdateResult } from "mongodb";
 
-import type { Chat, Database } from "../types/database.ts";
+import type { Chat, Database, Settings } from "../types/database.ts";
+
+export const DEFAULT_SETTINGS: Settings = {
+	cleanup: true,
+	captionReddit: true,
+	captionSoundcloud: true,
+	captionInstagram: true,
+	captionTiktok: true,
+	captionTwitter: true,
+	captionYoutube: true,
+	captionPinterest: true,
+	errors: false,
+};
 
 async function createChat(args: {
 	db: Database;
@@ -10,9 +22,7 @@ async function createChat(args: {
 	const chatObject: Chat = {
 		chatId: args.chatId,
 		title: args.title,
-		settings: {
-			cleanup: true,
-		},
+		settings: { ...DEFAULT_SETTINGS },
 	};
 
 	await args.db.chat.insertOne(chatObject);
@@ -38,13 +48,14 @@ export async function getOrCreateChat(args: {
 	return createChat(args);
 }
 
-export function setChatCleanup(args: {
+export function setChatSetting(args: {
 	db: Database;
 	chatId: number;
-	cleanup: boolean;
+	key: keyof Settings;
+	value: boolean;
 }): Promise<UpdateResult> {
 	return args.db.chat.updateOne(
 		{ chatId: args.chatId },
-		{ $set: { "settings.cleanup": args.cleanup } },
+		{ $set: { [`settings.${args.key}`]: args.value } },
 	);
 }

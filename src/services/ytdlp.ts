@@ -49,11 +49,9 @@ export async function downloadWithYtdlp(
 			stderr: "piped",
 		}).output();
 		if (!success) {
-			console.warn("[Ytdlp] Download failed", {
-				url,
-				error: new TextDecoder().decode(stderr).slice(0, 300),
-			});
-			return null;
+			const detail = new TextDecoder().decode(stderr).slice(0, 300).trim();
+			console.warn("[Ytdlp] Download failed", { url, error: detail });
+			throw new Error(detail || "yt-dlp download failed");
 		}
 		const files = await readDownloadedFiles(directory);
 		console.info("[Ytdlp] Downloaded media", { url, fileCount: files.length });
@@ -63,7 +61,7 @@ export async function downloadWithYtdlp(
 			url,
 			error: error instanceof Error ? error.message : String(error),
 		});
-		return null;
+		throw error;
 	} finally {
 		await Deno.remove(directory, { recursive: true }).catch(() => undefined);
 	}

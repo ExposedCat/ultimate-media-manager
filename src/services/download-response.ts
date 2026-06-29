@@ -1,5 +1,12 @@
 import { deletePaths } from "../helpers/fs.ts";
+import { escapeHtml } from "../helpers/html.ts";
 import type { CustomContext } from "../types/context.ts";
+import {
+	type PostCaptionMeta,
+	buildPostCaption,
+	captionEnabled,
+} from "./caption.ts";
+import { DEFAULT_SETTINGS } from "./chat.ts";
 import { type DownloadedMedia, downloadMediaForUrl } from "./download-media.ts";
 import type { SourceType } from "./sources.ts";
 
@@ -9,6 +16,9 @@ export type DownloadResponse = {
 	media: DownloadedMedia | null;
 	previewUrl: string;
 	text: string;
+	error?: string;
+	reason?: string;
+	metadata?: PostCaptionMeta;
 };
 
 type DownloadResponseData = {
@@ -20,14 +30,6 @@ type DownloadResponseData = {
 };
 
 type DownloadResponseMediaKind = NonNullable<DownloadResponse["media"]>["kind"];
-
-function escapeHtml(value: string | number) {
-	return String(value)
-		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;")
-		.replaceAll('"', "&quot;");
-}
 
 export function buildLinkPreviewOptions(url: string) {
 	return {
@@ -54,6 +56,22 @@ function getPromoText(
 }
 
 export function buildDownloadResponseText(
+	ctx: CustomContext,
+	data: DownloadResponseData,
+	mediaKind: DownloadResponseMediaKind | null,
+	title?: string,
+	meta?: PostCaptionMeta | null,
+) {
+	const base = buildBaseText(ctx, data, mediaKind, title);
+	const settings = ctx.objects?.chat?.settings ?? DEFAULT_SETTINGS;
+	if (!meta || !captionEnabled(settings, data.sourceType)) {
+		return base;
+	}
+	const quote = buildPostCaption(data.sourceType, meta);
+	return quote ? `${quote}\n${base}` : base;
+}
+
+function buildBaseText(
 	ctx: CustomContext,
 	data: DownloadResponseData,
 	mediaKind: DownloadResponseMediaKind | null,
@@ -105,7 +123,9 @@ export async function buildDownloadResponse(
 	};
 	const cleanup = async () => await deletePaths(tempDir ? [tempDir] : []);
 	const previewUrl = data.fallbackUrl ?? data.url;
-	const media = await downloadMediaForUrl(data.url);
+	const { media, error, reason, metadata } = await downloadMediaForUrl(
+		data.url,
+	);
 
 	if (!media) {
 		return {
@@ -113,7 +133,10 @@ export async function buildDownloadResponse(
 			getTempDir,
 			media: null,
 			previewUrl,
-			text: buildDownloadResponseText(ctx, data, null),
+			text: buildDownloadResponseText(ctx, data, null, undefined, metadata),
+			error,
+			reason,
+			metadata,
 		};
 	}
 
@@ -127,7 +150,13 @@ export async function buildDownloadResponse(
 			getTempDir,
 			media,
 			previewUrl,
-			text: buildDownloadResponseText(ctx, data, media.kind, title),
+			text: buildDownloadResponseText(
+				ctx,
+				data,
+				media.kind,
+				title,
+				media.metadata,
+			),
 		};
 	}
 
@@ -136,6 +165,12 @@ export async function buildDownloadResponse(
 		getTempDir,
 		media,
 		previewUrl,
-		text: buildDownloadResponseText(ctx, data, media.kind),
+		text: buildDownloadResponseText(
+			ctx,
+			data,
+			media.kind,
+			undefined,
+			media.metadata,
+		),
 	};
 }

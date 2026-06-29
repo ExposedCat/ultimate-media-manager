@@ -13,7 +13,7 @@ async function downloads(
 	url: string,
 	kind: "image" | "video" | "audio" | "images",
 ): Promise<void> {
-	const media = await downloadMediaForUrl(url);
+	const { media } = await downloadMediaForUrl(url);
 	assert(media !== null, `no media resolved for ${url}`);
 	assert(media.kind === kind, `expected ${kind}, got ${media.kind} for ${url}`);
 	const bytes =

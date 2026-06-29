@@ -1,6 +1,7 @@
 import { InputFile } from "grammy";
 
-import type { DownloadMediaFile } from "./media.ts";
+import type { PostCaptionMeta } from "./caption.ts";
+import type { DownloadMediaFile, DownloadMediaResult } from "./media.ts";
 import { downloadWithPostfetch } from "./postfetch.ts";
 import { downloadWithYtdlp } from "./ytdlp.ts";
 
@@ -22,11 +23,13 @@ export type DownloadedMedia =
 			extension?: string;
 			filename?: string;
 			title?: string;
+			metadata?: PostCaptionMeta;
 	  }
 	| {
 			kind: "images";
 			files: DownloadedMediaGroupItem[];
 			images: DownloadedImage[];
+			metadata?: PostCaptionMeta;
 	  };
 
 function sanitizeFilename(filename: string) {
@@ -53,67 +56,102 @@ export async function materializeImageFiles(
 	return filenames;
 }
 
-export async function downloadMediaForUrl(
-	url: string,
-): Promise<DownloadedMedia | null> {
-	const media =
-		(await downloadWithPostfetch(url)) ?? (await downloadWithYtdlp(url));
-	if (media) {
+// Reads the typed unavailability cause that @postfetch/core attaches to its
+// errors; absent on resolvers (or older library versions) that do not set it.
+function postfetchReason(error: unknown): string | undefined {
+	if (error instanceof Error && "reason" in error) {
+		const value = (error as { reason?: unknown }).reason;
+		return typeof value === "string" ? value : undefined;
+	}
+	return undefined;
+}
+
+export async function downloadMediaForUrl(url: string): Promise<{
+	media: DownloadedMedia | null;
+	error?: string;
+	reason?: string;
+	metadata?: PostCaptionMeta;
+}> {
+	let error: string | undefined;
+	let reason: string | undefined;
+	for (const resolver of [downloadWithPostfetch, downloadWithYtdlp]) {
+		let result: DownloadMediaResult | null;
+		try {
+			result = await resolver(url);
+		} catch (caught) {
+			error ??= caught instanceof Error ? caught.message : String(caught);
+			reason ??= postfetchReason(caught);
+			continue;
+		}
+		if (!result) {
+			continue;
+		}
+		if (result.type === "text") {
+			console.info("[DownloadMedia] Resolved a text post", { url });
+			return { media: null, metadata: result.metadata };
+		}
 		console.info("[DownloadMedia] Downloaded media", {
 			url,
-			mediaType: media.type,
-			mediaKind: media.type === "single" ? media.mediaKind : "multiple",
+			mediaType: result.type,
+			mediaKind: result.type === "single" ? result.mediaKind : "multiple",
 		});
+		const media = toDownloadedMedia(result);
+		if (media) {
+			return { media };
+		}
+	}
 
-		if (media.type === "multiple") {
-			const files = media.files
-				.filter(
-					(
-						file,
-					): file is DownloadMediaFile & { mediaKind: "image" | "video" } =>
-						file.mediaKind === "image" || file.mediaKind === "video",
-				)
-				.map((file) => ({
-					kind: file.mediaKind,
-					file: new InputFile(file.data, file.filename),
-					media: file,
-				}));
+	console.info("[DownloadMedia] No resolver could download media", { url });
+	return { media: null, error, reason };
+}
 
-			if (files.length === 0) {
-				return null;
-			}
+function toDownloadedMedia(
+	result: Exclude<DownloadMediaResult, { type: "text" }>,
+): DownloadedMedia | null {
+	if (result.type === "multiple") {
+		const files = result.files
+			.filter(
+				(file): file is DownloadMediaFile & { mediaKind: "image" | "video" } =>
+					file.mediaKind === "image" || file.mediaKind === "video",
+			)
+			.map((file) => ({
+				kind: file.mediaKind,
+				file: new InputFile(file.data, file.filename),
+				media: file,
+			}));
 
-			if (files.length === 1) {
-				const [item] = files;
-				return {
-					kind: item.kind,
-					bytes: item.media.data,
-					extension: item.media.extension,
-					file: item.file,
-					filename: item.media.filename,
-				};
-			}
+		if (files.length === 0) {
+			return null;
+		}
 
+		if (files.length === 1) {
+			const [item] = files;
 			return {
-				kind: "images",
-				files,
-				images: files
-					.filter((item) => item.kind === "image")
-					.map((item) => item.media),
+				kind: item.kind,
+				bytes: item.media.data,
+				extension: item.media.extension,
+				file: item.file,
+				filename: item.media.filename,
+				metadata: result.metadata,
 			};
 		}
 
 		return {
-			kind: media.mediaKind,
-			bytes: media.file.data,
-			extension: media.extension,
-			file: new InputFile(media.file.data, media.file.filename),
-			filename: media.file.filename,
+			kind: "images",
+			files,
+			images: files
+				.filter((item) => item.kind === "image")
+				.map((item) => item.media),
+			metadata: result.metadata,
 		};
 	}
 
-	console.info("[DownloadMedia] No resolver could download media", {
-		url,
-	});
-	return null;
+	return {
+		kind: result.mediaKind,
+		bytes: result.file.data,
+		extension: result.extension,
+		file: new InputFile(result.file.data, result.file.filename),
+		filename: result.file.filename,
+		metadata: result.metadata,
+	};
 }

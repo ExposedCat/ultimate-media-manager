@@ -1,6 +1,7 @@
 import { InputFile } from "grammy";
 import type { InputMediaPhoto, InputMediaVideo } from "grammy/types";
 
+import { escapeHtml } from "../helpers/html.ts";
 import type { CustomContext } from "../types/context.ts";
 import {
 	type CachedMedia as CachedChatMedia,
@@ -156,6 +157,62 @@ async function replyWithPreviewFallback(
 		link_preview_options: buildLinkPreviewOptions(result.previewUrl),
 	});
 	return true;
+}
+
+async function replyWithError(
+	ctx: CustomContext,
+	result: DownloadResponse,
+	replyExtra: ReturnType<typeof buildReplyExtra>,
+) {
+	const text = ctx.i18n.t("error.report", {
+		viewOn: result.text,
+		error: escapeHtml(result.error ?? "unknown error"),
+	});
+	await ctx.reply(text, {
+		parse_mode: "HTML",
+		...replyExtra,
+		link_preview_options: buildLinkPreviewOptions(result.previewUrl),
+	});
+}
+
+// Causes worth telling any user about (not a bug — a limitation of the post),
+// shown regardless of the admin-only error toggle.
+const USER_FACING_REASONS = new Set([
+	"ageRestricted",
+	"private",
+	"loginRequired",
+	"deleted",
+	"notFound",
+]);
+
+async function replyWithReason(
+	ctx: CustomContext,
+	result: DownloadResponse,
+	replyExtra: ReturnType<typeof buildReplyExtra>,
+) {
+	const text = ctx.i18n.t("reasonNotice", {
+		viewOn: result.text,
+		reason: ctx.i18n.t(`reason.${result.reason}`),
+	});
+	await ctx.reply(text, {
+		parse_mode: "HTML",
+		...replyExtra,
+		link_preview_options: buildLinkPreviewOptions(result.previewUrl),
+	});
+}
+
+// A text post (no media): the caption already holds title/body, so send it as a
+// plain message with the link preview off — the preview would just be noise.
+async function replyWithText(
+	ctx: CustomContext,
+	result: DownloadResponse,
+	replyExtra: ReturnType<typeof buildReplyExtra>,
+) {
+	await ctx.reply(result.text, {
+		parse_mode: "HTML",
+		...replyExtra,
+		link_preview_options: { is_disabled: true },
+	});
 }
 
 function buildGuestMediaMetadata(text: string): GuestMediaMetadata {
@@ -618,6 +675,8 @@ export async function downloadMatchedUrl(
 				ctx,
 				responseData,
 				cachedMedia.kind,
+				undefined,
+				cachedMedia.metadata,
 			);
 			if (ctx.guestMessage) {
 				const sent = await answerGuestQueryWithCachedMedia(
@@ -671,7 +730,15 @@ export async function downloadMatchedUrl(
 			}
 
 			if (!result.media) {
-				await replyWithPreviewFallback(ctx, result, replyExtra);
+				if (result.metadata) {
+					await replyWithText(ctx, result, replyExtra);
+				} else if (result.reason && USER_FACING_REASONS.has(result.reason)) {
+					await replyWithReason(ctx, result, replyExtra);
+				} else if (ctx.objects?.chat?.settings?.errors && result.error) {
+					await replyWithError(ctx, result, replyExtra);
+				} else {
+					await replyWithPreviewFallback(ctx, result, replyExtra);
+				}
 			} else if (result.media.kind === "images") {
 				const sentMessages = await replyWithMediaItems(
 					ctx,
@@ -684,7 +751,10 @@ export async function downloadMatchedUrl(
 				);
 				const cachedMedia = getCachedMediaFromMediaGroup(sentMessages);
 				if (cachedMedia) {
-					const normalizedUrl = setCachedMedia(url, cachedMedia);
+					const normalizedUrl = setCachedMedia(url, {
+						...cachedMedia,
+						metadata: result.media.metadata,
+					});
 					console.info("[Download] Cached media group file IDs", {
 						userId: ctx.from.id,
 						sourceType: type,
@@ -706,7 +776,10 @@ export async function downloadMatchedUrl(
 					sentMessage,
 				);
 				if (cachedMedia) {
-					const normalizedUrl = setCachedMedia(url, cachedMedia);
+					const normalizedUrl = setCachedMedia(url, {
+						...cachedMedia,
+						metadata: result.media.metadata,
+					});
 					console.info("[Download] Cached media file ID", {
 						userId: ctx.from.id,
 						sourceType: type,

@@ -1,5 +1,11 @@
-import { type MediaItem, download, postfetch } from "@postfetch/core";
+import {
+	type MediaItem,
+	type PostfetchResult,
+	download,
+	postfetch,
+} from "@postfetch/core";
 
+import type { PostCaptionMeta } from "./caption.ts";
 import {
 	type DownloadMediaFile,
 	type DownloadMediaResult,
@@ -20,14 +26,37 @@ export async function downloadWithPostfetch(
 			platform: result.platform,
 			fileCount: files.length,
 		});
-		return bundle(files);
+		const meta = toCaptionMeta(result);
+		const resolved = bundle(files);
+		return resolved
+			? { ...resolved, metadata: meta }
+			: { type: "text", metadata: meta };
 	} catch (error) {
 		console.warn("[Postfetch] Could not resolve", {
 			url,
 			error: error instanceof Error ? error.message : String(error),
 		});
-		return null;
+		throw error;
 	}
+}
+
+function toCaptionMeta(result: PostfetchResult): PostCaptionMeta | undefined {
+	const meta = result.metadata;
+	if (!meta) {
+		return undefined;
+	}
+	return {
+		title: meta.title,
+		text: meta.text,
+		authorHandle: meta.author?.handle,
+		authorName: meta.author?.name,
+		likeCount: meta.likeCount,
+		commentCount: meta.commentCount,
+		subreddit:
+			result.platform === "reddit"
+				? result.metadata?.extra?.subreddit
+				: undefined,
+	};
 }
 
 async function toDownloadMediaFile(

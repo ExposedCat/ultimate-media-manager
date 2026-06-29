@@ -1,7 +1,7 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@postfetch/core@0.3": "0.3.0",
+    "jsr:@postfetch/core@0.5": "0.5.0",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "npm:@biomejs/biome@1.9.4": "1.9.4",
@@ -12,8 +12,8 @@
     "npm:mongodb@4.17.2": "4.17.2"
   },
   "jsr": {
-    "@postfetch/core@0.3.0": {
-      "integrity": "3230261c9992c87f539eb8b0f60e5692b6adbdf895a1b84581c47fde3c019374"
+    "@postfetch/core@0.5.0": {
+      "integrity": "24b7d776199f39e1ffdaa8b7c744ac4c3c52b8c0624d49a22bdecbc7e9333e13"
     },
     "@std/assert@1.0.19": {
       "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
@@ -1097,7 +1097,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@postfetch/core@0.3",
+      "jsr:@postfetch/core@0.5",
       "npm:@biomejs/biome@1.9.4",
       "npm:@grammyjs/auto-retry@2.0.2",
       "npm:@grammyjs/i18n@0.5.1",
