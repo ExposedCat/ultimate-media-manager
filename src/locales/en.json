@@ -42,7 +42,7 @@
 		"notFound": "🗑 This post doesn't exist or was removed"
 	},
 	"settingsGroupOnly": "Settings are only available in group chats.",
-	"settings": "Chat settings:\n\n${options}\n\n/settings OPTION yes|no",
+	"settings": "Chat settings:\n\n${options}\n\nClick command to toggle",
 	"option": {
 		"cleanup": "Delete links",
 		"captionReddit": "Captions: Reddit",
