@@ -1,3 +1,5 @@
+import type { InputMatcher } from "./sources.ts";
+
 export type MessageEntityLike = {
 	type: string;
 	offset: number;
@@ -51,6 +53,26 @@ export function extractUrlsFromMessage(message?: MessageLike | null) {
 	}
 
 	return urls;
+}
+
+export function findFirstMatchedUrlSource(
+	messages: Array<MessageLike | null | undefined>,
+	matcher: InputMatcher,
+) {
+	for (const sourceMessage of messages) {
+		if (!sourceMessage) {
+			continue;
+		}
+
+		for (const url of extractUrlsFromMessage(sourceMessage)) {
+			const matchResult = matcher(url);
+			if (matchResult.type) {
+				return { url, sourceMessage, matchResult };
+			}
+		}
+	}
+
+	return null;
 }
 
 export function isBotMentioned(

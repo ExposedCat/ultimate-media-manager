@@ -1,8 +1,7 @@
 import { Composer } from "grammy";
 
 import {
-	extractMessageText,
-	extractUrlsFromMessage,
+	findFirstMatchedUrlSource,
 	isBotMentioned,
 } from "../services/context-message.ts";
 import { matchDownloadCommandInput } from "../services/sources.ts";
@@ -26,7 +25,7 @@ function isGuestReplyToBotMessage(ctx: CustomContext) {
 	);
 }
 
-function getMentionedReplyUrlSource(ctx: CustomContext) {
+function getContextUrlSource(ctx: CustomContext) {
 	const message = ctx.msg;
 	if (!message) {
 		return null;
@@ -40,20 +39,10 @@ function getMentionedReplyUrlSource(ctx: CustomContext) {
 		return null;
 	}
 
-	const repliedUrl = message.reply_to_message
-		? (extractUrlsFromMessage(message.reply_to_message)[0] ??
-			extractMessageText(message.reply_to_message))
-		: null;
-
-	if (repliedUrl || !ctx.guestMessage) {
-		return repliedUrl
-			? { url: repliedUrl, sourceMessage: message.reply_to_message }
-			: null;
-	}
-
-	const messageUrl =
-		extractUrlsFromMessage(message)[0] ?? extractMessageText(message);
-	return messageUrl ? { url: messageUrl, sourceMessage: message } : null;
+	return findFirstMatchedUrlSource(
+		[message, message.reply_to_message],
+		matchDownloadCommandInput,
+	);
 }
 
 export const contextMessageController = new Composer<CustomContext>();
@@ -87,7 +76,7 @@ contextMessageController
 				return;
 			}
 
-			const urlSource = getMentionedReplyUrlSource(ctx);
+			const urlSource = getContextUrlSource(ctx);
 			if (!urlSource) {
 				console.info("[MentionDownload] No URL found in context message", {
 					...getLogContext(ctx),
@@ -110,7 +99,7 @@ contextMessageController
 			const sent = await downloadMatchedUrl(
 				ctx,
 				urlSource.url,
-				matchDownloadCommandInput,
+				urlSource.matchResult,
 				urlSource.sourceMessage,
 			);
 			if (!sent) {

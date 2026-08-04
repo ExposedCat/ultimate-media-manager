@@ -24,7 +24,13 @@ import {
 	getCachedMediaFromSingleMessage,
 	setCachedMedia,
 } from "./media-file-cache.ts";
-import { type InputMatcher, matchInput } from "./sources.ts";
+import {
+	type InputMatcher,
+	type MatchInputResult,
+	matchInput,
+} from "./sources.ts";
+
+type InputMatcherOrResult = InputMatcher | MatchInputResult;
 
 function buildReplyExtra(ctx: CustomContext) {
 	const message = ctx.msg as
@@ -633,7 +639,7 @@ async function answerGuestQueryWithFallback(
 export async function downloadMatchedUrl(
 	ctx: CustomContext,
 	url: string,
-	matcher: InputMatcher = matchInput,
+	matcherOrResult: InputMatcherOrResult = matchInput,
 	sourceMessage: MessageLike | null | undefined = ctx.msg,
 ) {
 	const captionAuthor = getCaptionAuthor(ctx, sourceMessage);
@@ -641,7 +647,10 @@ export async function downloadMatchedUrl(
 		return false;
 	}
 
-	const { type, fallbackUrl, match } = matcher(url);
+	const { type, fallbackUrl, match } =
+		typeof matcherOrResult === "function"
+			? matcherOrResult(url)
+			: matcherOrResult;
 	if (!type || !match) {
 		console.info("[Download] No matcher found", {
 			userId: ctx.from.id,
