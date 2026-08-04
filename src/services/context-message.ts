@@ -7,12 +7,20 @@ export type MessageEntityLike = {
 	url?: string;
 };
 
+export type MessageForwardOriginLike = {
+	type: string;
+	sender_user?: {
+		is_bot?: boolean;
+	};
+};
+
 export type MessageLike = {
 	text?: string;
 	caption?: string;
 	from?: {
 		id: number;
 	};
+	forward_origin?: MessageForwardOriginLike;
 	entities?: MessageEntityLike[];
 	caption_entities?: MessageEntityLike[];
 	reply_to_message?: MessageLike | null;
@@ -53,6 +61,22 @@ export function extractUrlsFromMessage(message?: MessageLike | null) {
 	}
 
 	return urls;
+}
+
+export function shouldIgnoreForwardedMessage(
+	message: MessageLike | null | undefined,
+	chatType: string,
+): boolean {
+	if (chatType === "private") {
+		return false;
+	}
+
+	const origin = message?.forward_origin;
+
+	return (
+		origin?.type === "channel" ||
+		(origin?.type === "user" && origin.sender_user?.is_bot === true)
+	);
 }
 
 export function findFirstMatchedUrlSource(

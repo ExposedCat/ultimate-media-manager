@@ -3,6 +3,7 @@ import { assertEquals, assertStrictEquals } from "jsr:@std/assert@^1";
 import {
 	type MessageLike,
 	findFirstMatchedUrlSource,
+	shouldIgnoreForwardedMessage,
 } from "../src/services/context-message.ts";
 import { matchDownloadCommandInput } from "../src/services/sources.ts";
 
@@ -63,4 +64,60 @@ Deno.test("matched URL selection ignores non-URL message text", () => {
 		findFirstMatchedUrlSource([trigger], matchDownloadCommandInput),
 		null,
 	);
+});
+
+Deno.test("forward filtering ignores channel posts", () => {
+	assertEquals(
+		shouldIgnoreForwardedMessage(
+			{
+				forward_origin: { type: "channel" },
+			},
+			"supergroup",
+		),
+		true,
+	);
+});
+
+Deno.test("forward filtering ignores bot messages", () => {
+	assertEquals(
+		shouldIgnoreForwardedMessage(
+			{
+				forward_origin: {
+					type: "user",
+					sender_user: { is_bot: true },
+				},
+			},
+			"group",
+		),
+		true,
+	);
+});
+
+Deno.test("forward filtering allows every origin in private chats", () => {
+	const allowedOrigins: MessageLike["forward_origin"][] = [
+		{ type: "channel" },
+		{ type: "user", sender_user: { is_bot: true } },
+	];
+
+	for (const forward_origin of allowedOrigins) {
+		assertEquals(
+			shouldIgnoreForwardedMessage({ forward_origin }, "private"),
+			false,
+		);
+	}
+});
+
+Deno.test("forward filtering allows other forwarded messages", () => {
+	const allowedOrigins: MessageLike["forward_origin"][] = [
+		{ type: "user", sender_user: { is_bot: false } },
+		{ type: "hidden_user" },
+		{ type: "chat" },
+	];
+
+	for (const forward_origin of allowedOrigins) {
+		assertEquals(
+			shouldIgnoreForwardedMessage({ forward_origin }, "supergroup"),
+			false,
+		);
+	}
 });

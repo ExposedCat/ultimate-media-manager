@@ -1,6 +1,9 @@
 import { Composer } from "grammy";
 
-import { extractUrlsFromMessage } from "../services/context-message.ts";
+import {
+	extractUrlsFromMessage,
+	shouldIgnoreForwardedMessage,
+} from "../services/context-message.ts";
 import { downloadMatchedUrl } from "../services/url-download.ts";
 import type { CustomContext } from "../types/context.ts";
 
@@ -8,7 +11,7 @@ export const mediaDownloadController = new Composer<CustomContext>();
 mediaDownloadController.on(
 	["message::url", "message::text_link"],
 	async (ctx, next) => {
-		if (ctx.message.forward_origin) {
+		if (shouldIgnoreForwardedMessage(ctx.message, ctx.chat.type)) {
 			return;
 		}
 
