@@ -18,9 +18,10 @@ WORKDIR /app
 USER root
 
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends ffmpeg curl ca-certificates \
+	&& apt-get install -y --no-install-recommends ffmpeg curl ca-certificates python3 \
 	&& curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
 	&& chmod a+rx /usr/local/bin/yt-dlp \
+	&& yt-dlp --version \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY --from=cache /deno-dir /deno-dir
