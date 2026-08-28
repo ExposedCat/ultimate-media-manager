@@ -1,4 +1,8 @@
 import type { I18nContextFlavor, TemplateData } from "@grammyjs/i18n";
+import type {
+	OpenTelemetryContext,
+	SpanDefinitions,
+} from "@grammyjs/opentelemetry";
 import type { Context, SessionFlavor } from "grammy";
 
 import type { Chat, Database, UserSettings } from "./database.ts";
@@ -23,7 +27,16 @@ export type CustomContextFields = {
 	db: Database;
 };
 
+export type BotTelemetryEvents = {
+	download: {
+		platform: string;
+		url: string;
+		result: boolean;
+	};
+};
+
 export type CustomContext = Context &
 	CustomContextFields &
 	I18nContextFlavor &
+	OpenTelemetryContext<SpanDefinitions, BotTelemetryEvents> &
 	SessionFlavor<unknown>;

@@ -1,5 +1,6 @@
 import { autoRetry } from "@grammyjs/auto-retry";
 import type { I18n } from "@grammyjs/i18n";
+import { type SpanDefinitions, openTelemetry } from "@grammyjs/opentelemetry";
 import { run } from "@grammyjs/runner";
 import { Bot as TelegramBot, session } from "grammy";
 
@@ -14,7 +15,7 @@ import {
 	getUserSettings,
 } from "../services/chat.ts";
 import { createReplyWithTextFunc } from "../services/context.ts";
-import type { CustomContext } from "../types/context.ts";
+import type { BotTelemetryEvents, CustomContext } from "../types/context.ts";
 import type { Chat, Database, UserSettings } from "../types/database.ts";
 import type { Bot } from "../types/telegram.ts";
 import { APP_ENV } from "./env.ts";
@@ -71,6 +72,11 @@ function extendContext(bot: Bot, database: Database) {
 }
 
 function setupMiddlewares(bot: Bot, localeEngine: I18n) {
+	bot.use(
+		openTelemetry<SpanDefinitions, BotTelemetryEvents>(
+			"ultimate-media-manager",
+		),
+	);
 	bot.use(
 		session({
 			getSessionKey: (ctx) =>

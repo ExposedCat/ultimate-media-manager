@@ -693,6 +693,23 @@ export async function downloadMatchedUrl(
 		url,
 		fallbackUrl,
 	});
+	const finish = (result: boolean) => {
+		try {
+			ctx.telemetry.event("download", {
+				platform: type,
+				url,
+				result,
+			});
+		} catch (error) {
+			console.warn("[Download] Failed to emit telemetry event", {
+				platform: type,
+				url,
+				result,
+				error,
+			});
+		}
+		return result;
+	};
 	const replyExtra = buildReplyExtra(ctx);
 
 	try {
@@ -728,7 +745,7 @@ export async function downloadMatchedUrl(
 					url,
 				);
 				if (sent) {
-					return true;
+					return finish(true);
 				}
 			} else {
 				try {
@@ -739,7 +756,7 @@ export async function downloadMatchedUrl(
 						mediaKind: cachedMedia.kind,
 						url,
 					});
-					return true;
+					return finish(true);
 				} catch (error) {
 					deleteCachedMedia(url);
 					console.warn(
@@ -774,9 +791,9 @@ export async function downloadMatchedUrl(
 						type,
 						url,
 					);
-					return false;
+					return finish(false);
 				}
-				return await answerGuestQuery(ctx, result, type, url);
+				return finish(await answerGuestQuery(ctx, result, type, url));
 			}
 
 			if (!result.media) {
@@ -790,7 +807,7 @@ export async function downloadMatchedUrl(
 						reason: result.reason,
 						url,
 					});
-					return false;
+					return finish(false);
 				}
 			} else if (result.media.kind === "images") {
 				const sentMessages = await replyWithMediaItems(
@@ -849,7 +866,7 @@ export async function downloadMatchedUrl(
 				mediaKind: result.media?.kind ?? "text",
 				url,
 			});
-			return true;
+			return finish(true);
 		} catch (error) {
 			console.error("[Failed to send result]", {
 				userId: ctx.from.id,
@@ -883,7 +900,7 @@ export async function downloadMatchedUrl(
 				}
 			}
 
-			return false;
+			return finish(false);
 		} finally {
 			console.info("[Download] Cleaning up resources", {
 				userId: ctx.from.id,
@@ -914,6 +931,6 @@ export async function downloadMatchedUrl(
 				});
 			}
 		}
-		return false;
+		return finish(false);
 	}
 }
