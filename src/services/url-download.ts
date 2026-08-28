@@ -1,7 +1,6 @@
 import { InputFile } from "grammy";
 import type { InputMediaPhoto, InputMediaVideo } from "grammy/types";
 
-import { escapeHtml } from "../helpers/html.ts";
 import type { CustomContext } from "../types/context.ts";
 import {
 	type CachedMedia as CachedChatMedia,
@@ -16,6 +15,7 @@ import {
 	buildDownloadResponseText,
 	buildLinkPreviewOptions,
 } from "./download-response.ts";
+import { classifyMediaSendFailure, getFailureCode } from "./failure.ts";
 import {
 	type CachedMedia,
 	deleteCachedMedia,
@@ -142,50 +142,55 @@ function stripHtml(text: string) {
 	return text.replace(/<[^>]+>/g, "").trim();
 }
 
-async function replyWithPreviewFallback(
+function buildMediaSendFailureText(ctx: CustomContext, error: unknown) {
+	const failure = classifyMediaSendFailure(error);
+	return ctx.i18n.t(`error.send.${failure.reason}`, {
+		code: failure.code,
+	});
+}
+
+function buildResultSendFailureText(ctx: CustomContext, error: unknown) {
+	return ctx.i18n.t("error.send.resultUnknown", {
+		code: getFailureCode(error),
+	});
+}
+
+function buildDownloadFailureText(
 	ctx: CustomContext,
 	result: DownloadResponse,
-	replyExtra: ReturnType<typeof buildReplyExtra>,
 ) {
-	try {
-		await ctx.reply(result.text, {
-			parse_mode: "HTML",
-			...replyExtra,
-			link_preview_options: buildLinkPreviewOptions(result.previewUrl),
-		});
-		return true;
-	} catch (htmlError) {
-		console.warn("[Download] Preview fallback failed", {
-			userId: ctx.from?.id,
-			error: htmlError,
+	if (result.reason && USER_FACING_REASONS.has(result.reason)) {
+		return ctx.i18n.t("reasonNotice", {
+			viewOn: result.text,
+			reason: ctx.i18n.t(`reason.${result.reason}`),
 		});
 	}
 
-	await ctx.reply(stripHtml(result.text), {
-		...replyExtra,
-		link_preview_options: buildLinkPreviewOptions(result.previewUrl),
+	return ctx.i18n.t("error.downloadFailed", {
+		code: getFailureCode(result.error),
 	});
-	return true;
 }
 
-async function replyWithError(
+function buildUnexpectedDownloadFailureText(
 	ctx: CustomContext,
-	result: DownloadResponse,
+	error: unknown,
+) {
+	return ctx.i18n.t("error.downloadFailed", {
+		code: getFailureCode(error),
+	});
+}
+
+async function replyWithMediaSendFailure(
+	ctx: CustomContext,
+	error: unknown,
 	replyExtra: ReturnType<typeof buildReplyExtra>,
 ) {
-	const text = ctx.i18n.t("error.report", {
-		viewOn: result.text,
-		error: escapeHtml(result.error ?? "unknown error"),
-	});
-	await ctx.reply(text, {
-		parse_mode: "HTML",
+	await ctx.reply(buildMediaSendFailureText(ctx, error), {
 		...replyExtra,
-		link_preview_options: buildLinkPreviewOptions(result.previewUrl),
 	});
 }
 
-// Causes worth telling any user about (not a bug — a limitation of the post),
-// shown regardless of the admin-only error toggle.
+// Causes worth explaining instead of reducing them to an unknown error code.
 const USER_FACING_REASONS = new Set([
 	"ageRestricted",
 	"private",
@@ -194,19 +199,17 @@ const USER_FACING_REASONS = new Set([
 	"notFound",
 ]);
 
-async function replyWithReason(
+async function replyWithDownloadFailure(
 	ctx: CustomContext,
 	result: DownloadResponse,
 	replyExtra: ReturnType<typeof buildReplyExtra>,
 ) {
-	const text = ctx.i18n.t("reasonNotice", {
-		viewOn: result.text,
-		reason: ctx.i18n.t(`reason.${result.reason}`),
-	});
-	await ctx.reply(text, {
-		parse_mode: "HTML",
+	await ctx.reply(buildDownloadFailureText(ctx, result), {
+		parse_mode:
+			result.reason && USER_FACING_REASONS.has(result.reason)
+				? "HTML"
+				: undefined,
 		...replyExtra,
-		link_preview_options: buildLinkPreviewOptions(result.previewUrl),
 	});
 }
 
@@ -304,7 +307,19 @@ function buildGuestArticleResult(
 	result: DownloadResponse,
 	options: GuestArticleOptions = {},
 ): GuestQueryResult {
-	const { title, description } = buildGuestMediaMetadata(result.text);
+	return buildGuestArticleResultFromText(
+		result.text,
+		options,
+		result.previewUrl,
+	);
+}
+
+function buildGuestArticleResultFromText(
+	text: string,
+	options: GuestArticleOptions = {},
+	previewUrl?: string,
+): GuestQueryResult {
+	const { title, description } = buildGuestMediaMetadata(text);
 	const { enablePreview = false } = options;
 
 	return {
@@ -313,13 +328,37 @@ function buildGuestArticleResult(
 		title,
 		description,
 		input_message_content: {
-			message_text: result.text,
+			message_text: text,
 			parse_mode: "HTML",
-			link_preview_options: enablePreview
-				? buildLinkPreviewOptions(result.previewUrl)
-				: { is_disabled: true },
+			link_preview_options:
+				enablePreview && previewUrl
+					? buildLinkPreviewOptions(previewUrl)
+					: { is_disabled: true },
 		},
 	};
+}
+
+async function answerGuestFailure(
+	ctx: CustomContext,
+	text: string,
+	sourceType: string,
+	url: string,
+) {
+	try {
+		await ctx.answerGuestQuery(buildGuestArticleResultFromText(text));
+		console.info("[GuestQuery] Answered with failure notice", {
+			userId: ctx.from?.id,
+			sourceType,
+			url,
+		});
+	} catch (error) {
+		console.error("[GuestQuery] Failed to answer with failure notice", {
+			userId: ctx.from?.id,
+			sourceType,
+			url,
+			error,
+		});
+	}
 }
 
 function buildGuestCachedMediaQueryResult(
@@ -563,7 +602,7 @@ function getCaptionAuthor(
 	};
 }
 
-async function answerGuestQueryWithFallback(
+async function answerGuestQuery(
 	ctx: CustomContext,
 	result: DownloadResponse,
 	sourceType: string,
@@ -580,6 +619,14 @@ async function answerGuestQueryWithFallback(
 			url,
 			error,
 		});
+		await answerGuestFailure(
+			ctx,
+			result.media
+				? buildMediaSendFailureText(ctx, error)
+				: buildResultSendFailureText(ctx, error),
+			sourceType,
+			url,
+		);
 		return false;
 	}
 
@@ -602,38 +649,17 @@ async function answerGuestQueryWithFallback(
 			url,
 			error,
 		});
+		await answerGuestFailure(
+			ctx,
+			result.media
+				? buildMediaSendFailureText(ctx, error)
+				: buildResultSendFailureText(ctx, error),
+			sourceType,
+			url,
+		);
 	}
 
-	console.info(
-		"[GuestQuery] Falling back to direct text reply after answerGuestQuery failure",
-		{
-			userId: ctx.from?.id,
-			sourceType,
-			mediaKind: result.media?.kind ?? "text",
-			url,
-		},
-	);
-
-	try {
-		await ctx.reply(result.text, {
-			parse_mode: "HTML",
-			link_preview_options: buildLinkPreviewOptions(result.previewUrl),
-		});
-		console.info("[GuestQuery] Sent direct text fallback", {
-			userId: ctx.from?.id,
-			sourceType,
-			url,
-		});
-		return true;
-	} catch (fallbackError) {
-		console.error("[GuestQuery] Failed to send direct text fallback", {
-			userId: ctx.from?.id,
-			sourceType,
-			url,
-			error: fallbackError,
-		});
-		return false;
-	}
+	return false;
 }
 
 export async function downloadMatchedUrl(
@@ -667,6 +693,7 @@ export async function downloadMatchedUrl(
 		url,
 		fallbackUrl,
 	});
+	const replyExtra = buildReplyExtra(ctx);
 
 	try {
 		await reactWithEyes(ctx);
@@ -683,8 +710,6 @@ export async function downloadMatchedUrl(
 			url,
 			fallbackUrl: fallbackUrl ?? undefined,
 		};
-		const replyExtra = buildReplyExtra(ctx);
-
 		const cachedMedia = getCachedMedia(url);
 		if (cachedMedia) {
 			const cachedText = buildDownloadResponseText(
@@ -742,18 +767,30 @@ export async function downloadMatchedUrl(
 			});
 
 			if (ctx.guestMessage) {
-				return await answerGuestQueryWithFallback(ctx, result, type, url);
+				if (!result.media && !result.metadata) {
+					await answerGuestFailure(
+						ctx,
+						buildDownloadFailureText(ctx, result),
+						type,
+						url,
+					);
+					return false;
+				}
+				return await answerGuestQuery(ctx, result, type, url);
 			}
 
 			if (!result.media) {
 				if (result.metadata) {
 					await replyWithText(ctx, result, replyExtra);
-				} else if (result.reason && USER_FACING_REASONS.has(result.reason)) {
-					await replyWithReason(ctx, result, replyExtra);
-				} else if (ctx.objects?.chat?.settings?.errors && result.error) {
-					await replyWithError(ctx, result, replyExtra);
 				} else {
-					await replyWithPreviewFallback(ctx, result, replyExtra);
+					await replyWithDownloadFailure(ctx, result, replyExtra);
+					console.info("[Download] Sent download failure notice", {
+						userId: ctx.from.id,
+						sourceType: type,
+						reason: result.reason,
+						url,
+					});
+					return false;
 				}
 			} else if (result.media.kind === "images") {
 				const sentMessages = await replyWithMediaItems(
@@ -814,7 +851,7 @@ export async function downloadMatchedUrl(
 			});
 			return true;
 		} catch (error) {
-			console.error("[Failed to send media]", {
+			console.error("[Failed to send result]", {
 				userId: ctx.from.id,
 				sourceType: type,
 				mediaKind: result.media?.kind ?? "text",
@@ -822,24 +859,26 @@ export async function downloadMatchedUrl(
 				error,
 			});
 
-			if (result.media) {
+			if (result.media || result.metadata) {
 				try {
-					await replyWithPreviewFallback(ctx, result, replyExtra);
-					console.info(
-						"[Download] Sent preview fallback after media send failure",
-						{
-							userId: ctx.from.id,
-							sourceType: type,
-							url,
-						},
-					);
-					return true;
-				} catch (fallbackError) {
-					console.error("[Download] Failed to send text fallback", {
+					if (result.media) {
+						await replyWithMediaSendFailure(ctx, error, replyExtra);
+					} else {
+						await ctx.reply(buildResultSendFailureText(ctx, error), {
+							...replyExtra,
+						});
+					}
+					console.info("[Download] Sent delivery failure notice", {
 						userId: ctx.from.id,
 						sourceType: type,
 						url,
-						error: fallbackError,
+					});
+				} catch (noticeError) {
+					console.error("[Download] Failed to send delivery failure notice", {
+						userId: ctx.from.id,
+						sourceType: type,
+						url,
+						error: noticeError,
 					});
 				}
 			}
@@ -860,6 +899,21 @@ export async function downloadMatchedUrl(
 			url,
 			error,
 		});
+		const failureText = buildUnexpectedDownloadFailureText(ctx, error);
+		if (ctx.guestMessage) {
+			await answerGuestFailure(ctx, failureText, type, url);
+		} else {
+			try {
+				await ctx.reply(failureText, { ...replyExtra });
+			} catch (noticeError) {
+				console.error("[Download] Failed to send download failure notice", {
+					userId: ctx.from.id,
+					sourceType: type,
+					url,
+					error: noticeError,
+				});
+			}
+		}
 		return false;
 	}
 }

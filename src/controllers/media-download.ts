@@ -44,7 +44,7 @@ mediaDownloadController.on(
 		}
 
 		if (!somethingSent) {
-			console.info("[AutoDownload] No URLs matched", {
+			console.info("[AutoDownload] No media sent; keeping source message", {
 				userId: ctx.from.id,
 				chatId: ctx.chat.id,
 				messageId: ctx.message.message_id,

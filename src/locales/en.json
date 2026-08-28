@@ -30,7 +30,18 @@
 		"video": "😢 Failed to download video",
 		"image": "😢 Failed to download photo",
 		"images": "😢 Failed to download photos",
-		"videoSize": "🫨 Video is too big to download: ${size} Mb out of ${limit} Mb limit"
+		"downloadFailed": "😢 Failed to download the media (error ${code})",
+		"send": {
+			"fileTooLarge": "🫨 Failed to send the media: the file is too large for Telegram.",
+			"unsupportedMedia": "😢 Failed to send the media: Telegram doesn't support this file format.",
+			"processingFailed": "😢 Failed to send the media: Telegram couldn't process this file.",
+			"captionInvalid": "😢 Failed to send the media: Telegram couldn't process its caption.",
+			"permissionDenied": "😢 Failed to send the media: Telegram doesn't allow the bot to send it in this chat.",
+			"rateLimited": "⏳ Failed to send the media: Telegram is rate-limiting the bot. Please try again later.",
+			"telegramUnavailable": "😢 Failed to send the media: Telegram is temporarily unavailable. Please try again later.",
+			"unknown": "😢 Failed to send the media (error ${code})",
+			"resultUnknown": "😢 Failed to send the download result (error ${code})"
+		}
 	},
 	"promoCaption": "${viewUrl}",
 	"reasonNotice": "${viewOn}\n\n${reason}",
