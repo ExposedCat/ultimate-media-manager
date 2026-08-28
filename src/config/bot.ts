@@ -7,6 +7,7 @@ import {
 	openTelemetry,
 } from "@grammyjs/opentelemetry";
 import { run } from "@grammyjs/runner";
+import { DiagLogLevel } from "@opentelemetry/api";
 import { Bot as TelegramBot, session } from "grammy";
 
 import { contextMessageController } from "../controllers/context-message.ts";
@@ -86,6 +87,7 @@ function setupMiddlewares(bot: Bot, localeEngine: I18n) {
 	});
 	bot.use(
 		openTelemetry<SpanDefinitions, BotTelemetryEvents>(telemetryServiceName, {
+			logLevel: DiagLogLevel.WARN,
 			tracer,
 		}),
 	);

@@ -4,12 +4,14 @@
     "jsr:@postfetch/core@0.6": "0.6.0",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.12",
+    "jsr:@std/yaml@*": "1.1.0",
     "npm:@biomejs/biome@1.9.4": "1.9.4",
     "npm:@grammyjs/auto-retry@2.0.2": "2.0.2_grammy@1.43.0",
     "npm:@grammyjs/i18n@0.5.1": "0.5.1",
     "npm:@grammyjs/opentelemetry@*": "0.1.0",
     "npm:@grammyjs/opentelemetry@0.1": "0.1.0",
     "npm:@grammyjs/runner@2.0.3": "2.0.3_grammy@1.43.0",
+    "npm:@opentelemetry/api@^1.9.1": "1.9.1",
     "npm:grammy@1.43.0": "1.43.0",
     "npm:mongodb@4.17.2": "4.17.2"
   },
@@ -25,6 +27,9 @@
     },
     "@std/internal@1.0.12": {
       "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    },
+    "@std/yaml@1.1.0": {
+      "integrity": "fc1c5c63e05c4c5eb6118355f557958035d41940d6c29d35b306ef7155d6edb0"
     }
   },
   "npm": {
@@ -1334,6 +1339,7 @@
       "npm:@grammyjs/i18n@0.5.1",
       "npm:@grammyjs/opentelemetry@0.1",
       "npm:@grammyjs/runner@2.0.3",
+      "npm:@opentelemetry/api@^1.9.1",
       "npm:grammy@1.43.0",
       "npm:mongodb@4.17.2"
     ]
