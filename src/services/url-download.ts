@@ -1,32 +1,28 @@
-import { InputFile } from "grammy";
-import type { InputMediaPhoto, InputMediaVideo } from "grammy/types";
-
+import type { InputRichMessageWithoutUpload } from "grammy/types";
 import type { CustomContext } from "../types/context.ts";
-import {
-	type CachedMedia as CachedChatMedia,
-	cacheDownloadedMedia,
-} from "./cache-media.ts";
-import { createImageCollage } from "./collage.ts";
+import { cacheDownloadedMedia } from "./cache-media.ts";
 import { type MessageLike, extractUrlsFromMessage } from "./context-message.ts";
-import { materializeImageFiles } from "./download-media.ts";
+import type { DownloadedMedia } from "./download-media.ts";
 import {
 	type DownloadResponse,
 	buildDownloadResponse,
+	buildDownloadResponseBaseText,
 	buildDownloadResponseText,
-	buildLinkPreviewOptions,
+	responseCaptionEnabled,
 } from "./download-response.ts";
 import { classifyMediaSendFailure, getFailureCode } from "./failure.ts";
 import {
 	type CachedMedia,
 	deleteCachedMedia,
 	getCachedMedia,
-	getCachedMediaFromMediaGroup,
-	getCachedMediaFromSingleMessage,
+	getCachedMediaFromRichMessage,
 	setCachedMedia,
 } from "./media-file-cache.ts";
+import { type RichMediaItem, buildRichMessage } from "./rich-message.ts";
 import {
 	type InputMatcher,
 	type MatchInputResult,
+	type SourceType,
 	matchInput,
 } from "./sources.ts";
 
@@ -57,26 +53,21 @@ function buildReplyExtra(ctx: CustomContext) {
 async function replyWithCachedMedia(
 	ctx: CustomContext,
 	media: CachedMedia,
-	text: string,
+	baseText: string,
+	captionEnabled: boolean,
+	sourceType: SourceType,
 	replyExtra: ReturnType<typeof buildReplyExtra>,
 ) {
-	if (media.kind === "images") {
-		await replyWithMediaItems(
-			ctx,
-			media.items.map((item) => ({ kind: item.kind, media: item.fileId })),
-			text,
-			replyExtra,
-		);
-		return;
-	}
-
-	const method = getReplyMethod(media.kind);
-
-	await ctx[method](media.fileId, {
-		caption: text,
-		parse_mode: "HTML",
-		...replyExtra,
-	});
+	await ctx.replyWithRichMessage(
+		buildRichMessage({
+			baseHtml: baseText,
+			captionEnabled,
+			media: cachedMediaItems(media),
+			metadata: media.metadata,
+			sourceType,
+		}),
+		replyExtra,
+	);
 }
 
 async function reactWithEyes(ctx: CustomContext) {
@@ -112,10 +103,6 @@ type GuestMediaMetadata = {
 	plainText: string;
 	title: string;
 };
-type GuestArticleOptions = {
-	enablePreview?: boolean;
-};
-
 type MessageAuthor = {
 	id: number;
 	first_name: string;
@@ -125,18 +112,6 @@ type MessageAuthor = {
 type MessageWithAuthor = MessageLike & {
 	from?: MessageAuthor;
 };
-
-type SingleMediaKind = Extract<
-	CachedMedia["kind"],
-	"image" | "audio" | "video"
->;
-type MediaGroupKind = Extract<CachedMedia["kind"], "image" | "video">;
-type SendableMediaGroupItem = {
-	kind: MediaGroupKind;
-	media: string | InputFile;
-};
-
-const MAX_MEDIA_GROUP_SIZE = 10;
 
 function stripHtml(text: string) {
 	return text.replace(/<[^>]+>/g, "").trim();
@@ -213,18 +188,16 @@ async function replyWithDownloadFailure(
 	});
 }
 
-// A text post (no media): the caption already holds title/body, so send it as a
-// plain message with the link preview off — the preview would just be noise.
+// Text-only posts still use the same rich structure, just without media blocks.
 async function replyWithText(
 	ctx: CustomContext,
 	result: DownloadResponse,
 	replyExtra: ReturnType<typeof buildReplyExtra>,
 ) {
-	await ctx.reply(result.text, {
-		parse_mode: "HTML",
-		...replyExtra,
-		link_preview_options: { is_disabled: true },
-	});
+	await ctx.replyWithRichMessage(
+		buildResultRichMessage(result, []),
+		replyExtra,
+	);
 }
 
 function buildGuestMediaMetadata(text: string): GuestMediaMetadata {
@@ -236,91 +209,33 @@ function buildGuestMediaMetadata(text: string): GuestMediaMetadata {
 	};
 }
 
-function getReplyMethod(kind: SingleMediaKind) {
-	return kind === "image"
-		? "replyWithPhoto"
-		: kind === "audio"
-			? "replyWithAudio"
-			: "replyWithVideo";
+function cachedMediaItems(media: CachedMedia): RichMediaItem<string>[] {
+	return media.kind === "images"
+		? media.items.map((item) => ({ kind: item.kind, media: item.fileId }))
+		: [{ kind: media.kind, media: media.fileId }];
 }
 
-function buildMediaGroupInput(
-	item: SendableMediaGroupItem,
-	caption?: string,
-): InputMediaPhoto | InputMediaVideo {
-	return {
-		type: item.kind === "image" ? "photo" : "video",
-		media: item.media,
-		caption,
-		parse_mode: caption ? "HTML" : undefined,
-	};
+function downloadedMediaItems(media: DownloadedMedia): RichMediaItem[] {
+	return media.kind === "images"
+		? media.files.map((item) => ({ kind: item.kind, media: item.file }))
+		: [{ kind: media.kind, media: media.file }];
 }
 
-async function replyWithMediaItems(
-	ctx: CustomContext,
-	items: SendableMediaGroupItem[],
-	text: string,
-	replyExtra: ReturnType<typeof buildReplyExtra>,
-) {
-	if (items.length === 0) {
-		return [];
-	}
-
-	const sentMessages = [];
-	for (let index = 0; index < items.length; index += MAX_MEDIA_GROUP_SIZE) {
-		const chunk = items.slice(index, index + MAX_MEDIA_GROUP_SIZE);
-		const caption = index === 0 ? text : undefined;
-
-		if (chunk.length === 1) {
-			const [item] = chunk;
-			const method = getReplyMethod(item.kind);
-			const sentMessage = await ctx[method](item.media, {
-				caption,
-				parse_mode: caption ? "HTML" : undefined,
-				...replyExtra,
-			});
-			sentMessages.push(sentMessage);
-			continue;
-		}
-
-		sentMessages.push(
-			...(await ctx.replyWithMediaGroup(
-				chunk.map((item, chunkIndex) =>
-					buildMediaGroupInput(item, chunkIndex === 0 ? caption : undefined),
-				),
-				replyExtra,
-			)),
-		);
-	}
-
-	return sentMessages;
-}
-
-function toFileCacheMedia(media: CachedChatMedia): CachedMedia {
-	return {
-		kind: media.type === "photo" ? "image" : media.type,
-		fileId: media.fileId,
-	};
-}
-
-function buildGuestArticleResult(
+function buildResultRichMessage(
 	result: DownloadResponse,
-	options: GuestArticleOptions = {},
-): GuestQueryResult {
-	return buildGuestArticleResultFromText(
-		result.text,
-		options,
-		result.previewUrl,
-	);
+	media: RichMediaItem[],
+) {
+	return buildRichMessage({
+		baseHtml: result.baseText,
+		captionEnabled: result.captionEnabled,
+		media,
+		metadata: result.metadata,
+		sourceType: result.sourceType,
+	});
 }
 
-function buildGuestArticleResultFromText(
-	text: string,
-	options: GuestArticleOptions = {},
-	previewUrl?: string,
-): GuestQueryResult {
+function buildGuestArticleResultFromText(text: string): GuestQueryResult {
 	const { title, description } = buildGuestMediaMetadata(text);
-	const { enablePreview = false } = options;
 
 	return {
 		type: "article",
@@ -330,11 +245,22 @@ function buildGuestArticleResultFromText(
 		input_message_content: {
 			message_text: text,
 			parse_mode: "HTML",
-			link_preview_options:
-				enablePreview && previewUrl
-					? buildLinkPreviewOptions(previewUrl)
-					: { is_disabled: true },
+			link_preview_options: { is_disabled: true },
 		},
+	};
+}
+
+function buildGuestRichArticleResult(
+	text: string,
+	richMessage: InputRichMessageWithoutUpload,
+): GuestQueryResult {
+	const { title, description } = buildGuestMediaMetadata(text);
+	return {
+		type: "article",
+		id: crypto.randomUUID(),
+		title,
+		description,
+		input_message_content: { rich_message: richMessage },
 	};
 }
 
@@ -361,92 +287,25 @@ async function answerGuestFailure(
 	}
 }
 
-function buildGuestCachedMediaQueryResult(
-	media: CachedMedia,
-	text: string,
-): GuestQueryResult | null {
-	const { title, description } = buildGuestMediaMetadata(text);
-
-	if (media.kind === "images") {
-		const item = media.items[0];
-		if (!item) {
-			return null;
-		}
-
-		if (item.kind === "image") {
-			return {
-				type: "photo",
-				id: crypto.randomUUID(),
-				photo_file_id: item.fileId,
-				title,
-				description,
-				caption: text,
-				parse_mode: "HTML",
-			};
-		}
-
-		return {
-			type: "video",
-			id: crypto.randomUUID(),
-			video_file_id: item.fileId,
-			title,
-			description,
-			caption: text,
-			parse_mode: "HTML",
-		};
-	}
-
-	if (media.kind === "image") {
-		return {
-			type: "photo",
-			id: crypto.randomUUID(),
-			photo_file_id: media.fileId,
-			title,
-			description,
-			caption: text,
-			parse_mode: "HTML",
-		};
-	}
-
-	if (media.kind === "audio") {
-		return {
-			type: "audio",
-			id: crypto.randomUUID(),
-			audio_file_id: media.fileId,
-			caption: text,
-			parse_mode: "HTML",
-		};
-	}
-
-	return {
-		type: "video",
-		id: crypto.randomUUID(),
-		video_file_id: media.fileId,
-		title,
-		description,
-		caption: text,
-		parse_mode: "HTML",
-	};
-}
-
-function buildGuestCacheChatQueryResult(
-	media: CachedChatMedia,
-	text: string,
-): GuestQueryResult | null {
-	return buildGuestCachedMediaQueryResult(toFileCacheMedia(media), text);
-}
-
 async function answerGuestQueryWithCachedMedia(
 	ctx: CustomContext,
 	media: CachedMedia,
 	text: string,
-	sourceType: string,
+	baseText: string,
+	captionEnabled: boolean,
+	sourceType: SourceType,
 	url: string,
 ) {
-	const guestResult = buildGuestCachedMediaQueryResult(media, text);
-	if (!guestResult) {
-		return false;
-	}
+	const guestResult = buildGuestRichArticleResult(
+		text,
+		buildRichMessage({
+			baseHtml: baseText,
+			captionEnabled,
+			media: cachedMediaItems(media),
+			metadata: media.metadata,
+			sourceType,
+		}),
+	);
 
 	try {
 		await ctx.answerGuestQuery(guestResult);
@@ -474,104 +333,47 @@ async function answerGuestQueryWithCachedMedia(
 	}
 }
 
-async function buildGuestMediaQueryResult(
-	ctx: CustomContext,
-	result: DownloadResponse,
-	url: string,
-): Promise<GuestQueryResult> {
-	const { title, description } = buildGuestMediaMetadata(result.text);
-	const media = result.media;
-	if (!media) {
-		return buildGuestArticleResult(result);
-	}
-
-	if (media.kind === "images" && media.images.length > 0) {
-		try {
-			const imageFilenames = await materializeImageFiles(
-				media,
-				await result.getTempDir(),
-			);
-			const collageFilename = await createImageCollage(imageFilenames);
-			if (collageFilename) {
-				const cachedMedia = await cacheDownloadedMedia(
-					ctx,
-					{
-						kind: "image",
-						file: new InputFile(collageFilename),
-						extension: "jpg",
-					},
-					url,
-				);
-
-				if (cachedMedia?.type === "photo") {
-					return {
-						type: "photo",
-						id: crypto.randomUUID(),
-						photo_file_id: cachedMedia.fileId,
-						title,
-						description,
-						caption: result.text,
-						parse_mode: "HTML",
-					};
-				}
-
-				console.info(
-					"[GuestQuery] Falling back from collage to article result: cache did not return a photo",
-					{ imageCount: media.images.length },
-				);
-			}
-		} catch (error) {
-			console.error(
-				"[GuestQuery] Falling back from collage to article result: failed to build or cache collage",
-				{
-					imageCount: media.images.length,
-					error,
-				},
-			);
-		}
-
-		console.info(
-			"[GuestQuery] Falling back from image media to article result: collage was not available",
-			{ imageCount: media.images.length },
-		);
-		return buildGuestArticleResult(result, { enablePreview: true });
-	}
-
-	const cachedMedia = await cacheDownloadedMedia(ctx, media, url);
-	if (cachedMedia) {
-		const guestResult = buildGuestCacheChatQueryResult(
-			cachedMedia,
-			result.text,
-		);
-		if (guestResult) {
-			return guestResult;
-		}
-	}
-
-	console.info(
-		"[GuestQuery] Falling back from media to article result: cache upload did not produce reusable media",
-		{ mediaKind: media.kind },
-	);
-	return buildGuestArticleResult(result, { enablePreview: true });
-}
-
 async function buildGuestQueryResult(
 	ctx: CustomContext,
 	result: DownloadResponse,
 	url: string,
 ): Promise<GuestQueryResult> {
-	if (!result.media) {
-		console.info("[GuestQuery] Using article result for text-only response", {
-			previewUrl: result.previewUrl,
-		});
-		return buildGuestArticleResult(result, { enablePreview: !result.metadata });
+	const cachedMedia = result.media
+		? await cacheDownloadedMedia(ctx, result.media, url)
+		: null;
+	if (cachedMedia) {
+		return buildGuestRichArticleResult(
+			result.text,
+			buildRichMessage({
+				baseHtml: result.baseText,
+				captionEnabled: result.captionEnabled,
+				media: cachedMediaItems(cachedMedia),
+				metadata: result.metadata,
+				sourceType: result.sourceType,
+			}),
+		);
 	}
 
-	console.info("[GuestQuery] Building direct guest media result", {
-		kind: result.media.kind,
-		previewUrl: result.previewUrl,
-	});
-	return await buildGuestMediaQueryResult(ctx, result, url);
+	if (result.media) {
+		console.info(
+			"[GuestQuery] Falling back to a media-free rich result: cache upload did not produce reusable media",
+			{ mediaKind: result.media.kind },
+		);
+	} else {
+		console.info(
+			"[GuestQuery] Using rich article result for text-only response",
+		);
+	}
+	return buildGuestRichArticleResult(
+		result.text,
+		buildRichMessage({
+			baseHtml: result.baseText,
+			captionEnabled: result.captionEnabled,
+			media: [] as RichMediaItem<string>[],
+			metadata: result.metadata,
+			sourceType: result.sourceType,
+		}),
+	);
 }
 
 function getCaptionAuthor(
@@ -729,6 +531,12 @@ export async function downloadMatchedUrl(
 		};
 		const cachedMedia = getCachedMedia(url);
 		if (cachedMedia) {
+			const cachedBaseText = buildDownloadResponseBaseText(
+				ctx,
+				responseData,
+				cachedMedia.kind,
+			);
+			const cachedCaptionEnabled = responseCaptionEnabled(ctx, type);
 			const cachedText = buildDownloadResponseText(
 				ctx,
 				responseData,
@@ -741,6 +549,8 @@ export async function downloadMatchedUrl(
 					ctx,
 					cachedMedia,
 					cachedText,
+					cachedBaseText,
+					cachedCaptionEnabled,
 					type,
 					url,
 				);
@@ -749,7 +559,14 @@ export async function downloadMatchedUrl(
 				}
 			} else {
 				try {
-					await replyWithCachedMedia(ctx, cachedMedia, cachedText, replyExtra);
+					await replyWithCachedMedia(
+						ctx,
+						cachedMedia,
+						cachedBaseText,
+						cachedCaptionEnabled,
+						type,
+						replyExtra,
+					);
 					console.info("[Download] Sent cached media result", {
 						userId: ctx.from.id,
 						sourceType: type,
@@ -809,51 +626,23 @@ export async function downloadMatchedUrl(
 					});
 					return finish(false);
 				}
-			} else if (result.media.kind === "images") {
-				const sentMessages = await replyWithMediaItems(
-					ctx,
-					result.media.files.map((item) => ({
-						kind: item.kind,
-						media: item.file,
-					})),
-					result.text,
+			} else {
+				const sentMessage = await ctx.replyWithRichMessage(
+					buildResultRichMessage(result, downloadedMediaItems(result.media)),
 					replyExtra,
 				);
-				const cachedMedia = getCachedMediaFromMediaGroup(sentMessages);
+				const cachedMedia = getCachedMediaFromRichMessage(sentMessage);
 				if (cachedMedia) {
 					const normalizedUrl = setCachedMedia(url, {
 						...cachedMedia,
 						metadata: result.media.metadata,
 					});
-					console.info("[Download] Cached media group file IDs", {
+					console.info("[Download] Cached rich media file IDs", {
 						userId: ctx.from.id,
 						sourceType: type,
 						mediaKind: cachedMedia.kind,
-						fileCount: cachedMedia.items.length,
-						url,
-						normalizedUrl,
-					});
-				}
-			} else {
-				const method = getReplyMethod(result.media.kind);
-				const sentMessage = await ctx[method](result.media.file, {
-					caption: result.text,
-					parse_mode: "HTML",
-					...replyExtra,
-				});
-				const cachedMedia = getCachedMediaFromSingleMessage(
-					result.media.kind,
-					sentMessage,
-				);
-				if (cachedMedia) {
-					const normalizedUrl = setCachedMedia(url, {
-						...cachedMedia,
-						metadata: result.media.metadata,
-					});
-					console.info("[Download] Cached media file ID", {
-						userId: ctx.from.id,
-						sourceType: type,
-						mediaKind: cachedMedia.kind,
+						fileCount:
+							cachedMedia.kind === "images" ? cachedMedia.items.length : 1,
 						url,
 						normalizedUrl,
 					});
@@ -901,13 +690,6 @@ export async function downloadMatchedUrl(
 			}
 
 			return finish(false);
-		} finally {
-			console.info("[Download] Cleaning up resources", {
-				userId: ctx.from.id,
-				sourceType: type,
-				url,
-			});
-			await result.cleanup();
 		}
 	} catch (error) {
 		console.error("[Failed to download media]", {

@@ -68,6 +68,7 @@ Deno.test("long text is truncated with an ellipsis", () => {
 Deno.test("captionEnabled follows per-platform settings", () => {
 	assertEquals(captionEnabled(settings, "reddit"), true);
 	assertEquals(captionEnabled(settings, "tiktok"), false);
-	assertEquals(captionEnabled(settings, "facebook"), false);
+	assertEquals(captionEnabled(settings, "facebook"), true);
+	assertEquals(captionEnabled(settings, "linkedin"), true);
 	assertEquals(captionEnabled(settings, "youtubeVideo"), false);
 });

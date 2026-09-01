@@ -33,6 +33,15 @@ const mediaCache = new Map<string, CachedMedia>();
 type TelegramMediaMessage = {
 	audio?: { file_id?: string };
 	photo?: { file_id?: string }[];
+	rich_message?: { blocks?: RichBlockLike[] };
+	video?: { file_id?: string };
+};
+
+type RichBlockLike = {
+	audio?: { file_id?: string };
+	blocks?: RichBlockLike[];
+	photo?: { file_id?: string }[];
+	type?: string;
 	video?: { file_id?: string };
 };
 
@@ -112,4 +121,48 @@ export function getCachedMediaFromMediaGroup(
 		.filter((item): item is CachedMediaGroupItem => Boolean(item));
 
 	return items.length > 0 ? { kind: "images", items } : null;
+}
+
+export function getCachedMediaFromRichMessage(
+	message: unknown,
+): CachedMedia | null {
+	const blocks = (message as TelegramMediaMessage).rich_message?.blocks ?? [];
+	const items = collectRichMedia(blocks);
+	if (items.length === 0) {
+		return null;
+	}
+	if (items.length > 1) {
+		const groupItems = items.filter(
+			(item): item is Extract<typeof item, { kind: "image" | "video" }> =>
+				item.kind === "image" || item.kind === "video",
+		);
+		return groupItems.length === items.length
+			? { kind: "images", items: groupItems }
+			: null;
+	}
+
+	return items[0];
+}
+
+function collectRichMedia(
+	blocks: RichBlockLike[],
+): Extract<CachedMedia, { kind: "image" | "video" | "audio" }>[] {
+	const media: Extract<CachedMedia, { kind: "image" | "video" | "audio" }>[] =
+		[];
+	for (const block of blocks) {
+		const photoFileId = block.photo?.at(-1)?.file_id;
+		if (photoFileId) {
+			media.push({ kind: "image", fileId: photoFileId });
+		}
+		if (block.video?.file_id) {
+			media.push({ kind: "video", fileId: block.video.file_id });
+		}
+		if (block.audio?.file_id) {
+			media.push({ kind: "audio", fileId: block.audio.file_id });
+		}
+		if (block.blocks) {
+			media.push(...collectRichMedia(block.blocks));
+		}
+	}
+	return media;
 }

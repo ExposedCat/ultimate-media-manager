@@ -19,7 +19,7 @@
 		"@grammyjs/runner": "npm:@grammyjs/runner@2.0.3",
 		"@opentelemetry/api": "npm:@opentelemetry/api@^1.9.1",
 		"@postfetch/core": "jsr:@postfetch/core@^0.6.0",
-		"grammy": "npm:grammy@1.43.0",
+		"grammy": "npm:grammy@1.46.0",
 		"mongodb": "npm:mongodb@4.17.2"
 	}
 }

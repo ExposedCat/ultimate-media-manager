@@ -1,6 +1,7 @@
 export type SourceType =
 	| "tiktok"
 	| "instagram"
+	| "linkedin"
 	| "facebook"
 	| "youtube"
 	| "twitter"
@@ -24,6 +25,10 @@ const SOURCES: MediaSource[] = [
 
 	{ type: "facebook", match: "fb.watch/" },
 	{ type: "facebook", match: /facebook.com\/share\// },
+	{
+		type: "linkedin",
+		match: /linkedin\.com\/(?:posts\/|(?:embed\/)?feed\/update\/)/,
+	},
 
 	{ type: "youtube", match: "youtube.com/shorts/" },
 	{ type: "twitter", match: /x.com\/.+?\/status\// },
