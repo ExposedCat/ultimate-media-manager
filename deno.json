@@ -15,7 +15,7 @@
 		"@biomejs/biome": "npm:@biomejs/biome@1.9.4",
 		"@grammyjs/auto-retry": "npm:@grammyjs/auto-retry@2.0.2",
 		"@grammyjs/i18n": "npm:@grammyjs/i18n@0.5.1",
-		"@grammyjs/opentelemetry": "npm:@grammyjs/opentelemetry@^0.1.0",
+		"@grammyjs/opentelemetry": "npm:@grammyjs/opentelemetry@^0.1.1",
 		"@grammyjs/runner": "npm:@grammyjs/runner@2.0.3",
 		"@opentelemetry/api": "npm:@opentelemetry/api@^1.9.1",
 		"@postfetch/core": "jsr:@postfetch/core@^0.6.0",

@@ -1,11 +1,6 @@
 import { autoRetry } from "@grammyjs/auto-retry";
 import type { I18n } from "@grammyjs/i18n";
-import {
-	AlwaysOffSampler,
-	type SpanDefinitions,
-	getHttpTracer,
-	openTelemetry,
-} from "@grammyjs/opentelemetry";
+import { type SpanDefinitions, openTelemetry } from "@grammyjs/opentelemetry";
 import { run } from "@grammyjs/runner";
 import { DiagLogLevel } from "@opentelemetry/api";
 import { Bot as TelegramBot, session } from "grammy";
@@ -78,19 +73,15 @@ function extendContext(bot: Bot, database: Database) {
 }
 
 function setupMiddlewares(bot: Bot, localeEngine: I18n) {
-	// The plugin serializes recorded Telegram API payloads before grammY gets to
-	// process them. InputFile deliberately cannot be JSON-serialized, so recording
-	// API spans breaks every upload. We only use OpenTelemetry log events for now.
 	const telemetryServiceName = "ultimate-media-manager";
-	const tracer = getHttpTracer(telemetryServiceName, {
-		providerConfig: { sampler: new AlwaysOffSampler() },
+	const { telemetryMiddleware, telemetryTransformer } = openTelemetry<
+		SpanDefinitions,
+		BotTelemetryEvents
+	>(telemetryServiceName, {
+		logLevel: DiagLogLevel.WARN,
 	});
-	bot.use(
-		openTelemetry<SpanDefinitions, BotTelemetryEvents>(telemetryServiceName, {
-			logLevel: DiagLogLevel.WARN,
-			tracer,
-		}),
-	);
+	bot.use(telemetryMiddleware);
+	bot.api.config.use(telemetryTransformer);
 	bot.use(
 		session({
 			getSessionKey: (ctx) =>
