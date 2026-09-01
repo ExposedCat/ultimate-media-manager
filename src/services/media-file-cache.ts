@@ -89,14 +89,15 @@ export function deleteCachedMedia(url: string) {
 
 export function getCachedMediaFromSingleMessage(
 	kind: "image" | "video" | "audio",
-	message: TelegramMediaMessage,
+	message: unknown,
 ): Extract<CachedMedia, { kind: "image" | "video" | "audio" }> | null {
+	const mediaMessage = message as TelegramMediaMessage;
 	if (kind === "image") {
-		const fileId = message.photo?.at(-1)?.file_id;
+		const fileId = mediaMessage.photo?.at(-1)?.file_id;
 		return fileId ? { kind, fileId } : null;
 	}
 
-	const fileId = message[kind]?.file_id;
+	const fileId = mediaMessage[kind]?.file_id;
 	return fileId ? { kind, fileId } : null;
 }
 

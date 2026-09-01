@@ -15,7 +15,9 @@ import {
 	type CachedMedia,
 	deleteCachedMedia,
 	getCachedMedia,
+	getCachedMediaFromMediaGroup,
 	getCachedMediaFromRichMessage,
+	getCachedMediaFromSingleMessage,
 	setCachedMedia,
 } from "./media-file-cache.ts";
 import { type RichMediaItem, buildRichMessage } from "./rich-message.ts";
@@ -219,6 +221,78 @@ function downloadedMediaItems(media: DownloadedMedia): RichMediaItem[] {
 	return media.kind === "images"
 		? media.files.map((item) => ({ kind: item.kind, media: item.file }))
 		: [{ kind: media.kind, media: media.file }];
+}
+
+const MAX_PLAIN_MEDIA_GROUP_SIZE = 10;
+
+async function replyWithPlainMediaItem(
+	ctx: CustomContext,
+	item: RichMediaItem,
+	replyExtra: ReturnType<typeof buildReplyExtra>,
+) {
+	switch (item.kind) {
+		case "image":
+			return await ctx.replyWithPhoto(item.media, replyExtra);
+		case "video":
+			return await ctx.replyWithVideo(item.media, replyExtra);
+		case "audio":
+			return await ctx.replyWithAudio(item.media, replyExtra);
+	}
+}
+
+async function replyWithPlainMedia(
+	ctx: CustomContext,
+	items: RichMediaItem[],
+	replyExtra: ReturnType<typeof buildReplyExtra>,
+) {
+	const sentMessages: unknown[] = [];
+	for (
+		let offset = 0;
+		offset < items.length;
+		offset += MAX_PLAIN_MEDIA_GROUP_SIZE
+	) {
+		const chunk = items.slice(offset, offset + MAX_PLAIN_MEDIA_GROUP_SIZE);
+		if (chunk.length === 1 || chunk.some((item) => item.kind === "audio")) {
+			for (const item of chunk) {
+				sentMessages.push(await replyWithPlainMediaItem(ctx, item, replyExtra));
+			}
+			continue;
+		}
+
+		const mediaGroup = chunk.map((item) => {
+			if (item.kind === "image") {
+				return { type: "photo" as const, media: item.media };
+			}
+			if (item.kind === "video") {
+				return { type: "video" as const, media: item.media };
+			}
+			throw new Error("Audio cannot be included in a media group");
+		});
+		sentMessages.push(
+			...(await ctx.replyWithMediaGroup(mediaGroup, replyExtra)),
+		);
+	}
+
+	return sentMessages;
+}
+
+function cachePlainMedia(
+	url: string,
+	media: DownloadedMedia,
+	sentMessages: unknown[],
+) {
+	const cachedMedia =
+		media.kind === "images"
+			? getCachedMediaFromMediaGroup(sentMessages)
+			: getCachedMediaFromSingleMessage(media.kind, sentMessages[0]);
+	if (!cachedMedia) {
+		return null;
+	}
+
+	return setCachedMedia(url, {
+		...cachedMedia,
+		metadata: media.metadata,
+	});
 }
 
 function buildResultRichMessage(
@@ -462,6 +536,161 @@ async function answerGuestQuery(
 	}
 
 	return false;
+}
+
+export async function downloadPlainMatchedUrl(
+	ctx: CustomContext,
+	url: string,
+	matcherOrResult: InputMatcherOrResult = matchInput,
+) {
+	if (!ctx.from) {
+		return false;
+	}
+
+	const { type, fallbackUrl, match } =
+		typeof matcherOrResult === "function"
+			? matcherOrResult(url)
+			: matcherOrResult;
+	if (!type || !match) {
+		console.info("[PlainDownload] No matcher found", {
+			userId: ctx.from.id,
+			url,
+		});
+		return false;
+	}
+
+	const finish = (result: boolean) => {
+		try {
+			ctx.telemetry.event("download", {
+				platform: type,
+				url,
+				result,
+			});
+		} catch (error) {
+			console.warn("[PlainDownload] Failed to emit telemetry event", {
+				platform: type,
+				url,
+				result,
+				error,
+			});
+		}
+		return result;
+	};
+	const replyExtra = buildReplyExtra(ctx);
+
+	console.info("[PlainDownload] Matched URL", {
+		userId: ctx.from.id,
+		sourceType: type,
+		url,
+		fallbackUrl,
+	});
+
+	try {
+		const cachedMedia = getCachedMedia(url);
+		if (cachedMedia) {
+			try {
+				await replyWithPlainMedia(
+					ctx,
+					cachedMediaItems(cachedMedia),
+					replyExtra,
+				);
+				console.info("[PlainDownload] Sent cached media", {
+					userId: ctx.from.id,
+					sourceType: type,
+					mediaKind: cachedMedia.kind,
+					url,
+				});
+				return finish(true);
+			} catch (error) {
+				deleteCachedMedia(url);
+				console.warn(
+					"[PlainDownload] Cached media send failed; removed cache entry",
+					{
+						userId: ctx.from.id,
+						sourceType: type,
+						mediaKind: cachedMedia.kind,
+						url,
+						error,
+					},
+				);
+			}
+		}
+
+		const responseData = {
+			sourceType: type,
+			userId: ctx.from.id,
+			userName: [ctx.from.first_name, ctx.from.last_name]
+				.filter(Boolean)
+				.join(" "),
+			url,
+			fallbackUrl: fallbackUrl ?? undefined,
+		};
+		const result = await buildDownloadResponse(ctx, responseData);
+		if (!result.media) {
+			if (result.metadata) {
+				await ctx.reply(ctx.i18n.t("error.noMedia"), { ...replyExtra });
+			} else {
+				await replyWithDownloadFailure(ctx, result, replyExtra);
+			}
+			return finish(false);
+		}
+
+		try {
+			const sentMessages = await replyWithPlainMedia(
+				ctx,
+				downloadedMediaItems(result.media),
+				replyExtra,
+			);
+			const normalizedUrl = cachePlainMedia(url, result.media, sentMessages);
+			console.info("[PlainDownload] Sent media", {
+				userId: ctx.from.id,
+				sourceType: type,
+				mediaKind: result.media.kind,
+				url,
+				normalizedUrl,
+			});
+			return finish(true);
+		} catch (error) {
+			console.error("[PlainDownload] Failed to send media", {
+				userId: ctx.from.id,
+				sourceType: type,
+				mediaKind: result.media.kind,
+				url,
+				error,
+			});
+			try {
+				await replyWithMediaSendFailure(ctx, error, replyExtra);
+			} catch (noticeError) {
+				console.error("[PlainDownload] Failed to send failure notice", {
+					userId: ctx.from.id,
+					sourceType: type,
+					url,
+					error: noticeError,
+				});
+			}
+			return finish(false);
+		}
+	} catch (error) {
+		console.error("[PlainDownload] Failed to download media", {
+			userId: ctx.from.id,
+			sourceType: type,
+			url,
+			error,
+		});
+		try {
+			await ctx.reply(buildUnexpectedDownloadFailureText(ctx, error), {
+				...replyExtra,
+			});
+		} catch (noticeError) {
+			console.error("[PlainDownload] Failed to send download failure notice", {
+				userId: ctx.from.id,
+				sourceType: type,
+				url,
+				error: noticeError,
+			});
+		}
+		return finish(false);
+	}
 }
 
 export async function downloadMatchedUrl(

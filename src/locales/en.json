@@ -31,6 +31,7 @@
 		"video": "😢 Failed to download video",
 		"image": "😢 Failed to download photo",
 		"images": "😢 Failed to download photos",
+		"noMedia": "😢 This post has no downloadable media",
 		"downloadFailed": "😢 Failed to download the media (error ${code})",
 		"send": {
 			"fileTooLarge": "🫨 Failed to send the media: the file is too large for Telegram.",
