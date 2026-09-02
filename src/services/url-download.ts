@@ -60,14 +60,17 @@ async function replyWithCachedMedia(
 	sourceType: SourceType,
 	replyExtra: ReturnType<typeof buildReplyExtra>,
 ) {
-	await ctx.replyWithRichMessage(
-		buildRichMessage({
-			baseHtml: baseText,
-			captionEnabled,
-			media: cachedMediaItems(media),
-			metadata: media.metadata,
-			sourceType,
-		}),
+	return await replyWithCaptionFallback(
+		ctx,
+		(nextCaptionEnabled) =>
+			buildRichMessage({
+				baseHtml: baseText,
+				captionEnabled: nextCaptionEnabled,
+				media: cachedMediaItems(media),
+				metadata: media.metadata,
+				sourceType,
+			}),
+		captionEnabled,
 		replyExtra,
 	);
 }
@@ -163,6 +166,7 @@ async function replyWithMediaSendFailure(
 	replyExtra: ReturnType<typeof buildReplyExtra>,
 ) {
 	await ctx.reply(buildMediaSendFailureText(ctx, error), {
+		parse_mode: "HTML",
 		...replyExtra,
 	});
 }
@@ -182,10 +186,7 @@ async function replyWithDownloadFailure(
 	replyExtra: ReturnType<typeof buildReplyExtra>,
 ) {
 	await ctx.reply(buildDownloadFailureText(ctx, result), {
-		parse_mode:
-			result.reason && USER_FACING_REASONS.has(result.reason)
-				? "HTML"
-				: undefined,
+		parse_mode: "HTML",
 		...replyExtra,
 	});
 }
@@ -196,8 +197,10 @@ async function replyWithText(
 	result: DownloadResponse,
 	replyExtra: ReturnType<typeof buildReplyExtra>,
 ) {
-	await ctx.replyWithRichMessage(
-		buildResultRichMessage(result, []),
+	await replyWithCaptionFallback(
+		ctx,
+		(captionEnabled) => buildResultRichMessage(result, [], captionEnabled),
+		result.captionEnabled,
 		replyExtra,
 	);
 }
@@ -298,14 +301,41 @@ function cachePlainMedia(
 function buildResultRichMessage(
 	result: DownloadResponse,
 	media: RichMediaItem[],
+	captionEnabled = result.captionEnabled,
 ) {
 	return buildRichMessage({
 		baseHtml: result.baseText,
-		captionEnabled: result.captionEnabled,
+		captionEnabled,
 		media,
 		metadata: result.metadata,
 		sourceType: result.sourceType,
 	});
+}
+
+async function replyWithCaptionFallback(
+	ctx: CustomContext,
+	buildMessage: (
+		captionEnabled: boolean,
+	) => ReturnType<typeof buildRichMessage>,
+	captionEnabled: boolean,
+	replyExtra: ReturnType<typeof buildReplyExtra>,
+) {
+	try {
+		return await ctx.replyWithRichMessage(
+			buildMessage(captionEnabled),
+			replyExtra,
+		);
+	} catch (error) {
+		if (
+			!captionEnabled ||
+			classifyMediaSendFailure(error).reason !== "captionInvalid"
+		) {
+			throw error;
+		}
+
+		console.warn("[Download] Caption failed; retrying without it", { error });
+		return await ctx.replyWithRichMessage(buildMessage(false), replyExtra);
+	}
 }
 
 function buildGuestArticleResultFromText(text: string): GuestQueryResult {
@@ -336,6 +366,32 @@ function buildGuestRichArticleResult(
 		description,
 		input_message_content: { rich_message: richMessage },
 	};
+}
+
+async function answerGuestResultWithCaptionFallback(
+	ctx: CustomContext,
+	guestResult: GuestQueryResult,
+	captionEnabled: boolean,
+	buildWithoutCaption: () => GuestQueryResult | Promise<GuestQueryResult>,
+) {
+	try {
+		await ctx.answerGuestQuery(guestResult);
+		return guestResult;
+	} catch (error) {
+		if (
+			!captionEnabled ||
+			classifyMediaSendFailure(error).reason !== "captionInvalid"
+		) {
+			throw error;
+		}
+
+		console.warn("[GuestQuery] Caption failed; retrying without it", {
+			error,
+		});
+		const captionlessResult = await buildWithoutCaption();
+		await ctx.answerGuestQuery(captionlessResult);
+		return captionlessResult;
+	}
 }
 
 async function answerGuestFailure(
@@ -370,24 +426,31 @@ async function answerGuestQueryWithCachedMedia(
 	sourceType: SourceType,
 	url: string,
 ) {
-	const guestResult = buildGuestRichArticleResult(
-		text,
-		buildRichMessage({
-			baseHtml: baseText,
-			captionEnabled,
-			media: cachedMediaItems(media),
-			metadata: media.metadata,
-			sourceType,
-		}),
-	);
+	const buildGuestResult = (nextCaptionEnabled: boolean) =>
+		buildGuestRichArticleResult(
+			text,
+			buildRichMessage({
+				baseHtml: baseText,
+				captionEnabled: nextCaptionEnabled,
+				media: cachedMediaItems(media),
+				metadata: media.metadata,
+				sourceType,
+			}),
+		);
+	const guestResult = buildGuestResult(captionEnabled);
 
 	try {
-		await ctx.answerGuestQuery(guestResult);
+		const sentResult = await answerGuestResultWithCaptionFallback(
+			ctx,
+			guestResult,
+			captionEnabled,
+			() => buildGuestResult(false),
+		);
 		console.info("[GuestQuery] Answered cached guest query", {
 			userId: ctx.from?.id,
 			sourceType,
 			mediaKind: media.kind,
-			resultType: guestResult.type,
+			resultType: sentResult.type,
 			url,
 		});
 		return true;
@@ -411,6 +474,7 @@ async function buildGuestQueryResult(
 	ctx: CustomContext,
 	result: DownloadResponse,
 	url: string,
+	captionEnabled = result.captionEnabled,
 ): Promise<GuestQueryResult> {
 	const cachedMedia = result.media
 		? await cacheDownloadedMedia(ctx, result.media, url)
@@ -420,7 +484,7 @@ async function buildGuestQueryResult(
 			result.text,
 			buildRichMessage({
 				baseHtml: result.baseText,
-				captionEnabled: result.captionEnabled,
+				captionEnabled,
 				media: cachedMediaItems(cachedMedia),
 				metadata: result.metadata,
 				sourceType: result.sourceType,
@@ -442,7 +506,7 @@ async function buildGuestQueryResult(
 		result.text,
 		buildRichMessage({
 			baseHtml: result.baseText,
-			captionEnabled: result.captionEnabled,
+			captionEnabled,
 			media: [] as RichMediaItem<string>[],
 			metadata: result.metadata,
 			sourceType: result.sourceType,
@@ -507,7 +571,12 @@ async function answerGuestQuery(
 	}
 
 	try {
-		await ctx.answerGuestQuery(guestResult);
+		guestResult = await answerGuestResultWithCaptionFallback(
+			ctx,
+			guestResult,
+			result.captionEnabled,
+			() => buildGuestQueryResult(ctx, result, url, false),
+		);
 		console.info("[GuestQuery] Answered guest query", {
 			userId: ctx.from?.id,
 			sourceType,
@@ -628,7 +697,10 @@ export async function downloadPlainMatchedUrl(
 		const result = await buildDownloadResponse(ctx, responseData);
 		if (!result.media) {
 			if (result.metadata) {
-				await ctx.reply(ctx.i18n.t("error.noMedia"), { ...replyExtra });
+				await ctx.reply(ctx.i18n.t("error.noMedia"), {
+					parse_mode: "HTML",
+					...replyExtra,
+				});
 			} else {
 				await replyWithDownloadFailure(ctx, result, replyExtra);
 			}
@@ -679,6 +751,7 @@ export async function downloadPlainMatchedUrl(
 		});
 		try {
 			await ctx.reply(buildUnexpectedDownloadFailureText(ctx, error), {
+				parse_mode: "HTML",
 				...replyExtra,
 			});
 		} catch (noticeError) {
@@ -856,15 +929,20 @@ export async function downloadMatchedUrl(
 					return finish(false);
 				}
 			} else {
-				const sentMessage = await ctx.replyWithRichMessage(
-					buildResultRichMessage(result, downloadedMediaItems(result.media)),
+				const media = result.media;
+				const mediaItems = downloadedMediaItems(media);
+				const sentMessage = await replyWithCaptionFallback(
+					ctx,
+					(captionEnabled) =>
+						buildResultRichMessage(result, mediaItems, captionEnabled),
+					result.captionEnabled,
 					replyExtra,
 				);
 				const cachedMedia = getCachedMediaFromRichMessage(sentMessage);
 				if (cachedMedia) {
 					const normalizedUrl = setCachedMedia(url, {
 						...cachedMedia,
-						metadata: result.media.metadata,
+						metadata: media.metadata,
 					});
 					console.info("[Download] Cached rich media file IDs", {
 						userId: ctx.from.id,
@@ -900,6 +978,7 @@ export async function downloadMatchedUrl(
 						await replyWithMediaSendFailure(ctx, error, replyExtra);
 					} else {
 						await ctx.reply(buildResultSendFailureText(ctx, error), {
+							parse_mode: "HTML",
 							...replyExtra,
 						});
 					}
@@ -932,7 +1011,10 @@ export async function downloadMatchedUrl(
 			await answerGuestFailure(ctx, failureText, type, url);
 		} else {
 			try {
-				await ctx.reply(failureText, { ...replyExtra });
+				await ctx.reply(failureText, {
+					parse_mode: "HTML",
+					...replyExtra,
+				});
 			} catch (noticeError) {
 				console.error("[Download] Failed to send download failure notice", {
 					userId: ctx.from.id,

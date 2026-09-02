@@ -4,7 +4,10 @@ import {
 	deleteCachedMedia,
 	setCachedMedia,
 } from "../src/services/media-file-cache.ts";
-import { downloadPlainMatchedUrl } from "../src/services/url-download.ts";
+import {
+	downloadMatchedUrl,
+	downloadPlainMatchedUrl,
+} from "../src/services/url-download.ts";
 import type { CustomContext } from "../src/types/context.ts";
 
 const twitterMatch = {
@@ -83,6 +86,53 @@ Deno.test("plain download sends cached galleries as captionless media groups", a
 				extra: {},
 			},
 		]);
+	} finally {
+		deleteCachedMedia(url);
+	}
+});
+
+Deno.test("rich download retries cached media without a rejected caption", async () => {
+	const url = "https://x.com/example/status/caption-fallback";
+	setCachedMedia(url, {
+		kind: "image",
+		fileId: "cached-photo",
+		metadata: { text: "Post caption" },
+	});
+	const richMessages: { html?: string }[] = [];
+
+	try {
+		const sent = await downloadMatchedUrl(
+			plainContext({
+				i18n: {
+					t(key: string, data: Record<string, unknown> = {}) {
+						if (key === "viewOn.twitter") {
+							return `${data.userName} sent this ${data.kind}`;
+						}
+						if (key === "promoCaption") {
+							return String(data.viewUrl);
+						}
+						return key;
+					},
+				},
+				replyWithRichMessage(message: { html?: string }) {
+					richMessages.push(message);
+					if (richMessages.length === 1) {
+						throw {
+							error_code: 400,
+							description: "Bad Request: can't parse entities",
+						};
+					}
+					return {};
+				},
+			}),
+			url,
+			twitterMatch,
+		);
+
+		assertEquals(sent, true);
+		assertEquals(richMessages.length, 2);
+		assertEquals(richMessages[0].html?.includes("Post caption"), true);
+		assertEquals(richMessages[1].html?.includes("Post caption"), false);
 	} finally {
 		deleteCachedMedia(url);
 	}

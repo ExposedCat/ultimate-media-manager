@@ -27,7 +27,6 @@ const MAX_TITLE_LENGTH = 256;
 const REDDIT_EMOJI = '<tg-emoji emoji-id="5343641195484560502">👽</tg-emoji>';
 const UPVOTE_EMOJI = '<tg-emoji emoji-id="5875078273775439450">🔼</tg-emoji>';
 const COMMENT_EMOJI = '<tg-emoji emoji-id="5994297722574737553">💬</tg-emoji>';
-const VERIFIED_EMOJI = '<tg-emoji emoji-id="5951665890079544884">✅</tg-emoji>';
 const PLATFORM_EMOJI: Record<SourceType, string> = {
 	facebook: '<tg-emoji emoji-id="5454340696183943190">📘</tg-emoji>',
 	instagram: '<tg-emoji emoji-id="5454400924510334242">📸</tg-emoji>',
@@ -40,11 +39,6 @@ const PLATFORM_EMOJI: Record<SourceType, string> = {
 	youtube: '<tg-emoji emoji-id="5454010052421626926">▶️</tg-emoji>',
 	youtubeVideo: '<tg-emoji emoji-id="5454010052421626926">▶️</tg-emoji>',
 };
-const VERIFIED_AUTHOR_SOURCES = new Set<SourceType>([
-	"instagram",
-	"tiktok",
-	"twitter",
-]);
 const TRAILING_TCO_URL = /(?:^|\s)https:\/\/t\.co\/[^\s]+\s*$/i;
 
 export function stripTrailingTcoUrl(value: string) {
@@ -65,37 +59,37 @@ export function buildRichMessage(data: RichMessageData): InputRichMessage {
 
 function buildRichHtml(data: RichMessageData, mediaHtml: string) {
 	const { baseHtml, captionEnabled, metadata, sourceType } = data;
+	const senderCredit = buildSenderCredit(sourceType, baseHtml);
 	if (!captionEnabled || !metadata) {
-		return joinBlocks(mediaHtml, paragraph(baseHtml));
+		return joinBlocks(mediaHtml, paragraph(senderCredit));
 	}
 
 	if (sourceType === "reddit") {
-		return buildRedditHtml(metadata, mediaHtml, baseHtml);
+		return buildRedditHtml(metadata, mediaHtml, senderCredit);
 	}
 
 	if (sourceType === "twitter") {
-		return buildTwitterHtml(metadata, mediaHtml, baseHtml, sourceType);
+		return buildTwitterHtml(metadata, mediaHtml, senderCredit);
 	}
 
 	return joinBlocks(
 		mediaHtml,
-		metadataQuote(metadata, sourceType),
-		paragraph(baseHtml),
+		metadataQuote(metadata, sourceType, senderCredit),
 	);
 }
 
 function buildRedditHtml(
 	meta: PostCaptionMeta,
 	mediaHtml: string,
-	baseHtml: string,
+	senderCredit: string,
 ) {
 	if (!meta.title) {
-		return joinBlocks(mediaHtml, paragraph(baseHtml));
+		return joinBlocks(mediaHtml, paragraph(senderCredit));
 	}
 
-	const author = buildRedditCredit(meta);
+	const credit = buildRedditCredit(meta, senderCredit);
 	const content = meta.text ? truncate(meta.text, MAX_RICH_TEXT_LENGTH) : "";
-	const quote = buildQuote(content, author);
+	const quote = buildQuote(content, credit);
 	return joinBlocks(
 		`<h5>${escapeHtml(truncate(meta.title, MAX_TITLE_LENGTH))}</h5>`,
 		mediaHtml,
@@ -103,66 +97,49 @@ function buildRedditHtml(
 	);
 }
 
-function buildRedditCredit(meta: PostCaptionMeta) {
-	const identity = [REDDIT_EMOJI];
+function buildRedditCredit(meta: PostCaptionMeta, senderCredit: string) {
+	const facts = [];
 	if (meta.subreddit) {
 		const subreddit = escapeHtml(meta.subreddit);
-		identity.push(
+		facts.push(
 			`<a href="https://www.reddit.com/r/${subreddit}">r/${subreddit}</a>`,
 		);
 	}
-	if (meta.authorHandle) {
-		identity.push(
-			`${meta.subreddit ? "· " : ""}u/${escapeHtml(meta.authorHandle)}`,
-		);
-	}
-
-	const stats = [];
 	if (meta.likeCount !== undefined) {
-		stats.push(`${UPVOTE_EMOJI} ${formatCount(meta.likeCount)}`);
+		facts.push(`${UPVOTE_EMOJI} ${formatCount(meta.likeCount)}`);
 	}
 	if (meta.commentCount !== undefined) {
-		stats.push(`${COMMENT_EMOJI} ${formatCount(meta.commentCount)}`);
+		facts.push(`${COMMENT_EMOJI} ${formatCount(meta.commentCount)}`);
 	}
-	return `${identity.join(" ")}${stats.length > 0 ? `<br>${stats.join(" ")}` : ""}`;
+	return `${senderCredit}${facts.length > 0 ? `<br>${facts.join(" ")}` : ""}`;
 }
 
 function buildTwitterHtml(
 	meta: PostCaptionMeta,
 	mediaHtml: string,
-	baseHtml: string,
-	sourceType: SourceType,
+	senderCredit: string,
 ) {
 	const text = meta.text ? stripTrailingTcoUrl(meta.text) : "";
-	return joinBlocks(
-		mediaHtml,
-		buildQuote(text, buildPlatformCredit(sourceType, meta)),
-		paragraph(baseHtml),
-	);
+	return joinBlocks(mediaHtml, buildQuote(text, senderCredit));
 }
 
-function metadataQuote(meta: PostCaptionMeta, sourceType: SourceType) {
+function metadataQuote(
+	meta: PostCaptionMeta,
+	sourceType: SourceType,
+	senderCredit: string,
+) {
 	const content =
 		sourceType === "soundcloud"
 			? (meta.title ?? meta.text ?? "")
 			: (meta.text ?? meta.title ?? "");
-	return buildQuote(content, buildPlatformCredit(sourceType, meta));
+	return buildQuote(content, senderCredit);
 }
 
-function buildPlatformCredit(sourceType: SourceType, meta: PostCaptionMeta) {
-	const name = meta.authorName ?? meta.authorHandle;
-	if (!name) {
+function buildSenderCredit(sourceType: SourceType, baseHtml: string) {
+	if (!baseHtml) {
 		return "";
 	}
-	return [
-		PLATFORM_EMOJI[sourceType],
-		escapeHtml(name),
-		meta.authorVerified && VERIFIED_AUTHOR_SOURCES.has(sourceType)
-			? VERIFIED_EMOJI
-			: "",
-	]
-		.filter(Boolean)
-		.join(" ");
+	return `${PLATFORM_EMOJI[sourceType]} ${baseHtml}`;
 }
 
 function buildQuote(content: string, authorHtml = "") {
@@ -171,7 +148,7 @@ function buildQuote(content: string, authorHtml = "") {
 		return "";
 	}
 	if (!trimmed) {
-		return `<blockquote expandable>${authorHtml}</blockquote>`;
+		return paragraph(authorHtml);
 	}
 	const body = escapeHtml(truncate(trimmed, MAX_RICH_TEXT_LENGTH));
 	const cite = authorHtml ? `<cite>${authorHtml}</cite>` : "";
