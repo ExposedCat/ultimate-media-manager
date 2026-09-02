@@ -1,5 +1,7 @@
 import { assertEquals, assertStringIncludes } from "jsr:@std/assert@^1";
+import { InputFile } from "grammy";
 
+import { cacheDownloadedMedia } from "../src/services/cache-media.ts";
 import {
 	deleteCachedMedia,
 	setCachedMedia,
@@ -296,6 +298,79 @@ Deno.test("guest download keeps a cached video album in a rich slideshow", async
 			richMessage.html ?? "",
 			'<video src="tg://video?id=media_1"/>',
 		);
+	} finally {
+		deleteCachedMedia(url);
+	}
+});
+
+Deno.test("guest download sends a standalone cached video normally", async () => {
+	const url = "https://x.com/example/status/guest-video";
+	setCachedMedia(url, {
+		kind: "video",
+		fileId: "cached-video",
+		metadata: { text: "Video caption" },
+	});
+	const guestResults: Record<string, unknown>[] = [];
+
+	try {
+		const sent = await downloadMatchedUrl(
+			plainContext({
+				guestMessage: {},
+				i18n: captionI18n(),
+				answerGuestQuery(result: Record<string, unknown>) {
+					guestResults.push(result);
+				},
+			}),
+			url,
+			twitterMatch,
+		);
+
+		assertEquals(sent, true);
+		assertEquals(guestResults.length, 1);
+		assertEquals(guestResults[0].type, "video");
+		assertEquals(guestResults[0].video_file_id, "cached-video");
+		assertEquals("input_message_content" in guestResults[0], false);
+		assertStringIncludes(String(guestResults[0].caption), "Video caption");
+		assertStringIncludes(
+			String(guestResults[0].caption),
+			"Plain sent this video",
+		);
+	} finally {
+		deleteCachedMedia(url);
+	}
+});
+
+Deno.test("guest video caching uses a regular video upload", async () => {
+	const url = "https://x.com/example/status/fresh-guest-video";
+	const calls: string[] = [];
+
+	try {
+		const cached = await cacheDownloadedMedia(
+			plainContext({
+				api: {
+					sendRichMessage() {
+						calls.push("rich");
+					},
+					sendVideo() {
+						calls.push("video");
+						return { video: { file_id: "cached-video" } };
+					},
+				},
+			}),
+			{
+				kind: "video",
+				file: new InputFile(new Uint8Array([0]), "video.mp4"),
+				metadata: { text: "Video caption" },
+			},
+			url,
+		);
+
+		assertEquals(calls, ["video"]);
+		assertEquals(cached, {
+			kind: "video",
+			fileId: "cached-video",
+			metadata: { text: "Video caption" },
+		});
 	} finally {
 		deleteCachedMedia(url);
 	}

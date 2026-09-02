@@ -142,17 +142,19 @@ export function buildSenderCredit(sourceType: SourceType, baseHtml: string) {
 	return `${PLATFORM_EMOJI[sourceType]} ${baseHtml}`;
 }
 
-function buildQuote(content: string, authorHtml = "") {
+function buildQuote(content: string, creditHtml = "") {
 	const trimmed = content.trim();
-	if (!trimmed && !authorHtml) {
+	if (!trimmed && !creditHtml) {
 		return "";
 	}
 	if (!trimmed) {
-		return paragraph(authorHtml);
+		return paragraph(creditHtml);
 	}
 	const body = escapeHtml(truncate(trimmed, MAX_RICH_TEXT_LENGTH));
-	const cite = authorHtml ? `<cite>${authorHtml}</cite>` : "";
-	return `<blockquote expandable>${body}${cite}</blockquote>`;
+	return joinBlocks(
+		`<blockquote expandable>${body}</blockquote>`,
+		paragraph(creditHtml),
+	);
 }
 
 function paragraph(html: string) {

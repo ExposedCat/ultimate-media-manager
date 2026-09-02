@@ -34,7 +34,7 @@
 		"noMedia": "<tg-emoji emoji-id=\"5879813604068298387\">😢</tg-emoji> No content found to download",
 		"downloadFailed": "<tg-emoji emoji-id=\"5879813604068298387\">😢</tg-emoji> Failed to download post (error ${code})",
 		"send": {
-			"fileTooLarge": "🫨 File is too large",
+			"fileTooLarge": "<tg-emoji emoji-id=\"5879813604068298387\">🫨</tg-emoji> File is too large",
 			"unsupportedMedia": "<tg-emoji emoji-id=\"5879813604068298387\">😢</tg-emoji> File is unsupported in Telegram",
 			"processingFailed": "<tg-emoji emoji-id=\"5879813604068298387\">😢</tg-emoji> File is unsupported in Telegram",
 			"captionInvalid": "<tg-emoji emoji-id=\"5879813604068298387\">😢</tg-emoji> Failed to send downloaded post (error ${code})",

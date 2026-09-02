@@ -27,7 +27,7 @@ Deno.test("reddit rich messages put an h5 title above a media slideshow", () => 
 
 	assertEquals(
 		result.html,
-		'<h5>Seen in &lt;the UK&gt;</h5>\n<tg-slideshow><img src="tg://photo?id=media_0"/><video src="tg://video?id=media_1"/></tg-slideshow>\n<blockquote expandable>Post &lt;body&gt;<cite><tg-emoji emoji-id="5343641195484560502">👽</tg-emoji> <a href="tg://user?id=42">Sender</a> sent <a href="https://reddit.com/post">this slider</a><br><a href="https://www.reddit.com/r/pics">r/pics</a> <tg-emoji emoji-id="5875078273775439450">🔼</tg-emoji> 9,969 <tg-emoji emoji-id="5994297722574737553">💬</tg-emoji> 251</cite></blockquote>',
+		'<h5>Seen in &lt;the UK&gt;</h5>\n<tg-slideshow><img src="tg://photo?id=media_0"/><video src="tg://video?id=media_1"/></tg-slideshow>\n<blockquote expandable>Post &lt;body&gt;</blockquote>\n<p><tg-emoji emoji-id="5343641195484560502">👽</tg-emoji> <a href="tg://user?id=42">Sender</a> sent <a href="https://reddit.com/post">this slider</a><br><a href="https://www.reddit.com/r/pics">r/pics</a> <tg-emoji emoji-id="5875078273775439450">🔼</tg-emoji> 9,969 <tg-emoji emoji-id="5994297722574737553">💬</tg-emoji> 251</p>',
 	);
 	assertEquals(result.html?.includes("Gertrudethecurious"), false);
 	assertEquals(result.media, [
@@ -36,7 +36,7 @@ Deno.test("reddit rich messages put an h5 title above a media slideshow", () => 
 	]);
 });
 
-Deno.test("hashtags stay in the quote body and sender attribution becomes credit", () => {
+Deno.test("hashtags stay quoted and sender attribution appears below", () => {
 	const result = buildRichMessage({
 		baseHtml: "Sender sent this video",
 		captionEnabled: true,
@@ -51,7 +51,7 @@ Deno.test("hashtags stay in the quote body and sender attribution becomes credit
 	});
 	assertEquals(
 		result.html,
-		'<video src="tg://video?id=media_0"/>\n<blockquote expandable>blah &amp; more #tag1 #tag2<cite><tg-emoji emoji-id="5454400924510334242">📸</tg-emoji> Sender sent this video</cite></blockquote>',
+		'<video src="tg://video?id=media_0"/>\n<blockquote expandable>blah &amp; more #tag1 #tag2</blockquote>\n<p><tg-emoji emoji-id="5454400924510334242">📸</tg-emoji> Sender sent this video</p>',
 	);
 	assertEquals(result.html?.includes("Creator"), false);
 
@@ -67,7 +67,7 @@ Deno.test("hashtags stay in the quote body and sender attribution becomes credit
 	});
 	assertEquals(
 		tiktok.html,
-		'<video src="tg://video?id=media_0"/>\n<blockquote expandable>TikTok caption #fyp #video<cite><tg-emoji emoji-id="5454351124364542651">🎵</tg-emoji> Sender sent this video</cite></blockquote>',
+		'<video src="tg://video?id=media_0"/>\n<blockquote expandable>TikTok caption #fyp #video</blockquote>\n<p><tg-emoji emoji-id="5454351124364542651">🎵</tg-emoji> Sender sent this video</p>',
 	);
 	assertEquals(tiktok.html?.includes("creator"), false);
 });
@@ -83,7 +83,7 @@ Deno.test("tag-only captions keep hashtags in the non-empty quote body", () => {
 		});
 		assertStringIncludes(
 			result.html ?? "",
-			"<blockquote expandable>#tag1 #tag2<cite>",
+			"<blockquote expandable>#tag1 #tag2</blockquote>\n<p>",
 		);
 	}
 });
@@ -115,6 +115,7 @@ Deno.test("all Postfetch providers put their icon and sender in the credit", () 
 		});
 		assertStringIncludes(result.html ?? "", `emoji-id="${emojiId}"`);
 		assertStringIncludes(result.html ?? "", "Sender sent this video");
+		assertEquals(result.html?.includes("<cite>"), false);
 		assertEquals(result.html?.includes("Display name"), false);
 		assertEquals(result.html?.includes("5951665890079544884"), false);
 	}
@@ -204,7 +205,7 @@ Deno.test("Twitter removes a t.co URL only when it ends the post", () => {
 	});
 	assertEquals(
 		result.html,
-		'<img src="tg://photo?id=media_0"/>\n<blockquote expandable>hello<cite><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> Sender sent this image</cite></blockquote>',
+		'<img src="tg://photo?id=media_0"/>\n<blockquote expandable>hello</blockquote>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> Sender sent this image</p>',
 	);
 });
 

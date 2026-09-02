@@ -430,6 +430,19 @@ function buildGuestRichArticleResult(
 	};
 }
 
+function buildGuestVideoResult(text: string, fileId: string): GuestQueryResult {
+	const { title, description } = buildGuestMediaMetadata(text);
+	return {
+		type: "video",
+		id: crypto.randomUUID(),
+		video_file_id: fileId,
+		title,
+		description,
+		caption: text,
+		parse_mode: "HTML",
+	};
+}
+
 async function answerGuestResultWithCaptionFallback(
 	ctx: CustomContext,
 	guestResult: GuestQueryResult,
@@ -488,17 +501,23 @@ async function answerGuestQueryWithCachedMedia(
 	sourceType: SourceType,
 	url: string,
 ) {
+	const fallbackText = buildSenderCredit(sourceType, baseText);
 	const buildGuestResult = (nextCaptionEnabled: boolean) =>
-		buildGuestRichArticleResult(
-			text,
-			buildRichMessage({
-				baseHtml: baseText,
-				captionEnabled: nextCaptionEnabled,
-				media: cachedMediaItems(media),
-				metadata: media.metadata,
-				sourceType,
-			}),
-		);
+		media.kind === "video"
+			? buildGuestVideoResult(
+					nextCaptionEnabled ? text : fallbackText,
+					media.fileId,
+				)
+			: buildGuestRichArticleResult(
+					text,
+					buildRichMessage({
+						baseHtml: baseText,
+						captionEnabled: nextCaptionEnabled,
+						media: cachedMediaItems(media),
+						metadata: media.metadata,
+						sourceType,
+					}),
+				);
 	const guestResult = buildGuestResult(captionEnabled);
 
 	try {
@@ -542,6 +561,14 @@ async function buildGuestQueryResult(
 		? await cacheDownloadedMedia(ctx, result.media, url)
 		: null;
 	if (cachedMedia) {
+		if (cachedMedia.kind === "video") {
+			return buildGuestVideoResult(
+				captionEnabled
+					? result.text
+					: buildSenderCredit(result.sourceType, result.baseText),
+				cachedMedia.fileId,
+			);
+		}
 		return buildGuestRichArticleResult(
 			result.text,
 			buildRichMessage({
