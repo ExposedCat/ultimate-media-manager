@@ -1,4 +1,3 @@
-import { deletePaths } from "../helpers/fs.ts";
 import { escapeHtml } from "../helpers/html.ts";
 import type { CustomContext } from "../types/context.ts";
 import {
@@ -8,13 +7,14 @@ import {
 } from "./caption.ts";
 import { DEFAULT_SETTINGS } from "./chat.ts";
 import { type DownloadedMedia, downloadMediaForUrl } from "./download-media.ts";
+import { buildSenderCredit } from "./rich-message.ts";
 import type { SourceType } from "./sources.ts";
 
 export type DownloadResponse = {
-	cleanup: () => Promise<unknown>;
-	getTempDir: () => Promise<string>;
+	baseText: string;
+	captionEnabled: boolean;
 	media: DownloadedMedia | null;
-	previewUrl: string;
+	sourceType: SourceType;
 	text: string;
 	error?: string;
 	reason?: string;
@@ -47,13 +47,11 @@ function getResponseSettings(ctx: CustomContext) {
 	);
 }
 
-export function buildLinkPreviewOptions(url: string) {
-	return {
-		is_disabled: false,
-		url,
-		prefer_large_media: true,
-		show_above_text: true,
-	};
+export function responseCaptionEnabled(
+	ctx: CustomContext,
+	sourceType: SourceType,
+) {
+	return captionEnabled(getResponseSettings(ctx), sourceType);
 }
 
 function getPromoText(
@@ -78,16 +76,18 @@ export function buildDownloadResponseText(
 	title?: string,
 	meta?: PostCaptionMeta | null,
 ) {
-	const base = buildBaseText(ctx, data, mediaKind, title);
-	const settings = getResponseSettings(ctx);
-	if (!meta || !captionEnabled(settings, data.sourceType)) {
+	const base = buildSenderCredit(
+		data.sourceType,
+		buildDownloadResponseBaseText(ctx, data, mediaKind, title),
+	);
+	if (!meta || !responseCaptionEnabled(ctx, data.sourceType)) {
 		return base;
 	}
 	const quote = buildPostCaption(data.sourceType, meta);
 	return quote ? `${quote}\n${base}` : base;
 }
 
-function buildBaseText(
+export function buildDownloadResponseBaseText(
 	ctx: CustomContext,
 	data: DownloadResponseData,
 	mediaKind: DownloadResponseMediaKind | null,
@@ -130,25 +130,18 @@ export async function buildDownloadResponse(
 		userId: data.userId,
 	});
 
-	let tempDir: string | null = null;
-	const getTempDir = async () => {
-		tempDir ??= await Deno.makeTempDir({
-			prefix: `ummrobot-${data.userId}-`,
-		});
-		return tempDir;
-	};
-	const cleanup = async () => await deletePaths(tempDir ? [tempDir] : []);
-	const previewUrl = data.fallbackUrl ?? data.url;
 	const { media, error, reason, metadata } = await downloadMediaForUrl(
 		data.url,
 	);
 
 	if (!media) {
+		const baseText = buildDownloadResponseBaseText(ctx, data, null);
+		const captionsEnabled = responseCaptionEnabled(ctx, data.sourceType);
 		return {
-			cleanup,
-			getTempDir,
+			baseText,
+			captionEnabled: captionsEnabled,
 			media: null,
-			previewUrl,
+			sourceType: data.sourceType,
 			text: buildDownloadResponseText(ctx, data, null, undefined, metadata),
 			error,
 			reason,
@@ -161,11 +154,18 @@ export async function buildDownloadResponse(
 			media.kind === "images"
 				? "Downloaded Video"
 				: (media.title ?? "Downloaded Video");
+		const baseText = buildDownloadResponseBaseText(
+			ctx,
+			data,
+			media.kind,
+			title,
+		);
 		return {
-			cleanup,
-			getTempDir,
+			baseText,
+			captionEnabled: responseCaptionEnabled(ctx, data.sourceType),
 			media,
-			previewUrl,
+			metadata: media.metadata,
+			sourceType: data.sourceType,
 			text: buildDownloadResponseText(
 				ctx,
 				data,
@@ -176,11 +176,13 @@ export async function buildDownloadResponse(
 		};
 	}
 
+	const baseText = buildDownloadResponseBaseText(ctx, data, media.kind);
 	return {
-		cleanup,
-		getTempDir,
+		baseText,
+		captionEnabled: responseCaptionEnabled(ctx, data.sourceType),
 		media,
-		previewUrl,
+		metadata: media.metadata,
+		sourceType: data.sourceType,
 		text: buildDownloadResponseText(
 			ctx,
 			data,

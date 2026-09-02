@@ -2,16 +2,17 @@
   "version": "5",
   "specifiers": {
     "jsr:@postfetch/core@0.6": "0.6.0",
+    "jsr:@postfetch/core@0.6.0": "0.6.0",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/yaml@*": "1.1.0",
     "npm:@biomejs/biome@1.9.4": "1.9.4",
-    "npm:@grammyjs/auto-retry@2.0.2": "2.0.2_grammy@1.43.0",
+    "npm:@grammyjs/auto-retry@2.0.2": "2.0.2_grammy@1.46.0",
     "npm:@grammyjs/i18n@0.5.1": "0.5.1",
-    "npm:@grammyjs/opentelemetry@~0.1.1": "0.1.1_grammy@1.43.0",
-    "npm:@grammyjs/runner@2.0.3": "2.0.3_grammy@1.43.0",
+    "npm:@grammyjs/opentelemetry@~0.1.1": "0.1.1_grammy@1.46.0",
+    "npm:@grammyjs/runner@2.0.3": "2.0.3_grammy@1.46.0",
     "npm:@opentelemetry/api@^1.9.1": "1.9.1",
-    "npm:grammy@1.43.0": "1.43.0",
+    "npm:grammy@1.46.0": "1.46.0",
     "npm:mongodb@4.17.2": "4.17.2"
   },
   "jsr": {
@@ -526,7 +527,7 @@
       "os": ["win32"],
       "cpu": ["x64"]
     },
-    "@grammyjs/auto-retry@2.0.2_grammy@1.43.0": {
+    "@grammyjs/auto-retry@2.0.2_grammy@1.46.0": {
       "integrity": "sha512-b4A4p5jlYDiQtW0c0FXYe11WMkYoiW+5rvOaDMCOk1h7Pu2SDl7B7gmFF8cthWCx2+M2nWLOsBxAgbBG4kKWYg==",
       "dependencies": [
         "debug",
@@ -541,7 +542,7 @@
         "js-yaml"
       ]
     },
-    "@grammyjs/opentelemetry@0.1.1_grammy@1.43.0": {
+    "@grammyjs/opentelemetry@0.1.1_grammy@1.46.0": {
       "integrity": "sha512-eeLQOKhr0xPlh7oeFdqmZK7K+1fzmyx06TZPwJjrBSa+lhgeKLE8UZtkMERV+Zto4hOTOAVA47fqIrKMXzwOSg==",
       "dependencies": [
         "@opentelemetry/api",
@@ -557,15 +558,15 @@
         "grammy"
       ]
     },
-    "@grammyjs/runner@2.0.3_grammy@1.43.0": {
+    "@grammyjs/runner@2.0.3_grammy@1.46.0": {
       "integrity": "sha512-nckmTs1dPWfVQteK9cxqxzE+0m1VRvluLWB8UgFzsjg62w3qthPJt0TYtJBEdG7OedvfQq4vnFAyE6iaMkR42A==",
       "dependencies": [
         "abort-controller",
         "grammy"
       ]
     },
-    "@grammyjs/types@3.27.3": {
-      "integrity": "sha512-yUKMLliGsGbnxu96YUJ7km7B0zy4PzeH/Jvti5705R/LeKDMqkDV4DckMSt+OrliWQpTwQljHE0QLol5zgxBkg=="
+    "@grammyjs/types@5.0.0": {
+      "integrity": "sha512-iq1Qrq1iPKkB8yAa0qSuIURMZOCuqTY5pWy5gHpCeL1oQ+GPadGhw/cDTVE8waJwuCzacUzuIjRv1sESvk7u7A=="
     },
     "@mongodb-js/saslprep@1.4.10": {
       "integrity": "sha512-DDb3OAw8ezai9p2i1F7R5wMVmyrMIuT8ixjV56R4Hl4cazCo2tOMTDyPR5rrCUcHiMbWHzCXOdife5OD6H1C8w==",
@@ -1204,8 +1205,8 @@
       ],
       "bin": true
     },
-    "grammy@1.43.0": {
-      "integrity": "sha512-7dYm06A945mXuIk/5HUlSjeyIYChW8vCEiU2dkOKKqJJzwAWxTkCc91Eqbz7TgODh2rtFFKWI/fekowWHOkmjQ==",
+    "grammy@1.46.0": {
+      "integrity": "sha512-/8Qw+iisrUdOMk+p2mjEHouMm/BBdBEN1DHh16wiTpRUZkxDG3PxexdjCvR+wvK3LWPdrEvnQbdrwpU954sPhg==",
       "dependencies": [
         "@grammyjs/types",
         "abort-controller",
@@ -1347,7 +1348,7 @@
       "npm:@grammyjs/opentelemetry@~0.1.1",
       "npm:@grammyjs/runner@2.0.3",
       "npm:@opentelemetry/api@^1.9.1",
-      "npm:grammy@1.43.0",
+      "npm:grammy@1.46.0",
       "npm:mongodb@4.17.2"
     ]
   }

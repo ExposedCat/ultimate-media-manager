@@ -66,6 +66,16 @@ Deno.test("matched URL selection ignores non-URL message text", () => {
 	);
 });
 
+Deno.test("download matching recognizes LinkedIn posts", () => {
+	const url =
+		"https://www.linkedin.com/posts/example_activity-1234567890123456789-test";
+	const result = findFirstMatchedUrlSource(
+		[textMessage(url, [url])],
+		matchDownloadCommandInput,
+	);
+	assertEquals(result?.matchResult.type, "linkedin");
+});
+
 Deno.test("forward filtering ignores channel posts", () => {
 	assertEquals(
 		shouldIgnoreForwardedMessage(

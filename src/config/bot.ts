@@ -122,6 +122,7 @@ export async function startBot(database: Database) {
 	await bot.api.setMyCommands([
 		{ command: "start", description: "About the bot" },
 		{ command: "download", description: "Download media from a replied link" },
+		{ command: "plain", description: "Download media without captions" },
 		{ command: "settings", description: "Configure captions and cleanup" },
 	]);
 

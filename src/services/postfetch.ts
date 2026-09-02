@@ -50,6 +50,7 @@ function toCaptionMeta(result: PostfetchResult): PostCaptionMeta | undefined {
 		text: meta.text,
 		authorHandle: meta.author?.handle,
 		authorName: meta.author?.name,
+		authorVerified: meta.author?.verified,
 		likeCount: meta.likeCount,
 		commentCount: meta.commentCount,
 		subreddit:

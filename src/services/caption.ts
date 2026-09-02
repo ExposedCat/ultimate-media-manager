@@ -10,6 +10,7 @@ export type PostCaptionMeta = {
 	text?: string;
 	authorHandle?: string;
 	authorName?: string;
+	authorVerified?: boolean;
 	likeCount?: number;
 	commentCount?: number;
 	subreddit?: string;
@@ -17,8 +18,8 @@ export type PostCaptionMeta = {
 
 export type CaptionSetting = Extract<keyof Settings, `caption${string}`>;
 
-// Which chat setting toggles the caption for each source. Facebook has no
-// structured metadata, so it has no caption toggle.
+// Sources without a dedicated setting remain enabled so their Postfetch
+// metadata can still be rendered.
 export const CAPTION_SETTING: Partial<Record<SourceType, CaptionSetting>> = {
 	reddit: "captionReddit",
 	soundcloud: "captionSoundcloud",
@@ -42,7 +43,7 @@ const COMMENT_EMOJI = '<tg-emoji emoji-id="5994297722574737553">💬</tg-emoji>'
 
 export function captionEnabled(settings: Settings, sourceType: SourceType) {
 	const setting = CAPTION_SETTING[sourceType];
-	return setting ? settings[setting] : false;
+	return setting ? settings[setting] : true;
 }
 
 // Renders an expandable Telegram blockquote that goes above the attribution line.

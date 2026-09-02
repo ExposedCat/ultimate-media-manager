@@ -5,10 +5,6 @@ import type { DownloadMediaFile, DownloadMediaResult } from "./media.ts";
 import { downloadWithPostfetch } from "./postfetch.ts";
 import { downloadWithYtdlp } from "./ytdlp.ts";
 
-export type DownloadedImage = DownloadMediaFile & {
-	path?: string;
-};
-
 export type DownloadedMediaGroupItem = {
 	file: InputFile;
 	media: DownloadMediaFile;
@@ -28,33 +24,8 @@ export type DownloadedMedia =
 	| {
 			kind: "images";
 			files: DownloadedMediaGroupItem[];
-			images: DownloadedImage[];
 			metadata?: PostCaptionMeta;
 	  };
-
-function sanitizeFilename(filename: string) {
-	return filename.replaceAll("/", "_").replaceAll("\\", "_");
-}
-
-export async function materializeImageFiles(
-	media: Extract<DownloadedMedia, { kind: "images" }>,
-	tempDir: string,
-) {
-	const filenames: string[] = [];
-	for (const [index, image] of media.images.entries()) {
-		if (!image.path) {
-			const filename = `${tempDir}/${index}-${sanitizeFilename(
-				image.filename || `image.${image.extension || "jpg"}`,
-			)}`;
-			await Deno.writeFile(filename, image.data);
-			image.path = filename;
-		}
-
-		filenames.push(image.path);
-	}
-
-	return filenames;
-}
 
 // Reads the typed unavailability cause that @postfetch/core attaches to its
 // errors; absent on resolvers (or older library versions) that do not set it.
@@ -139,9 +110,6 @@ function toDownloadedMedia(
 		return {
 			kind: "images",
 			files,
-			images: files
-				.filter((item) => item.kind === "image")
-				.map((item) => item.media),
 			metadata: result.metadata,
 		};
 	}
