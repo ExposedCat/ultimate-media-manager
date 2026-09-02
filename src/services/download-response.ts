@@ -7,6 +7,7 @@ import {
 } from "./caption.ts";
 import { DEFAULT_SETTINGS } from "./chat.ts";
 import { type DownloadedMedia, downloadMediaForUrl } from "./download-media.ts";
+import { buildSenderCredit } from "./rich-message.ts";
 import type { SourceType } from "./sources.ts";
 
 export type DownloadResponse = {
@@ -75,7 +76,10 @@ export function buildDownloadResponseText(
 	title?: string,
 	meta?: PostCaptionMeta | null,
 ) {
-	const base = buildDownloadResponseBaseText(ctx, data, mediaKind, title);
+	const base = buildSenderCredit(
+		data.sourceType,
+		buildDownloadResponseBaseText(ctx, data, mediaKind, title),
+	);
 	if (!meta || !responseCaptionEnabled(ctx, data.sourceType)) {
 		return base;
 	}

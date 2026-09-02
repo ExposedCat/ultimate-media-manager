@@ -135,7 +135,7 @@ function metadataQuote(
 	return buildQuote(content, senderCredit);
 }
 
-function buildSenderCredit(sourceType: SourceType, baseHtml: string) {
+export function buildSenderCredit(sourceType: SourceType, baseHtml: string) {
 	if (!baseHtml) {
 		return "";
 	}

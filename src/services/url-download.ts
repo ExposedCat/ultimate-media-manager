@@ -20,7 +20,11 @@ import {
 	getCachedMediaFromSingleMessage,
 	setCachedMedia,
 } from "./media-file-cache.ts";
-import { type RichMediaItem, buildRichMessage } from "./rich-message.ts";
+import {
+	type RichMediaItem,
+	buildRichMessage,
+	buildSenderCredit,
+} from "./rich-message.ts";
 import {
 	type InputMatcher,
 	type MatchInputResult,
@@ -55,18 +59,30 @@ function buildReplyExtra(ctx: CustomContext) {
 async function replyWithCachedMedia(
 	ctx: CustomContext,
 	media: CachedMedia,
+	text: string,
 	baseText: string,
 	captionEnabled: boolean,
 	sourceType: SourceType,
 	replyExtra: ReturnType<typeof buildReplyExtra>,
 ) {
+	const mediaItems = cachedMediaItems(media);
+	if (containsVideo(mediaItems)) {
+		return await replyWithRegularMediaCaptionFallback(
+			ctx,
+			mediaItems,
+			text,
+			buildSenderCredit(sourceType, baseText),
+			replyExtra,
+		);
+	}
+
 	return await replyWithCaptionFallback(
 		ctx,
 		(nextCaptionEnabled) =>
 			buildRichMessage({
 				baseHtml: baseText,
 				captionEnabled: nextCaptionEnabled,
-				media: cachedMediaItems(media),
+				media: mediaItems,
 				metadata: media.metadata,
 				sourceType,
 			}),
@@ -226,48 +242,69 @@ function downloadedMediaItems(media: DownloadedMedia): RichMediaItem[] {
 		: [{ kind: media.kind, media: media.file }];
 }
 
-const MAX_PLAIN_MEDIA_GROUP_SIZE = 10;
+const MAX_MEDIA_GROUP_SIZE = 10;
 
-async function replyWithPlainMediaItem(
+function containsVideo(items: RichMediaItem[]) {
+	return items.some((item) => item.kind === "video");
+}
+
+async function replyWithRegularMediaItem(
 	ctx: CustomContext,
 	item: RichMediaItem,
 	replyExtra: ReturnType<typeof buildReplyExtra>,
+	caption?: string,
 ) {
+	const extra = {
+		...(caption && { caption, parse_mode: "HTML" as const }),
+		...replyExtra,
+	};
 	switch (item.kind) {
 		case "image":
-			return await ctx.replyWithPhoto(item.media, replyExtra);
+			return await ctx.replyWithPhoto(item.media, extra);
 		case "video":
-			return await ctx.replyWithVideo(item.media, replyExtra);
+			return await ctx.replyWithVideo(item.media, extra);
 		case "audio":
-			return await ctx.replyWithAudio(item.media, replyExtra);
+			return await ctx.replyWithAudio(item.media, extra);
 	}
 }
 
-async function replyWithPlainMedia(
+async function replyWithRegularMedia(
 	ctx: CustomContext,
 	items: RichMediaItem[],
 	replyExtra: ReturnType<typeof buildReplyExtra>,
+	caption?: string,
 ) {
 	const sentMessages: unknown[] = [];
-	for (
-		let offset = 0;
-		offset < items.length;
-		offset += MAX_PLAIN_MEDIA_GROUP_SIZE
-	) {
-		const chunk = items.slice(offset, offset + MAX_PLAIN_MEDIA_GROUP_SIZE);
+	for (let offset = 0; offset < items.length; offset += MAX_MEDIA_GROUP_SIZE) {
+		const chunk = items.slice(offset, offset + MAX_MEDIA_GROUP_SIZE);
 		if (chunk.length === 1 || chunk.some((item) => item.kind === "audio")) {
-			for (const item of chunk) {
-				sentMessages.push(await replyWithPlainMediaItem(ctx, item, replyExtra));
+			for (const [index, item] of chunk.entries()) {
+				const itemCaption = offset === 0 && index === 0 ? caption : undefined;
+				sentMessages.push(
+					await replyWithRegularMediaItem(ctx, item, replyExtra, itemCaption),
+				);
 			}
 			continue;
 		}
 
-		const mediaGroup = chunk.map((item) => {
+		const mediaGroup = chunk.map((item, index) => {
+			const itemCaption = offset === 0 && index === 0 ? caption : undefined;
+			const captionData = itemCaption
+				? { caption: itemCaption, parse_mode: "HTML" as const }
+				: {};
 			if (item.kind === "image") {
-				return { type: "photo" as const, media: item.media };
+				return {
+					type: "photo" as const,
+					media: item.media,
+					...captionData,
+				};
 			}
 			if (item.kind === "video") {
-				return { type: "video" as const, media: item.media };
+				return {
+					type: "video" as const,
+					media: item.media,
+					...captionData,
+				};
 			}
 			throw new Error("Audio cannot be included in a media group");
 		});
@@ -279,7 +316,32 @@ async function replyWithPlainMedia(
 	return sentMessages;
 }
 
-function cachePlainMedia(
+async function replyWithRegularMediaCaptionFallback(
+	ctx: CustomContext,
+	items: RichMediaItem[],
+	caption: string,
+	fallbackCaption: string,
+	replyExtra: ReturnType<typeof buildReplyExtra>,
+) {
+	try {
+		return await replyWithRegularMedia(ctx, items, replyExtra, caption);
+	} catch (error) {
+		if (
+			caption === fallbackCaption ||
+			classifyMediaSendFailure(error).reason !== "captionInvalid"
+		) {
+			throw error;
+		}
+
+		console.warn(
+			"[Download] Regular media caption failed; retrying without post text",
+			{ error },
+		);
+		return await replyWithRegularMedia(ctx, items, replyExtra, fallbackCaption);
+	}
+}
+
+function cacheSentMedia(
 	url: string,
 	media: DownloadedMedia,
 	sentMessages: unknown[],
@@ -658,7 +720,7 @@ export async function downloadPlainMatchedUrl(
 		const cachedMedia = getCachedMedia(url);
 		if (cachedMedia) {
 			try {
-				await replyWithPlainMedia(
+				await replyWithRegularMedia(
 					ctx,
 					cachedMediaItems(cachedMedia),
 					replyExtra,
@@ -708,12 +770,12 @@ export async function downloadPlainMatchedUrl(
 		}
 
 		try {
-			const sentMessages = await replyWithPlainMedia(
+			const sentMessages = await replyWithRegularMedia(
 				ctx,
 				downloadedMediaItems(result.media),
 				replyExtra,
 			);
-			const normalizedUrl = cachePlainMedia(url, result.media, sentMessages);
+			const normalizedUrl = cacheSentMedia(url, result.media, sentMessages);
 			console.info("[PlainDownload] Sent media", {
 				userId: ctx.from.id,
 				sourceType: type,
@@ -864,6 +926,7 @@ export async function downloadMatchedUrl(
 					await replyWithCachedMedia(
 						ctx,
 						cachedMedia,
+						cachedText,
 						cachedBaseText,
 						cachedCaptionEnabled,
 						type,
@@ -931,28 +994,46 @@ export async function downloadMatchedUrl(
 			} else {
 				const media = result.media;
 				const mediaItems = downloadedMediaItems(media);
-				const sentMessage = await replyWithCaptionFallback(
-					ctx,
-					(captionEnabled) =>
-						buildResultRichMessage(result, mediaItems, captionEnabled),
-					result.captionEnabled,
-					replyExtra,
-				);
-				const cachedMedia = getCachedMediaFromRichMessage(sentMessage);
-				if (cachedMedia) {
-					const normalizedUrl = setCachedMedia(url, {
-						...cachedMedia,
-						metadata: media.metadata,
-					});
-					console.info("[Download] Cached rich media file IDs", {
+				if (containsVideo(mediaItems)) {
+					const sentMessages = await replyWithRegularMediaCaptionFallback(
+						ctx,
+						mediaItems,
+						result.text,
+						buildSenderCredit(result.sourceType, result.baseText),
+						replyExtra,
+					);
+					const normalizedUrl = cacheSentMedia(url, media, sentMessages);
+					console.info("[Download] Cached regular media file IDs", {
 						userId: ctx.from.id,
 						sourceType: type,
-						mediaKind: cachedMedia.kind,
-						fileCount:
-							cachedMedia.kind === "images" ? cachedMedia.items.length : 1,
+						mediaKind: media.kind,
 						url,
 						normalizedUrl,
 					});
+				} else {
+					const sentMessage = await replyWithCaptionFallback(
+						ctx,
+						(captionEnabled) =>
+							buildResultRichMessage(result, mediaItems, captionEnabled),
+						result.captionEnabled,
+						replyExtra,
+					);
+					const cachedMedia = getCachedMediaFromRichMessage(sentMessage);
+					if (cachedMedia) {
+						const normalizedUrl = setCachedMedia(url, {
+							...cachedMedia,
+							metadata: media.metadata,
+						});
+						console.info("[Download] Cached rich media file IDs", {
+							userId: ctx.from.id,
+							sourceType: type,
+							mediaKind: cachedMedia.kind,
+							fileCount:
+								cachedMedia.kind === "images" ? cachedMedia.items.length : 1,
+							url,
+							normalizedUrl,
+						});
+					}
 				}
 			}
 
