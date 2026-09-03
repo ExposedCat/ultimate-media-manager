@@ -31,10 +31,7 @@ const MAX_CACHE_ENTRIES = 50;
 const mediaCache = new Map<string, CachedMedia>();
 
 type TelegramMediaMessage = {
-	audio?: { file_id?: string };
-	photo?: { file_id?: string }[];
 	rich_message?: { blocks?: RichBlockLike[] };
-	video?: { file_id?: string };
 };
 
 type RichBlockLike = {
@@ -85,43 +82,6 @@ export function setCachedMedia(url: string, media: CachedMedia) {
 
 export function deleteCachedMedia(url: string) {
 	return mediaCache.delete(normalizeMediaCacheUrl(url));
-}
-
-export function getCachedMediaFromSingleMessage(
-	kind: "image" | "video" | "audio",
-	message: unknown,
-): Extract<CachedMedia, { kind: "image" | "video" | "audio" }> | null {
-	const mediaMessage = message as TelegramMediaMessage;
-	if (kind === "image") {
-		const fileId = mediaMessage.photo?.at(-1)?.file_id;
-		return fileId ? { kind, fileId } : null;
-	}
-
-	const fileId = mediaMessage[kind]?.file_id;
-	return fileId ? { kind, fileId } : null;
-}
-
-export function getCachedMediaFromMediaGroup(
-	messages: unknown[],
-): Extract<CachedMedia, { kind: "images" }> | null {
-	const items = messages
-		.map((message): CachedMediaGroupItem | null => {
-			const mediaMessage = message as TelegramMediaMessage;
-			const photoFileId = mediaMessage.photo?.at(-1)?.file_id;
-			if (photoFileId) {
-				return { kind: "image", fileId: photoFileId };
-			}
-
-			const videoFileId = mediaMessage.video?.file_id;
-			if (videoFileId) {
-				return { kind: "video", fileId: videoFileId };
-			}
-
-			return null;
-		})
-		.filter((item): item is CachedMediaGroupItem => Boolean(item));
-
-	return items.length > 0 ? { kind: "images", items } : null;
 }
 
 export function getCachedMediaFromRichMessage(

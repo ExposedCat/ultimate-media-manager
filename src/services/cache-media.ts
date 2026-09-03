@@ -7,6 +7,7 @@ import {
 	getCachedMediaFromRichMessage,
 	setCachedMedia,
 } from "./media-file-cache.ts";
+import { prepareDownloadedRichMedia } from "./rich-media-upload.ts";
 import { buildRichMessage } from "./rich-message.ts";
 
 export async function cacheDownloadedMedia(
@@ -21,18 +22,13 @@ export async function cacheDownloadedMedia(
 		}
 	}
 
+	const richMedia = await prepareDownloadedRichMedia(media);
 	const sentMessage = await ctx.api.sendRichMessage(
 		Number(APP_ENV.CACHE_CHAT_ID),
 		buildRichMessage({
 			baseHtml: "",
 			captionEnabled: false,
-			media:
-				media.kind === "images"
-					? media.files.map((item) => ({
-							kind: item.kind,
-							media: item.file,
-						}))
-					: [{ kind: media.kind, media: media.file }],
+			media: richMedia,
 			sourceType: "facebook",
 		}),
 	);

@@ -5,10 +5,7 @@ import {
 	extractUrlsFromMessage,
 } from "../services/context-message.ts";
 import { matchDownloadCommandInput } from "../services/sources.ts";
-import {
-	downloadMatchedUrl,
-	downloadPlainMatchedUrl,
-} from "../services/url-download.ts";
+import { downloadMatchedUrl } from "../services/url-download.ts";
 import type { CustomContext } from "../types/context.ts";
 
 function getCommandUrlSource(ctx: CustomContext) {
@@ -28,12 +25,9 @@ function getCommandUrlSource(ctx: CustomContext) {
 
 export const downloadController = new Composer<CustomContext>();
 
-type DownloadCommand = "download" | "plain";
-
 async function handleDownloadCommand(
 	ctx: CustomContext,
 	next: () => Promise<void>,
-	command: DownloadCommand,
 ) {
 	if (!ctx.message || !ctx.from || !ctx.chat) {
 		await next();
@@ -42,7 +36,7 @@ async function handleDownloadCommand(
 
 	const urlSource = getCommandUrlSource(ctx);
 	if (!urlSource) {
-		console.info(`[/${command}] No URL found in command or reply`, {
+		console.info("[/download] No URL found in command or reply", {
 			userId: ctx.from.id,
 			chatId: ctx.chat.id,
 			messageId: ctx.message.message_id,
@@ -51,28 +45,21 @@ async function handleDownloadCommand(
 		return;
 	}
 
-	console.info(`[/${command}] Processing URL`, {
+	console.info("[/download] Processing URL", {
 		userId: ctx.from.id,
 		chatId: ctx.chat.id,
 		messageId: ctx.message.message_id,
 		url: urlSource.url,
 	});
 
-	const sent =
-		command === "plain"
-			? await downloadPlainMatchedUrl(
-					ctx,
-					urlSource.url,
-					matchDownloadCommandInput,
-				)
-			: await downloadMatchedUrl(
-					ctx,
-					urlSource.url,
-					matchDownloadCommandInput,
-					urlSource.sourceMessage,
-				);
+	const sent = await downloadMatchedUrl(
+		ctx,
+		urlSource.url,
+		matchDownloadCommandInput,
+		urlSource.sourceMessage,
+	);
 
-	console.info(`[/${command}] Completed`, {
+	console.info("[/download] Completed", {
 		userId: ctx.from.id,
 		chatId: ctx.chat.id,
 		messageId: ctx.message.message_id,
@@ -88,9 +75,4 @@ const downloadCommands = downloadController.chatType([
 	"group",
 ]);
 
-downloadCommands.command("download", (ctx, next) =>
-	handleDownloadCommand(ctx, next, "download"),
-);
-downloadCommands.command("plain", (ctx, next) =>
-	handleDownloadCommand(ctx, next, "plain"),
-);
+downloadCommands.command("download", handleDownloadCommand);

@@ -22,7 +22,6 @@ See social media posts right in the Telegram Messenger.
   - Pinterest
   - Soundcloud
 - Unified `/download` command for direct downloads
-- `/plain` command for captionless, non-rich media downloads
 
 # Usage
 
@@ -44,13 +43,12 @@ See social media posts right in the Telegram Messenger.
 2. Use `/download link` or just `/download` **in reply** to the message
    containing a link
 3. Or mention the bot in that reply to trigger the same download flow without the slash command
-4. Use `/plain link` or `/plain` **in reply** to send only ordinary Telegram media files
 
 # Development
 
 - Install Deno 2
 - Install `yt-dlp` if you want the yt-dlp fallback outside the app container
-- Install `ffmpeg` if you want collage generation outside the app container
+- Install `ffmpeg` for video merging and rich-message MP4 normalization outside the app container
 - Start the bot with `deno task start`
 - Run checks with `deno task check`
 - Format with `deno task fmt`
