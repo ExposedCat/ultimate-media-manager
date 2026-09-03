@@ -21,22 +21,6 @@ export async function cacheDownloadedMedia(
 		}
 	}
 
-	if (media.kind === "video") {
-		const sentMessage = await ctx.api.sendVideo(
-			Number(APP_ENV.CACHE_CHAT_ID),
-			media.file,
-		);
-		const cachedMedia = {
-			kind: "video",
-			fileId: sentMessage.video.file_id,
-			metadata: media.metadata,
-		} as const;
-		if (sourceUrl) {
-			setCachedMedia(sourceUrl, cachedMedia);
-		}
-		return cachedMedia;
-	}
-
 	const sentMessage = await ctx.api.sendRichMessage(
 		Number(APP_ENV.CACHE_CHAT_ID),
 		buildRichMessage({
@@ -53,11 +37,16 @@ export async function cacheDownloadedMedia(
 		}),
 	);
 	const cachedMedia = getCachedMediaFromRichMessage(sentMessage);
-	if (cachedMedia && sourceUrl) {
-		setCachedMedia(sourceUrl, {
-			...cachedMedia,
-			metadata: media.metadata,
-		});
+	if (!cachedMedia) {
+		return null;
 	}
-	return cachedMedia;
+
+	const cachedWithMetadata = {
+		...cachedMedia,
+		metadata: media.metadata,
+	};
+	if (sourceUrl) {
+		setCachedMedia(sourceUrl, cachedWithMetadata);
+	}
+	return cachedWithMetadata;
 }

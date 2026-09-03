@@ -144,32 +144,41 @@ Deno.test("rich download retries cached media without a rejected caption", async
 	}
 });
 
-Deno.test("normal-mode video uses a regular send with caption fallback", async () => {
-	const url = "https://x.com/example/status/regular-video";
+Deno.test("normal-mode video uses a rich message with caption fallback", async () => {
+	const url = "https://x.com/example/status/rich-video";
 	setCachedMedia(url, {
 		kind: "video",
 		fileId: "cached-video",
 		metadata: { text: "Post caption" },
 	});
-	const videoCalls: { media: unknown; extra: Record<string, unknown> }[] = [];
-	let richMessageCalls = 0;
+	const richMessages: {
+		html?: string;
+		media?: {
+			media: {
+				media: unknown;
+				type: string;
+				supports_streaming?: boolean;
+			};
+		}[];
+	}[] = [];
+	let videoCalls = 0;
 
 	try {
 		const sent = await downloadMatchedUrl(
 			plainContext({
 				i18n: captionI18n(),
-				replyWithRichMessage() {
-					richMessageCalls += 1;
-				},
-				replyWithVideo(media: unknown, extra: Record<string, unknown>) {
-					videoCalls.push({ media, extra });
-					if (videoCalls.length === 1) {
+				replyWithRichMessage(message: (typeof richMessages)[number]) {
+					richMessages.push(message);
+					if (richMessages.length === 1) {
 						throw {
 							error_code: 400,
 							description: "Bad Request: can't parse entities",
 						};
 					}
-					return { video: { file_id: "cached-video" } };
+					return {};
+				},
+				replyWithVideo() {
+					videoCalls += 1;
 				},
 			}),
 			url,
@@ -177,29 +186,23 @@ Deno.test("normal-mode video uses a regular send with caption fallback", async (
 		);
 
 		assertEquals(sent, true);
-		assertEquals(richMessageCalls, 0);
-		assertEquals(videoCalls.length, 2);
-		assertEquals(videoCalls[0].media, "cached-video");
-		assertEquals(videoCalls[0].extra.parse_mode, "HTML");
-		assertStringIncludes(
-			String(videoCalls[0].extra.caption),
-			"<blockquote expandable>Post caption</blockquote>",
-		);
-		assertStringIncludes(
-			String(videoCalls[1].extra.caption),
-			"Plain sent this video",
-		);
-		assertEquals(
-			String(videoCalls[1].extra.caption).includes("Post caption"),
-			false,
-		);
+		assertEquals(videoCalls, 0);
+		assertEquals(richMessages.length, 2);
+		assertEquals(richMessages[0].media?.[0].media, {
+			type: "video",
+			media: "cached-video",
+			supports_streaming: true,
+		});
+		assertStringIncludes(richMessages[0].html ?? "", "Post caption");
+		assertStringIncludes(richMessages[1].html ?? "", "Plain sent this video");
+		assertEquals(richMessages[1].html?.includes("Post caption"), false);
 	} finally {
 		deleteCachedMedia(url);
 	}
 });
 
-Deno.test("normal-mode download sends a video album as a regular media group", async () => {
-	const url = "https://x.com/example/status/regular-video-album";
+Deno.test("normal-mode download sends a video album as a rich slideshow", async () => {
+	const url = "https://x.com/example/status/rich-video-album";
 	setCachedMedia(url, {
 		kind: "images",
 		items: [
@@ -208,28 +211,19 @@ Deno.test("normal-mode download sends a video album as a regular media group", a
 		],
 		metadata: { text: "Album caption" },
 	});
-	const mediaGroupCalls: {
-		media: Record<string, unknown>[];
-		extra: Record<string, unknown>;
-	}[] = [];
-	let richMessageCalls = 0;
+	const richMessages: { html?: string }[] = [];
+	let mediaGroupCalls = 0;
 
 	try {
 		const sent = await downloadMatchedUrl(
 			plainContext({
 				i18n: captionI18n(),
-				replyWithMediaGroup(
-					media: Record<string, unknown>[],
-					extra: Record<string, unknown>,
-				) {
-					mediaGroupCalls.push({ media, extra });
-					return [
-						{ photo: [{ file_id: "cached-photo" }] },
-						{ video: { file_id: "cached-video" } },
-					];
+				replyWithMediaGroup() {
+					mediaGroupCalls += 1;
 				},
-				replyWithRichMessage() {
-					richMessageCalls += 1;
+				replyWithRichMessage(message: { html?: string }) {
+					richMessages.push(message);
+					return {};
 				},
 			}),
 			url,
@@ -237,20 +231,13 @@ Deno.test("normal-mode download sends a video album as a regular media group", a
 		);
 
 		assertEquals(sent, true);
-		assertEquals(richMessageCalls, 0);
-		assertEquals(mediaGroupCalls.length, 1);
-		assertEquals(mediaGroupCalls[0].media[0].type, "photo");
-		assertEquals(mediaGroupCalls[0].media[0].media, "cached-photo");
-		assertEquals(mediaGroupCalls[0].media[0].parse_mode, "HTML");
+		assertEquals(mediaGroupCalls, 0);
+		assertEquals(richMessages.length, 1);
+		assertStringIncludes(richMessages[0].html ?? "", "<tg-slideshow>");
 		assertStringIncludes(
-			String(mediaGroupCalls[0].media[0].caption),
-			"Plain sent this slider",
+			richMessages[0].html ?? "",
+			'<video src="tg://video?id=media_1"/>',
 		);
-		assertEquals(mediaGroupCalls[0].media[1], {
-			type: "video",
-			media: "cached-video",
-		});
-		assertEquals(mediaGroupCalls[0].extra, {});
 	} finally {
 		deleteCachedMedia(url);
 	}
@@ -303,7 +290,7 @@ Deno.test("guest download keeps a cached video album in a rich slideshow", async
 	}
 });
 
-Deno.test("guest download sends a standalone cached video normally", async () => {
+Deno.test("guest download sends a standalone cached video in a rich message", async () => {
 	const url = "https://x.com/example/status/guest-video";
 	setCachedMedia(url, {
 		kind: "video",
@@ -327,20 +314,24 @@ Deno.test("guest download sends a standalone cached video normally", async () =>
 
 		assertEquals(sent, true);
 		assertEquals(guestResults.length, 1);
-		assertEquals(guestResults[0].type, "video");
-		assertEquals(guestResults[0].video_file_id, "cached-video");
-		assertEquals("input_message_content" in guestResults[0], false);
-		assertStringIncludes(String(guestResults[0].caption), "Video caption");
+		assertEquals(guestResults[0].type, "article");
+		const input = guestResults[0].input_message_content as Record<
+			string,
+			unknown
+		>;
+		const richMessage = input.rich_message as { html?: string };
+		assertStringIncludes(richMessage.html ?? "", "Video caption");
+		assertStringIncludes(richMessage.html ?? "", "Plain sent this video");
 		assertStringIncludes(
-			String(guestResults[0].caption),
-			"Plain sent this video",
+			richMessage.html ?? "",
+			'<video src="tg://video?id=media_0"/>',
 		);
 	} finally {
 		deleteCachedMedia(url);
 	}
 });
 
-Deno.test("guest video caching uses a regular video upload", async () => {
+Deno.test("guest video caching uses a rich message upload", async () => {
 	const url = "https://x.com/example/status/fresh-guest-video";
 	const calls: string[] = [];
 
@@ -348,8 +339,17 @@ Deno.test("guest video caching uses a regular video upload", async () => {
 		const cached = await cacheDownloadedMedia(
 			plainContext({
 				api: {
-					sendRichMessage() {
+					sendRichMessage(_chatId: number, message: { html?: string }) {
 						calls.push("rich");
+						assertStringIncludes(
+							message.html ?? "",
+							'<video src="tg://video?id=media_0"/>',
+						);
+						return {
+							rich_message: {
+								blocks: [{ type: "video", video: { file_id: "cached-video" } }],
+							},
+						};
 					},
 					sendVideo() {
 						calls.push("video");
@@ -365,7 +365,7 @@ Deno.test("guest video caching uses a regular video upload", async () => {
 			url,
 		);
 
-		assertEquals(calls, ["video"]);
+		assertEquals(calls, ["rich"]);
 		assertEquals(cached, {
 			kind: "video",
 			fileId: "cached-video",

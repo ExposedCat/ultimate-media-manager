@@ -1,8 +1,6 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@postfetch/core@0.6": "0.6.0",
-    "jsr:@postfetch/core@0.6.0": "0.6.0",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/yaml@*": "1.1.0",
@@ -12,13 +10,11 @@
     "npm:@grammyjs/opentelemetry@~0.1.1": "0.1.1_grammy@1.46.0",
     "npm:@grammyjs/runner@2.0.3": "2.0.3_grammy@1.46.0",
     "npm:@opentelemetry/api@^1.9.1": "1.9.1",
+    "npm:@postfetch/core@0.7": "0.7.0",
     "npm:grammy@1.46.0": "1.46.0",
     "npm:mongodb@4.17.2": "4.17.2"
   },
   "jsr": {
-    "@postfetch/core@0.6.0": {
-      "integrity": "dcfe512cfe7212916486b70209c35d0b702d968dc48271e3bbc195c91530860a"
-    },
     "@std/assert@1.0.19": {
       "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
       "dependencies": [
@@ -748,6 +744,9 @@
     "@opentelemetry/semantic-conventions@1.30.0": {
       "integrity": "sha512-4VlGgo32k2EQ2wcCY3vEU28A0O13aOtHz3Xt2/2U5FAh9EfhD6t6DqL5Z6yAnRCntbTFDU4YfbpyzSlHNWycPw=="
     },
+    "@postfetch/core@0.7.0": {
+      "integrity": "sha512-CbfyDUwgvYHXJS4pRe3Xwtxbe4xRgLm+bTSF0eF+Q//voY1X1aLIA6vrBtEn1aghNgQzRrmfquMQnOv7hTe9Xg=="
+    },
     "@protobufjs/aspromise@1.1.2": {
       "integrity": "sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ=="
     },
@@ -1341,13 +1340,13 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@postfetch/core@0.6",
       "npm:@biomejs/biome@1.9.4",
       "npm:@grammyjs/auto-retry@2.0.2",
       "npm:@grammyjs/i18n@0.5.1",
       "npm:@grammyjs/opentelemetry@~0.1.1",
       "npm:@grammyjs/runner@2.0.3",
       "npm:@opentelemetry/api@^1.9.1",
+      "npm:@postfetch/core@0.7",
       "npm:grammy@1.46.0",
       "npm:mongodb@4.17.2"
     ]

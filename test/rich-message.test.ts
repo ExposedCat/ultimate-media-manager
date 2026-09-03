@@ -32,7 +32,14 @@ Deno.test("reddit rich messages put an h5 title above a media slideshow", () => 
 	assertEquals(result.html?.includes("Gertrudethecurious"), false);
 	assertEquals(result.media, [
 		{ id: "media_0", media: { type: "photo", media: "photo-file" } },
-		{ id: "media_1", media: { type: "video", media: "video-file" } },
+		{
+			id: "media_1",
+			media: {
+				type: "video",
+				media: "video-file",
+				supports_streaming: true,
+			},
+		},
 	]);
 });
 

@@ -178,6 +178,7 @@ function buildMedia(items: RichMediaItem[]) {
 							? ("audio" as const)
 							: ("video" as const),
 				media: item.media,
+				...(item.kind === "video" && { supports_streaming: true }),
 			},
 		};
 	});

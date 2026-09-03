@@ -1,9 +1,4 @@
-import {
-	type MediaItem,
-	type PostfetchResult,
-	download,
-	postfetch,
-} from "@postfetch/core";
+import { type PostfetchResult, downloadBlob, postfetch } from "@postfetch/core";
 
 import type { PostCaptionMeta } from "./caption.ts";
 import {
@@ -20,7 +15,18 @@ export async function downloadWithPostfetch(
 ): Promise<DownloadMediaResult | null> {
 	try {
 		const result = await postfetch(url, options);
-		const files = await Promise.all(result.items.map(toDownloadMediaFile));
+		const files = await Promise.all(
+			result.items.map(async (item): Promise<DownloadMediaFile> => {
+				const blob = await downloadBlob(item.url, item.headers, options);
+				return {
+					contentType: item.mime,
+					data: new Uint8Array(await blob.arrayBuffer()),
+					extension: extensionOf(item.filename),
+					filename: item.filename,
+					mediaKind: item.kind,
+				};
+			}),
+		);
 		console.info("[Postfetch] Resolved media", {
 			url,
 			platform: result.platform,
@@ -57,19 +63,6 @@ function toCaptionMeta(result: PostfetchResult): PostCaptionMeta | undefined {
 			result.platform === "reddit"
 				? result.metadata?.extra?.subreddit
 				: undefined,
-	};
-}
-
-async function toDownloadMediaFile(
-	item: MediaItem,
-): Promise<DownloadMediaFile> {
-	const response = await download(item, options);
-	return {
-		contentType: item.mime,
-		data: new Uint8Array(await response.arrayBuffer()),
-		extension: extensionOf(item.filename),
-		filename: item.filename,
-		mediaKind: item.kind,
 	};
 }
 
