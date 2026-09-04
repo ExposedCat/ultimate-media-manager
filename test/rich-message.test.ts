@@ -8,7 +8,7 @@ import {
 Deno.test("reddit rich messages put an h5 title above a media slideshow", () => {
 	const result = buildRichMessage({
 		baseHtml:
-			'<a href="tg://user?id=42">Sender</a> sent <a href="https://reddit.com/post">this slider</a>',
+			'<a href="tg://user?id=42">Sender</a> shared <a href="https://reddit.com/post">this slider</a>',
 		captionEnabled: true,
 		media: [
 			{ kind: "image", media: "photo-file" },
@@ -27,7 +27,7 @@ Deno.test("reddit rich messages put an h5 title above a media slideshow", () => 
 
 	assertEquals(
 		result.html,
-		'<h5>Seen in &lt;the UK&gt;</h5>\n<tg-slideshow><img src="tg://photo?id=media_0"/><video src="tg://video?id=media_1"/></tg-slideshow>\n<blockquote expandable>Post &lt;body&gt;</blockquote>\n<p><a href="https://www.reddit.com/r/pics">r/pics</a> <tg-emoji emoji-id="5875078273775439450">🔼</tg-emoji> 9,969 <tg-emoji emoji-id="5994297722574737553">💬</tg-emoji> 251</p>\n<p><tg-emoji emoji-id="5343641195484560502">👽</tg-emoji> <a href="tg://user?id=42">Sender</a> sent <a href="https://reddit.com/post">this slider</a></p>',
+		'<h5>Seen in &lt;the UK&gt;</h5>\n<tg-slideshow><img src="tg://photo?id=media_0"/><video src="tg://video?id=media_1"/></tg-slideshow>\n<blockquote expandable>Post &lt;body&gt;</blockquote>\n<p><a href="https://www.reddit.com/r/pics">r/pics</a> <tg-emoji emoji-id="5875078273775439450">🔼</tg-emoji> 9,969 <tg-emoji emoji-id="5994297722574737553">💬</tg-emoji> 251</p>\n<p><tg-emoji emoji-id="5343641195484560502">👽</tg-emoji> <a href="tg://user?id=42">Sender</a> shared <a href="https://reddit.com/post">this slider</a></p>',
 	);
 	assertEquals(result.html?.includes("Gertrudethecurious"), false);
 	assertEquals(result.media, [
@@ -45,7 +45,7 @@ Deno.test("reddit rich messages put an h5 title above a media slideshow", () => 
 
 Deno.test("hashtags stay quoted and sender attribution appears below", () => {
 	const result = buildRichMessage({
-		baseHtml: "Sender sent this video",
+		baseHtml: "Sender shared this video",
 		captionEnabled: true,
 		media: [{ kind: "video", media: "video-file" }],
 		metadata: {
@@ -58,12 +58,12 @@ Deno.test("hashtags stay quoted and sender attribution appears below", () => {
 	});
 	assertEquals(
 		result.html,
-		'<video src="tg://video?id=media_0"/>\n<blockquote expandable>blah &amp; more #tag1 #tag2</blockquote>\n<p><tg-emoji emoji-id="5454400924510334242">📸</tg-emoji> Sender sent this video</p>',
+		'<video src="tg://video?id=media_0"/>\n<blockquote expandable>blah &amp; more #tag1 #tag2</blockquote>\n<p><tg-emoji emoji-id="5454400924510334242">📸</tg-emoji> Sender shared this video</p>',
 	);
 	assertEquals(result.html?.includes("Creator"), false);
 
 	const tiktok = buildRichMessage({
-		baseHtml: "Sender sent this video",
+		baseHtml: "Sender shared this video",
 		captionEnabled: true,
 		media: [{ kind: "video", media: "video-file" }],
 		metadata: {
@@ -74,14 +74,14 @@ Deno.test("hashtags stay quoted and sender attribution appears below", () => {
 	});
 	assertEquals(
 		tiktok.html,
-		'<video src="tg://video?id=media_0"/>\n<blockquote expandable>TikTok caption #fyp #video</blockquote>\n<p><tg-emoji emoji-id="5454351124364542651">🎵</tg-emoji> Sender sent this video</p>',
+		'<video src="tg://video?id=media_0"/>\n<blockquote expandable>TikTok caption #fyp #video</blockquote>\n<p><tg-emoji emoji-id="5454351124364542651">🎵</tg-emoji> Sender shared this video</p>',
 	);
 	assertEquals(tiktok.html?.includes("creator"), false);
 });
 
 Deno.test("Markdown links in platform bodies render as Telegram links", () => {
 	const result = buildRichMessage({
-		baseHtml: "Sender sent this image",
+		baseHtml: "Sender shared this image",
 		captionEnabled: true,
 		media: [{ kind: "image", media: "photo-file" }],
 		metadata: {
@@ -127,7 +127,7 @@ Deno.test("all Postfetch providers put their icon and sender in the credit", () 
 
 	for (const [sourceType, emojiId] of providers) {
 		const result = buildRichMessage({
-			baseHtml: "Sender sent this video",
+			baseHtml: "Sender shared this video",
 			captionEnabled: true,
 			media: [],
 			metadata: {
@@ -138,7 +138,7 @@ Deno.test("all Postfetch providers put their icon and sender in the credit", () 
 			sourceType,
 		});
 		assertStringIncludes(result.html ?? "", `emoji-id="${emojiId}"`);
-		assertStringIncludes(result.html ?? "", "Sender sent this video");
+		assertStringIncludes(result.html ?? "", "Sender shared this video");
 		assertEquals(result.html?.includes("<cite>"), false);
 		assertEquals(
 			result.html?.includes("Display name"),
@@ -150,7 +150,7 @@ Deno.test("all Postfetch providers put their icon and sender in the credit", () 
 
 Deno.test("author-only metadata renders sender attribution without a quote", () => {
 	const result = buildRichMessage({
-		baseHtml: "Sender sent this image",
+		baseHtml: "Sender shared this image",
 		captionEnabled: true,
 		media: [],
 		metadata: { authorName: "Page name" },
@@ -158,13 +158,13 @@ Deno.test("author-only metadata renders sender attribution without a quote", () 
 	});
 	assertEquals(
 		result.html,
-		'<p><tg-emoji emoji-id="5454340696183943190">📘</tg-emoji> Sender sent this image</p>',
+		'<p><tg-emoji emoji-id="5454340696183943190">📘</tg-emoji> Sender shared this image</p>',
 	);
 });
 
 Deno.test("Reddit without a quote body renders facts above the sender", () => {
 	const result = buildRichMessage({
-		baseHtml: "Sender sent this image",
+		baseHtml: "Sender shared this image",
 		captionEnabled: true,
 		media: [{ kind: "image", media: "photo-file" }],
 		metadata: {
@@ -177,14 +177,14 @@ Deno.test("Reddit without a quote body renders facts above the sender", () => {
 	});
 	assertEquals(
 		result.html,
-		'<h5>Post title</h5>\n<img src="tg://photo?id=media_0"/>\n<p><a href="https://www.reddit.com/r/pics">r/pics</a> <tg-emoji emoji-id="5875078273775439450">🔼</tg-emoji> 10</p>\n<p><tg-emoji emoji-id="5343641195484560502">👽</tg-emoji> Sender sent this image</p>',
+		'<h5>Post title</h5>\n<img src="tg://photo?id=media_0"/>\n<p><a href="https://www.reddit.com/r/pics">r/pics</a> <tg-emoji emoji-id="5875078273775439450">🔼</tg-emoji> 10</p>\n<p><tg-emoji emoji-id="5343641195484560502">👽</tg-emoji> Sender shared this image</p>',
 	);
 	assertEquals(result.html?.includes("post-author"), false);
 });
 
 Deno.test("non-X post author names and verification are omitted from credits", () => {
 	const facebook = buildRichMessage({
-		baseHtml: "Sender sent this image",
+		baseHtml: "Sender shared this image",
 		captionEnabled: true,
 		media: [],
 		metadata: {
@@ -210,7 +210,7 @@ Deno.test("Twitter removes a t.co URL only when it ends the post", () => {
 	);
 
 	const result = buildRichMessage({
-		baseHtml: "Sender sent this image",
+		baseHtml: "Sender shared this image",
 		captionEnabled: true,
 		media: [{ kind: "image", media: "photo-file" }],
 		metadata: { text: "hello https://t.co/abc123" },
@@ -218,14 +218,14 @@ Deno.test("Twitter removes a t.co URL only when it ends the post", () => {
 	});
 	assertEquals(
 		result.html,
-		'<p>hello</p>\n<img src="tg://photo?id=media_0"/>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> Sender sent this image</p>',
+		'<p>hello</p>\n<img src="tg://photo?id=media_0"/>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> Sender shared this image</p>',
 	);
 });
 
 Deno.test("X quote posts nest each author, text, and media", () => {
 	const result = buildRichMessage({
 		baseHtml:
-			'<a href="tg://user?id=42">Sender</a> sent <a href="https://x.com/outer/status/100">this slider</a>',
+			'<a href="tg://user?id=42">Sender</a> shared <a href="https://x.com/outer/status/100">this slider</a>',
 		captionEnabled: true,
 		media: [
 			{ kind: "image", media: "outer-photo" },
@@ -248,7 +248,7 @@ Deno.test("X quote posts nest each author, text, and media", () => {
 
 	assertEquals(
 		result.html,
-		'<p><a href="https://x.com/outer"><b>Outer Name</b></a>: Outer text</p>\n<img src="tg://photo?id=media_0"/>\n<blockquote>\n<p><a href="https://x.com/quoted"><b>Quoted Name</b></a>: Quoted text</p>\n<video src="tg://video?id=media_1"/>\n</blockquote>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> <a href="tg://user?id=42">Sender</a> sent <a href="https://x.com/outer/status/100">this slider</a></p>',
+		'<p><a href="https://x.com/outer"><b>Outer Name</b></a>: Outer text</p>\n<img src="tg://photo?id=media_0"/>\n<blockquote>\n<p><a href="https://x.com/quoted"><b>Quoted Name</b></a>: Quoted text</p>\n<video src="tg://video?id=media_1"/>\n</blockquote>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> <a href="tg://user?id=42">Sender</a> shared <a href="https://x.com/outer/status/100">this slider</a></p>',
 	);
 	assertEquals(result.html?.includes("@outer"), false);
 	assertEquals(result.html?.includes("@quoted"), false);
@@ -285,7 +285,7 @@ Deno.test("sender attribution names only the media kind", async () => {
 		await Deno.readTextFile(new URL("../src/locales/en.json", import.meta.url)),
 	) as { viewOn: Record<string, string> };
 	const genericAttribution =
-		'<a href="tg://user?id=${userId}">${userName}</a> sent <a href="${postUrl}">this ${kind}</a>';
+		'<a href="tg://user?id=${userId}">${userName}</a> shared <a href="${postUrl}">this ${kind}</a>';
 
 	for (const sourceType of [
 		"facebook",

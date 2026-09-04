@@ -26,7 +26,7 @@ function captionI18n() {
 	return {
 		t(key: string, data: Record<string, unknown> = {}) {
 			if (key === "viewOn.twitter") {
-				return `${data.userName} sent this ${data.kind}`;
+				return `${data.userName} shared this ${data.kind}`;
 			}
 			if (key === "promoCaption") {
 				return String(data.viewUrl);
@@ -117,7 +117,7 @@ Deno.test("video uses a rich message with caption fallback", async () => {
 			supports_streaming: true,
 		});
 		assertStringIncludes(richMessages[0].html ?? "", "Post caption");
-		assertStringIncludes(richMessages[1].html ?? "", "Test sent this video");
+		assertStringIncludes(richMessages[1].html ?? "", "Test shared this video");
 		assertEquals(richMessages[1].html?.includes("Post caption"), false);
 	} finally {
 		deleteCachedMedia(url);
@@ -232,7 +232,7 @@ Deno.test("guest download sends a standalone cached video in a rich message", as
 		>;
 		const richMessage = input.rich_message as { html?: string };
 		assertStringIncludes(richMessage.html ?? "", "Video caption");
-		assertStringIncludes(richMessage.html ?? "", "Test sent this video");
+		assertStringIncludes(richMessage.html ?? "", "Test shared this video");
 		assertStringIncludes(
 			richMessage.html ?? "",
 			'<video src="tg://video?id=media_0"/>',

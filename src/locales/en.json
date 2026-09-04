@@ -1,16 +1,16 @@
 {
 	"greeting": "Ultimate Media Manager\n<a href=\"https://github.com/ExposedCat/ultimate-media-manager\">💻 Source code</a>\n⚙️ Chat /settings\n\nPowered by @ExposedCatDev",
 	"viewOn": {
-		"facebook": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this ${kind}</a>",
-		"instagram": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this ${kind}</a>",
-		"linkedin": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this ${kind}</a>",
-		"tiktok": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this ${kind}</a>",
-		"youtube": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this ${kind}</a>",
-		"twitter": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this ${kind}</a>",
-		"pinterest": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this ${kind}</a>",
-		"soundcloud": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this ${kind}</a>",
-		"reddit": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this ${kind}</a>",
-		"null": "<a href=\"tg://user?id=${userId}\">${userName}</a> sent <a href=\"${postUrl}\">this video</a>"
+		"facebook": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
+		"instagram": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
+		"linkedin": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
+		"tiktok": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
+		"youtube": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
+		"twitter": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
+		"pinterest": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
+		"soundcloud": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
+		"reddit": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
+		"null": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this video</a>"
 	},
 	"rawCaption": "${kind} ${type}",
 	"rawErrorCaption": "${kind} ${type}\n\n<i>${error}</i>",
