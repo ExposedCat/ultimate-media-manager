@@ -48,7 +48,7 @@ See social media posts right in the Telegram Messenger.
 
 - Install Deno 2
 - Install `yt-dlp` if you want the yt-dlp fallback outside the app container
-- Install `ffmpeg` for video merging and rich-message MP4 normalization outside the app container
+- Install `ffmpeg` for yt-dlp merging and Postfetch MP4 normalization outside the app container
 - Start the bot with `deno task start`
 - Run checks with `deno task check`
 - Format with `deno task fmt`

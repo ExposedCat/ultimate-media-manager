@@ -122,8 +122,11 @@ Deno.test("all Postfetch providers put their icon and sender in the credit", () 
 		});
 		assertStringIncludes(result.html ?? "", `emoji-id="${emojiId}"`);
 		assertStringIncludes(result.html ?? "", "Sender sent this video");
-		assertEquals(result.html?.includes("<cite>"), false);
-		assertEquals(result.html?.includes("Display name"), false);
+		assertEquals(result.html?.includes("<cite>"), sourceType === "twitter");
+		assertEquals(
+			result.html?.includes("Display name"),
+			sourceType === "twitter",
+		);
 		assertEquals(result.html?.includes("5951665890079544884"), false);
 	}
 });
@@ -162,7 +165,7 @@ Deno.test("Reddit without a quote body renders sender credit and facts normally"
 	assertEquals(result.html?.includes("post-author"), false);
 });
 
-Deno.test("post author names and verification are omitted from credits", () => {
+Deno.test("non-X post author names and verification are omitted from credits", () => {
 	const facebook = buildRichMessage({
 		baseHtml: "Sender sent this image",
 		captionEnabled: true,
@@ -176,20 +179,6 @@ Deno.test("post author names and verification are omitted from credits", () => {
 	});
 	assertEquals(facebook.html?.includes("Page name"), false);
 	assertEquals(facebook.html?.includes("5951665890079544884"), false);
-
-	const twitter = buildRichMessage({
-		baseHtml: "Sender sent this image",
-		captionEnabled: true,
-		media: [],
-		metadata: {
-			text: "Post body",
-			authorName: "Account name",
-			authorVerified: true,
-		},
-		sourceType: "twitter",
-	});
-	assertEquals(twitter.html?.includes("Account name"), false);
-	assertEquals(twitter.html?.includes("5951665890079544884"), false);
 });
 
 Deno.test("Twitter removes a t.co URL only when it ends the post", () => {
@@ -212,8 +201,51 @@ Deno.test("Twitter removes a t.co URL only when it ends the post", () => {
 	});
 	assertEquals(
 		result.html,
-		'<img src="tg://photo?id=media_0"/>\n<blockquote expandable>hello</blockquote>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> Sender sent this image</p>',
+		'<blockquote>\n<p>hello</p>\n<img src="tg://photo?id=media_0"/>\n</blockquote>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> Sender sent this image</p>',
 	);
+});
+
+Deno.test("X quote posts nest each author, text, and media", () => {
+	const result = buildRichMessage({
+		baseHtml:
+			'<a href="tg://user?id=42">Sender</a> sent <a href="https://x.com/outer/status/100">this slider</a>',
+		captionEnabled: true,
+		media: [
+			{ kind: "image", media: "outer-photo" },
+			{ kind: "video", media: "quoted-video" },
+		],
+		metadata: {
+			text: "Outer text https://t.co/quoted",
+			authorName: "Outer Name",
+			authorHandle: "outer",
+			mediaCount: 1,
+			quotedPost: {
+				text: "Quoted text",
+				authorName: "Quoted Name",
+				authorHandle: "quoted",
+				mediaCount: 1,
+			},
+		},
+		sourceType: "twitter",
+	});
+
+	assertEquals(
+		result.html,
+		'<blockquote>\n<p>Outer text</p>\n<img src="tg://photo?id=media_0"/>\n<blockquote>\n<p>Quoted text</p>\n<video src="tg://video?id=media_1"/>\n<cite><a href="https://x.com/quoted"><b>Quoted Name</b></a></cite>\n</blockquote>\n<cite><a href="https://x.com/outer"><b>Outer Name</b></a></cite>\n</blockquote>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> <a href="tg://user?id=42">Sender</a> sent <a href="https://x.com/outer/status/100">this slider</a></p>',
+	);
+	assertEquals(result.html?.includes("@outer"), false);
+	assertEquals(result.html?.includes("@quoted"), false);
+	assertEquals(result.media, [
+		{ id: "media_0", media: { type: "photo", media: "outer-photo" } },
+		{
+			id: "media_1",
+			media: {
+				type: "video",
+				media: "quoted-video",
+				supports_streaming: true,
+			},
+		},
+	]);
 });
 
 Deno.test("disabled captions still embed media before the attribution", () => {

@@ -26,6 +26,10 @@ const SOURCES: MediaSource[] = [
 	{ type: "facebook", match: "fb.watch/" },
 	{ type: "facebook", match: /facebook.com\/share\// },
 	{
+		type: "facebook",
+		match: /facebook\.com\/(?:[^/?#]+\/posts\/|permalink\.php|story\.php)/,
+	},
+	{
 		type: "linkedin",
 		match: /linkedin\.com\/(?:posts\/|(?:embed\/)?feed\/update\/)/,
 	},

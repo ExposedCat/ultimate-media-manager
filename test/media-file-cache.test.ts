@@ -30,3 +30,36 @@ Deno.test("extracts cached file IDs from a rich slideshow", () => {
 		},
 	);
 });
+
+Deno.test("preserves media order through nested quotations", () => {
+	assertEquals(
+		getCachedMediaFromRichMessage({
+			rich_message: {
+				blocks: [
+					{
+						type: "blockquote",
+						blocks: [
+							{ type: "photo", photo: [{ file_id: "outer-photo" }] },
+							{
+								type: "blockquote",
+								blocks: [
+									{
+										type: "video",
+										video: { file_id: "quoted-video" },
+									},
+								],
+							},
+						],
+					},
+				],
+			},
+		}),
+		{
+			kind: "images",
+			items: [
+				{ kind: "image", fileId: "outer-photo" },
+				{ kind: "video", fileId: "quoted-video" },
+			],
+		},
+	);
+});

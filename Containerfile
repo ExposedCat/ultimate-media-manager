@@ -1,4 +1,4 @@
-FROM docker.io/denoland/deno:2.7.11 AS cache
+FROM docker.io/denoland/deno:2.9.5 AS cache
 
 ENV DENO_DIR=/deno-dir
 
@@ -9,7 +9,7 @@ COPY src ./src
 
 RUN deno cache --lock=deno.lock --frozen src/index.ts src/migrations/add-chat-settings.ts
 
-FROM docker.io/denoland/deno:2.7.11
+FROM docker.io/denoland/deno:2.9.5
 
 ENV DENO_DIR=/deno-dir
 

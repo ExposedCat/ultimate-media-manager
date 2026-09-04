@@ -13,6 +13,8 @@ export type PostCaptionMeta = {
 	authorVerified?: boolean;
 	likeCount?: number;
 	commentCount?: number;
+	mediaCount?: number;
+	quotedPost?: PostCaptionMeta;
 	subreddit?: string;
 };
 

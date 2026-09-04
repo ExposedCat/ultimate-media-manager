@@ -50,16 +50,17 @@ export function buildRichMessage(
 ): InputRichMessageWithoutUpload;
 export function buildRichMessage(data: RichMessageData): InputRichMessage;
 export function buildRichMessage(data: RichMessageData): InputRichMessage {
-	const { html: mediaHtml, media } = buildMedia(data.media);
+	const { tags: mediaTags, media } = buildMedia(data.media);
 	return {
-		html: buildRichHtml(data, mediaHtml),
+		html: buildRichHtml(data, mediaTags),
 		...(media.length > 0 && { media }),
 	};
 }
 
-function buildRichHtml(data: RichMessageData, mediaHtml: string) {
+function buildRichHtml(data: RichMessageData, mediaTags: string[]) {
 	const { baseHtml, captionEnabled, metadata, sourceType } = data;
 	const senderCredit = buildSenderCredit(sourceType, baseHtml);
+	const mediaHtml = mediaBlock(mediaTags);
 	if (!captionEnabled || !metadata) {
 		return joinBlocks(mediaHtml, paragraph(senderCredit));
 	}
@@ -69,7 +70,7 @@ function buildRichHtml(data: RichMessageData, mediaHtml: string) {
 	}
 
 	if (sourceType === "twitter") {
-		return buildTwitterHtml(metadata, mediaHtml, senderCredit);
+		return buildTwitterHtml(metadata, mediaTags, senderCredit);
 	}
 
 	return joinBlocks(
@@ -116,11 +117,68 @@ function buildRedditCredit(meta: PostCaptionMeta, senderCredit: string) {
 
 function buildTwitterHtml(
 	meta: PostCaptionMeta,
-	mediaHtml: string,
+	mediaTags: string[],
 	senderCredit: string,
 ) {
+	const assignedMediaCount =
+		meta.mediaCount === undefined ? mediaTags.length : twitterMediaCount(meta);
+	const rootMediaCount =
+		(meta.mediaCount ?? mediaTags.length) +
+		Math.max(0, mediaTags.length - assignedMediaCount);
+	const { html } = buildTwitterPost(meta, mediaTags, 0, rootMediaCount);
+	return joinBlocks(html, paragraph(senderCredit));
+}
+
+function buildTwitterPost(
+	meta: PostCaptionMeta,
+	mediaTags: string[],
+	start: number,
+	mediaCount = meta.mediaCount ?? 0,
+): { html: string; next: number } {
+	const ownMedia = mediaBlock(mediaTags.slice(start, start + mediaCount));
+	let next = start + mediaCount;
+	let quotedHtml = "";
+	if (meta.quotedPost) {
+		const quoted = buildTwitterPost(meta.quotedPost, mediaTags, next);
+		quotedHtml = quoted.html;
+		next = quoted.next;
+	}
+
 	const text = meta.text ? stripTrailingTcoUrl(meta.text) : "";
-	return joinBlocks(mediaHtml, buildQuote(text, senderCredit));
+	const blocks = [
+		text ? paragraph(escapeHtml(truncate(text, MAX_RICH_TEXT_LENGTH))) : "",
+		ownMedia,
+		quotedHtml,
+	].filter(Boolean);
+	const author = twitterAuthor(meta);
+
+	return {
+		html:
+			blocks.length > 0 || author
+				? `<blockquote>\n${blocks.join("\n")}${author ? `\n<cite>${author}</cite>` : ""}\n</blockquote>`
+				: "",
+		next,
+	};
+}
+
+function twitterAuthor(meta: PostCaptionMeta) {
+	const name = meta.authorName?.trim();
+	const handle = meta.authorHandle?.replace(/^@/, "").trim();
+	const label = name ?? handle;
+	if (!label) {
+		return "";
+	}
+	const nameHtml = `<b>${escapeHtml(label)}</b>`;
+	return handle
+		? `<a href="https://x.com/${encodeURIComponent(handle)}">${nameHtml}</a>`
+		: nameHtml;
+}
+
+function twitterMediaCount(meta: PostCaptionMeta): number {
+	return (
+		(meta.mediaCount ?? 0) +
+		(meta.quotedPost ? twitterMediaCount(meta.quotedPost) : 0)
+	);
 }
 
 function metadataQuote(
@@ -188,13 +246,13 @@ function buildMedia(items: RichMediaItem[]) {
 		return `<${tag} src="tg://${scheme}?id=media_${index}"/>`;
 	});
 
-	return {
-		html:
-			tags.length > 1
-				? `<tg-slideshow>${tags.join("")}</tg-slideshow>`
-				: (tags[0] ?? ""),
-		media,
-	};
+	return { tags, media };
+}
+
+function mediaBlock(tags: string[]) {
+	return tags.length > 1
+		? `<tg-slideshow>${tags.join("")}</tg-slideshow>`
+		: (tags[0] ?? "");
 }
 
 function truncate(text: string, max: number) {

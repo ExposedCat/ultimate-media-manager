@@ -1,4 +1,4 @@
-import { assert } from "jsr:@std/assert@^1";
+import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@^1";
 
 import { downloadMediaForUrl } from "../src/services/download-media.ts";
 
@@ -21,6 +21,13 @@ async function downloads(
 			? media.files.reduce((total, file) => total + file.media.data.length, 0)
 			: (media.bytes?.length ?? 0);
 	assert(bytes > 0, `downloaded 0 bytes for ${url}`);
+}
+
+async function resolvesText(url: string, expectedText: string): Promise<void> {
+	const { media, metadata } = await downloadMediaForUrl(url);
+	assertEquals(media, null);
+	assert(metadata?.text, `no text metadata resolved for ${url}`);
+	assertStringIncludes(metadata.text, expectedText);
 }
 
 const options = { sanitizeResources: false, sanitizeOps: false } as const;
@@ -98,6 +105,26 @@ Deno.test({
 	ignore: !runs("facebook"),
 	...options,
 }, () => downloads("https://www.facebook.com/share/v/19MXsYX58F/", "video"));
+
+Deno.test({
+	name: "facebook text post resolves without media",
+	ignore: !runs("facebook"),
+	...options,
+}, () =>
+	resolvesText(
+		"https://www.facebook.com/Engineering/posts/were-sharing-an-early-view-into-how-were-building-private-processing-a-new-techn/1091181673044313/",
+		"Private Processing",
+	));
+
+Deno.test({
+	name: "x text post resolves without media",
+	ignore: !runs("twitter"),
+	...options,
+}, () =>
+	resolvesText(
+		"https://x.com/thsottiaux/status/2095651088502591861",
+		"banked reset",
+	));
 
 Deno.test({
 	name: "pinterest video pin downloads as a video",

@@ -10,7 +10,7 @@
     "npm:@grammyjs/opentelemetry@~0.1.1": "0.1.1_grammy@1.46.0",
     "npm:@grammyjs/runner@2.0.3": "2.0.3_grammy@1.46.0",
     "npm:@opentelemetry/api@^1.9.1": "1.9.1",
-    "npm:@postfetch/core@0.7": "0.7.0",
+    "npm:@postfetch/core@0.8": "0.8.0",
     "npm:grammy@1.46.0": "1.46.0",
     "npm:mongodb@4.17.2": "4.17.2"
   },
@@ -744,8 +744,8 @@
     "@opentelemetry/semantic-conventions@1.30.0": {
       "integrity": "sha512-4VlGgo32k2EQ2wcCY3vEU28A0O13aOtHz3Xt2/2U5FAh9EfhD6t6DqL5Z6yAnRCntbTFDU4YfbpyzSlHNWycPw=="
     },
-    "@postfetch/core@0.7.0": {
-      "integrity": "sha512-CbfyDUwgvYHXJS4pRe3Xwtxbe4xRgLm+bTSF0eF+Q//voY1X1aLIA6vrBtEn1aghNgQzRrmfquMQnOv7hTe9Xg=="
+    "@postfetch/core@0.8.0": {
+      "integrity": "sha512-RTrsWF/NO+jTcGBX0SYvK819rEHUmx+qZFAttyvzztnjI99Jwl73f53irbw2Lz7Vj926Za6H91O4OJ8bG3Kgaw=="
     },
     "@protobufjs/aspromise@1.1.2": {
       "integrity": "sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ=="
@@ -1346,7 +1346,7 @@
       "npm:@grammyjs/opentelemetry@~0.1.1",
       "npm:@grammyjs/runner@2.0.3",
       "npm:@opentelemetry/api@^1.9.1",
-      "npm:@postfetch/core@0.7",
+      "npm:@postfetch/core@0.8",
       "npm:grammy@1.46.0",
       "npm:mongodb@4.17.2"
     ]
