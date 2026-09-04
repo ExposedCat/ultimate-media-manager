@@ -145,17 +145,22 @@ function buildTwitterPost(
 	}
 
 	const text = meta.text ? stripTrailingTcoUrl(meta.text) : "";
+	const author = twitterAuthor(meta);
+	const heading = author
+		? `${author}:${text ? ` ${escapeHtml(truncate(text, MAX_RICH_TEXT_LENGTH))}` : ""}`
+		: text
+			? escapeHtml(truncate(text, MAX_RICH_TEXT_LENGTH))
+			: "";
 	const blocks = [
-		text ? paragraph(escapeHtml(truncate(text, MAX_RICH_TEXT_LENGTH))) : "",
+		heading ? paragraph(heading) : "",
 		ownMedia,
 		quotedHtml,
 	].filter(Boolean);
-	const author = twitterAuthor(meta);
 
 	return {
 		html:
-			blocks.length > 0 || author
-				? `<blockquote>\n${blocks.join("\n")}${author ? `\n<cite>${author}</cite>` : ""}\n</blockquote>`
+			blocks.length > 0
+				? `<blockquote>\n${blocks.join("\n")}\n</blockquote>`
 				: "",
 		next,
 	};

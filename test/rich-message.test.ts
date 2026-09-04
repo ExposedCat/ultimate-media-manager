@@ -122,7 +122,7 @@ Deno.test("all Postfetch providers put their icon and sender in the credit", () 
 		});
 		assertStringIncludes(result.html ?? "", `emoji-id="${emojiId}"`);
 		assertStringIncludes(result.html ?? "", "Sender sent this video");
-		assertEquals(result.html?.includes("<cite>"), sourceType === "twitter");
+		assertEquals(result.html?.includes("<cite>"), false);
 		assertEquals(
 			result.html?.includes("Display name"),
 			sourceType === "twitter",
@@ -231,7 +231,7 @@ Deno.test("X quote posts nest each author, text, and media", () => {
 
 	assertEquals(
 		result.html,
-		'<blockquote>\n<p>Outer text</p>\n<img src="tg://photo?id=media_0"/>\n<blockquote>\n<p>Quoted text</p>\n<video src="tg://video?id=media_1"/>\n<cite><a href="https://x.com/quoted"><b>Quoted Name</b></a></cite>\n</blockquote>\n<cite><a href="https://x.com/outer"><b>Outer Name</b></a></cite>\n</blockquote>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> <a href="tg://user?id=42">Sender</a> sent <a href="https://x.com/outer/status/100">this slider</a></p>',
+		'<blockquote>\n<p><a href="https://x.com/outer"><b>Outer Name</b></a>: Outer text</p>\n<img src="tg://photo?id=media_0"/>\n<blockquote>\n<p><a href="https://x.com/quoted"><b>Quoted Name</b></a>: Quoted text</p>\n<video src="tg://video?id=media_1"/>\n</blockquote>\n</blockquote>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> <a href="tg://user?id=42">Sender</a> sent <a href="https://x.com/outer/status/100">this slider</a></p>',
 	);
 	assertEquals(result.html?.includes("@outer"), false);
 	assertEquals(result.html?.includes("@quoted"), false);
