@@ -125,7 +125,7 @@ function buildTwitterHtml(
 	const rootMediaCount =
 		(meta.mediaCount ?? mediaTags.length) +
 		Math.max(0, mediaTags.length - assignedMediaCount);
-	const { html } = buildTwitterPost(meta, mediaTags, 0, rootMediaCount);
+	const { html } = buildTwitterPost(meta, mediaTags, 0, rootMediaCount, false);
 	return joinBlocks(html, paragraph(senderCredit));
 }
 
@@ -134,6 +134,7 @@ function buildTwitterPost(
 	mediaTags: string[],
 	start: number,
 	mediaCount = meta.mediaCount ?? 0,
+	quoted = true,
 ): { html: string; next: number } {
 	const ownMedia = mediaBlock(mediaTags.slice(start, start + mediaCount));
 	let next = start + mediaCount;
@@ -160,7 +161,9 @@ function buildTwitterPost(
 	return {
 		html:
 			blocks.length > 0
-				? `<blockquote>\n${blocks.join("\n")}\n</blockquote>`
+				? quoted
+					? `<blockquote>\n${blocks.join("\n")}\n</blockquote>`
+					: blocks.join("\n")
 				: "",
 		next,
 	};
