@@ -27,7 +27,7 @@ Deno.test("reddit rich messages put an h5 title above a media slideshow", () => 
 
 	assertEquals(
 		result.html,
-		'<h5>Seen in &lt;the UK&gt;</h5>\n<tg-slideshow><img src="tg://photo?id=media_0"/><video src="tg://video?id=media_1"/></tg-slideshow>\n<blockquote expandable>Post &lt;body&gt;</blockquote>\n<p><tg-emoji emoji-id="5343641195484560502">👽</tg-emoji> <a href="tg://user?id=42">Sender</a> sent <a href="https://reddit.com/post">this slider</a><br><a href="https://www.reddit.com/r/pics">r/pics</a> <tg-emoji emoji-id="5875078273775439450">🔼</tg-emoji> 9,969 <tg-emoji emoji-id="5994297722574737553">💬</tg-emoji> 251</p>',
+		'<h5>Seen in &lt;the UK&gt;</h5>\n<tg-slideshow><img src="tg://photo?id=media_0"/><video src="tg://video?id=media_1"/></tg-slideshow>\n<blockquote expandable>Post &lt;body&gt;</blockquote>\n<p><a href="https://www.reddit.com/r/pics">r/pics</a> <tg-emoji emoji-id="5875078273775439450">🔼</tg-emoji> 9,969 <tg-emoji emoji-id="5994297722574737553">💬</tg-emoji> 251</p>\n<p><tg-emoji emoji-id="5343641195484560502">👽</tg-emoji> <a href="tg://user?id=42">Sender</a> sent <a href="https://reddit.com/post">this slider</a></p>',
 	);
 	assertEquals(result.html?.includes("Gertrudethecurious"), false);
 	assertEquals(result.media, [
@@ -145,7 +145,7 @@ Deno.test("author-only metadata renders sender attribution without a quote", () 
 	);
 });
 
-Deno.test("Reddit without a quote body renders sender credit and facts normally", () => {
+Deno.test("Reddit without a quote body renders facts above the sender", () => {
 	const result = buildRichMessage({
 		baseHtml: "Sender sent this image",
 		captionEnabled: true,
@@ -160,7 +160,7 @@ Deno.test("Reddit without a quote body renders sender credit and facts normally"
 	});
 	assertEquals(
 		result.html,
-		'<h5>Post title</h5>\n<img src="tg://photo?id=media_0"/>\n<p><tg-emoji emoji-id="5343641195484560502">👽</tg-emoji> Sender sent this image<br><a href="https://www.reddit.com/r/pics">r/pics</a> <tg-emoji emoji-id="5875078273775439450">🔼</tg-emoji> 10</p>',
+		'<h5>Post title</h5>\n<img src="tg://photo?id=media_0"/>\n<p><a href="https://www.reddit.com/r/pics">r/pics</a> <tg-emoji emoji-id="5875078273775439450">🔼</tg-emoji> 10</p>\n<p><tg-emoji emoji-id="5343641195484560502">👽</tg-emoji> Sender sent this image</p>',
 	);
 	assertEquals(result.html?.includes("post-author"), false);
 });

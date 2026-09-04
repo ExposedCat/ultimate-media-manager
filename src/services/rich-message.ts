@@ -84,21 +84,20 @@ function buildRedditHtml(
 	mediaHtml: string,
 	senderCredit: string,
 ) {
-	if (!meta.title) {
-		return joinBlocks(mediaHtml, paragraph(senderCredit));
-	}
-
-	const credit = buildRedditCredit(meta, senderCredit);
 	const content = meta.text ? truncate(meta.text, MAX_RICH_TEXT_LENGTH) : "";
-	const quote = buildQuote(content, credit);
+	const facts = buildRedditFacts(meta);
 	return joinBlocks(
-		`<h5>${escapeHtml(truncate(meta.title, MAX_TITLE_LENGTH))}</h5>`,
+		meta.title
+			? `<h5>${escapeHtml(truncate(meta.title, MAX_TITLE_LENGTH))}</h5>`
+			: "",
 		mediaHtml,
-		quote,
+		buildQuote(content),
+		paragraph(facts),
+		paragraph(senderCredit),
 	);
 }
 
-function buildRedditCredit(meta: PostCaptionMeta, senderCredit: string) {
+function buildRedditFacts(meta: PostCaptionMeta) {
 	const facts = [];
 	if (meta.subreddit) {
 		const subreddit = escapeHtml(meta.subreddit);
@@ -112,7 +111,7 @@ function buildRedditCredit(meta: PostCaptionMeta, senderCredit: string) {
 	if (meta.commentCount !== undefined) {
 		facts.push(`${COMMENT_EMOJI} ${formatCount(meta.commentCount)}`);
 	}
-	return `${senderCredit}${facts.length > 0 ? `<br>${facts.join(" ")}` : ""}`;
+	return facts.join(" ");
 }
 
 function buildTwitterHtml(
