@@ -5,6 +5,7 @@ import type {
 } from "grammy/types";
 
 import { escapeHtml } from "../helpers/html.ts";
+import { renderMarkdownLinks } from "../helpers/markdown.ts";
 import type { PostCaptionMeta } from "./caption.ts";
 import type { SourceType } from "./sources.ts";
 
@@ -147,9 +148,9 @@ function buildTwitterPost(
 	const text = meta.text ? stripTrailingTcoUrl(meta.text) : "";
 	const author = twitterAuthor(meta);
 	const heading = author
-		? `${author}:${text ? ` ${escapeHtml(truncate(text, MAX_RICH_TEXT_LENGTH))}` : ""}`
+		? `${author}:${text ? ` ${renderMarkdownLinks(truncate(text, MAX_RICH_TEXT_LENGTH))}` : ""}`
 		: text
-			? escapeHtml(truncate(text, MAX_RICH_TEXT_LENGTH))
+			? renderMarkdownLinks(truncate(text, MAX_RICH_TEXT_LENGTH))
 			: "";
 	const blocks = [
 		heading ? paragraph(heading) : "",
@@ -215,7 +216,7 @@ function buildQuote(content: string, creditHtml = "") {
 	if (!trimmed) {
 		return paragraph(creditHtml);
 	}
-	const body = escapeHtml(truncate(trimmed, MAX_RICH_TEXT_LENGTH));
+	const body = renderMarkdownLinks(truncate(trimmed, MAX_RICH_TEXT_LENGTH));
 	return joinBlocks(
 		`<blockquote expandable>${body}</blockquote>`,
 		paragraph(creditHtml),

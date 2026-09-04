@@ -79,6 +79,23 @@ Deno.test("hashtags stay quoted and sender attribution appears below", () => {
 	assertEquals(tiktok.html?.includes("creator"), false);
 });
 
+Deno.test("Markdown links in platform bodies render as Telegram links", () => {
+	const result = buildRichMessage({
+		baseHtml: "Sender sent this image",
+		captionEnabled: true,
+		media: [{ kind: "image", media: "photo-file" }],
+		metadata: {
+			text: "Read [the post](https://example.com/post?id=1&source=feed)",
+		},
+		sourceType: "facebook",
+	});
+
+	assertStringIncludes(
+		result.html ?? "",
+		'<blockquote expandable>Read <a href="https://example.com/post?id=1&amp;source=feed">the post</a></blockquote>',
+	);
+});
+
 Deno.test("tag-only captions keep hashtags in the non-empty quote body", () => {
 	for (const sourceType of ["instagram", "tiktok", "youtube"] as const) {
 		const result = buildRichMessage({

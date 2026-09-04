@@ -54,6 +54,16 @@ Deno.test("text platforms quote the post text and escape HTML", () => {
 	);
 });
 
+Deno.test("text platforms render Markdown web links", () => {
+	const caption = buildPostCaption("instagram", {
+		text: "See [details](https://example.com?a=1&b=2)",
+	});
+	assertEquals(
+		caption,
+		'<blockquote expandable>See <a href="https://example.com?a=1&amp;b=2">details</a></blockquote>',
+	);
+});
+
 Deno.test("text platforms without text yield no caption", () => {
 	assertEquals(buildPostCaption("twitter", { likeCount: 3 }), null);
 });
