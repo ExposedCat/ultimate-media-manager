@@ -30,11 +30,28 @@ export async function downloadWithPostfetch(
 		const result = await postfetch(url, resolveOptions);
 		const files = await Promise.all(
 			result.items.map(async (item): Promise<DownloadMediaFile> => {
+				if (item.mime === "video/mp4") {
+					const video = await downloadBlob(item.url, {
+						...fetchOptions,
+						ffmpegPath: APP_ENV.FFMPEG_PATH,
+						headers: item.headers,
+						remux: true,
+					});
+					return {
+						contentType: item.mime,
+						data: new Uint8Array(await video.blob.arrayBuffer()),
+						duration: video.duration,
+						extension: extensionOf(item.filename),
+						filename: item.filename,
+						height: video.height,
+						mediaKind: item.kind,
+						thumbnail: new Uint8Array(await video.thumbnail.arrayBuffer()),
+						width: video.width,
+					};
+				}
 				const blob = await downloadBlob(item.url, {
 					...fetchOptions,
-					ffmpegPath: APP_ENV.FFMPEG_PATH,
 					headers: item.headers,
-					remux: item.mime === "video/mp4",
 				});
 				return {
 					contentType: item.mime,

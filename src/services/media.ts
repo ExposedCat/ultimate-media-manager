@@ -24,7 +24,11 @@ export type DownloadMediaFile = {
 	data: Uint8Array;
 	extension: string;
 	filename: string;
+	duration?: number;
+	height?: number;
 	mediaKind: "image" | "video" | "audio";
+	thumbnail?: Uint8Array;
+	width?: number;
 };
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif"];

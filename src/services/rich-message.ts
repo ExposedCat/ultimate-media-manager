@@ -13,6 +13,10 @@ export type RichMediaKind = "image" | "video" | "audio";
 export type RichMediaItem<T = string | InputFile> = {
 	kind: RichMediaKind;
 	media: T;
+	duration?: number;
+	height?: number;
+	thumbnail?: Extract<T, InputFile>;
+	width?: number;
 };
 
 export type RichMessageData<T = string | InputFile> = {
@@ -236,16 +240,22 @@ function buildMedia(items: RichMediaItem[]) {
 		const id = `media_${index}`;
 		return {
 			id,
-			media: {
-				type:
-					item.kind === "image"
-						? ("photo" as const)
-						: item.kind === "audio"
-							? ("audio" as const)
-							: ("video" as const),
-				media: item.media,
-				...(item.kind === "video" && { supports_streaming: true }),
-			},
+			media:
+				item.kind === "video"
+					? {
+							type: "video" as const,
+							media: item.media,
+							supports_streaming: true,
+							...(item.duration !== undefined && { duration: item.duration }),
+							...(item.height !== undefined && { height: item.height }),
+							...(item.thumbnail && { thumbnail: item.thumbnail }),
+							...(item.width !== undefined && { width: item.width }),
+						}
+					: {
+							type:
+								item.kind === "image" ? ("photo" as const) : ("audio" as const),
+							media: item.media,
+						},
 		};
 	});
 	const tags = items.map((item, index) => {

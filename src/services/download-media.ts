@@ -18,8 +18,12 @@ export type DownloadedMedia =
 			bytes?: Uint8Array;
 			extension?: string;
 			filename?: string;
+			duration?: number;
+			height?: number;
 			title?: string;
 			metadata?: PostCaptionMeta;
+			thumbnail?: Uint8Array;
+			width?: number;
 	  }
 	| {
 			kind: "images";
@@ -103,7 +107,11 @@ function toDownloadedMedia(
 				extension: item.media.extension,
 				file: item.file,
 				filename: item.media.filename,
+				duration: item.media.duration,
+				height: item.media.height,
 				metadata: result.metadata,
+				thumbnail: item.media.thumbnail,
+				width: item.media.width,
 			};
 		}
 
@@ -120,6 +128,10 @@ function toDownloadedMedia(
 		extension: result.extension,
 		file: new InputFile(result.file.data, result.file.filename),
 		filename: result.file.filename,
+		duration: result.file.duration,
+		height: result.file.height,
 		metadata: result.metadata,
+		thumbnail: result.file.thumbnail,
+		width: result.file.width,
 	};
 }

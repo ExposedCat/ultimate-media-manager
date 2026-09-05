@@ -1,5 +1,10 @@
-import { assertEquals, assertStringIncludes } from "jsr:@std/assert@^1";
+import {
+	assertEquals,
+	assertInstanceOf,
+	assertStringIncludes,
+} from "jsr:@std/assert@^1";
 import { InputFile } from "grammy";
+import type { InputRichMessage } from "grammy/types";
 
 import { cacheDownloadedMedia } from "../src/services/cache-media.ts";
 import {
@@ -245,13 +250,19 @@ Deno.test("guest download sends a standalone cached video in a rich message", as
 Deno.test("guest video caching uses a rich message upload", async () => {
 	const url = "https://x.com/example/status/fresh-guest-video";
 	const calls: string[] = [];
+	const bytes = new Uint8Array([1]);
 
 	try {
 		const cached = await cacheDownloadedMedia(
 			testContext({
 				api: {
-					sendRichMessage(_chatId: number, message: { html?: string }) {
+					sendRichMessage(_chatId: number, message: InputRichMessage) {
 						calls.push("rich");
+						const video = message.media?.[0].media;
+						assertEquals(video?.type, "video");
+						if (video?.type === "video") {
+							assertInstanceOf(video.thumbnail, InputFile);
+						}
 						assertStringIncludes(
 							message.html ?? "",
 							'<video src="tg://video?id=media_0"/>',
@@ -266,8 +277,13 @@ Deno.test("guest video caching uses a rich message upload", async () => {
 			}),
 			{
 				kind: "video",
-				file: new InputFile(new Uint8Array([0]), "video.mp4"),
+				file: new InputFile(bytes, "video.mp4"),
+				bytes,
+				duration: 1,
+				height: 360,
 				metadata: { text: "Video caption" },
+				thumbnail: new Uint8Array([2]),
+				width: 640,
 			},
 			url,
 		);
