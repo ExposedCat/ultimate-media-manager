@@ -8,6 +8,7 @@ import {
 	buildDownloadResponseBaseText,
 	buildDownloadResponseText,
 	responseCaptionEnabled,
+	responseMediaKind,
 } from "./download-response.ts";
 import { classifyMediaSendFailure, getFailureCode } from "./failure.ts";
 import {
@@ -594,16 +595,17 @@ export async function downloadMatchedUrl(
 		};
 		const cachedMedia = getCachedMedia(url);
 		if (cachedMedia) {
+			const attributionKind = responseMediaKind(type, cachedMedia);
 			const cachedBaseText = buildDownloadResponseBaseText(
 				ctx,
 				responseData,
-				cachedMedia.kind,
+				attributionKind,
 			);
 			const cachedCaptionEnabled = responseCaptionEnabled(ctx, type);
 			const cachedText = buildDownloadResponseText(
 				ctx,
 				responseData,
-				cachedMedia.kind,
+				attributionKind,
 				undefined,
 				cachedMedia.metadata,
 			);

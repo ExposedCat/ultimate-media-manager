@@ -7,6 +7,7 @@ import {
 } from "./caption.ts";
 import { DEFAULT_SETTINGS } from "./chat.ts";
 import { type DownloadedMedia, downloadMediaForUrl } from "./download-media.ts";
+import type { CachedMedia } from "./media-file-cache.ts";
 import { buildSenderCredit } from "./rich-message.ts";
 import type { SourceType } from "./sources.ts";
 
@@ -30,6 +31,26 @@ type DownloadResponseData = {
 };
 
 type DownloadResponseMediaKind = NonNullable<DownloadResponse["media"]>["kind"];
+
+export function responseMediaKind(
+	sourceType: SourceType,
+	media: DownloadedMedia | CachedMedia,
+): DownloadResponseMediaKind | null {
+	const count = media.metadata?.mediaCount;
+	if (sourceType !== "twitter" || count === undefined) {
+		return media.kind;
+	}
+	if (count === 0) {
+		return null;
+	}
+	if (count > 1) {
+		return "images";
+	}
+	// Postfetch orders the main post's media before media from quoted posts.
+	return media.kind === "images"
+		? (("files" in media ? media.files : media.items)[0]?.kind ?? null)
+		: media.kind;
+}
 
 function getResponseSettings(ctx: CustomContext) {
 	if (ctx.guestMessage && ctx.chat?.type === "private") {
@@ -176,7 +197,8 @@ export async function buildDownloadResponse(
 		};
 	}
 
-	const baseText = buildDownloadResponseBaseText(ctx, data, media.kind);
+	const attributionKind = responseMediaKind(data.sourceType, media);
+	const baseText = buildDownloadResponseBaseText(ctx, data, attributionKind);
 	return {
 		baseText,
 		captionEnabled: responseCaptionEnabled(ctx, data.sourceType),
@@ -186,7 +208,7 @@ export async function buildDownloadResponse(
 		text: buildDownloadResponseText(
 			ctx,
 			data,
-			media.kind,
+			attributionKind,
 			undefined,
 			media.metadata,
 		),

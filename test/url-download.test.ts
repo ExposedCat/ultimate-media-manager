@@ -7,6 +7,7 @@ import { InputFile } from "grammy";
 import type { InputRichMessage } from "grammy/types";
 
 import { cacheDownloadedMedia } from "../src/services/cache-media.ts";
+import { responseMediaKind } from "../src/services/download-response.ts";
 import {
 	deleteCachedMedia,
 	setCachedMedia,
@@ -75,6 +76,68 @@ Deno.test("rich download retries cached media without a rejected caption", async
 		assertEquals(richMessages[1].html?.includes("Post caption"), false);
 	} finally {
 		deleteCachedMedia(url);
+	}
+});
+
+Deno.test("X attribution counts only main-post media for fresh and cached downloads", async () => {
+	for (const [mediaCount, firstKind, label] of [
+		[0, "video", "post"],
+		[1, "video", "video"],
+		[1, "image", "image"],
+		[2, "image", "slider"],
+		[undefined, "video", "slider"],
+	] as const) {
+		const url = `https://x.com/example/status/root-${mediaCount}-${firstKind}`;
+		const metadata = {
+			text: "Main post",
+			mediaCount,
+			quotedPost: { text: "Quoted post", mediaCount: 1 },
+		};
+		const kinds = [firstKind, "video", "video"] as const;
+		const freshMedia = {
+			kind: "images" as const,
+			metadata,
+			files: kinds.map((kind) => ({
+				kind,
+				file: new InputFile(new Uint8Array(), "file"),
+				media: {
+					data: new Uint8Array(),
+					extension: kind === "video" ? "mp4" : "jpg",
+					filename: "file",
+					mediaKind: kind,
+				},
+			})),
+		};
+		assertEquals(
+			responseMediaKind("twitter", freshMedia),
+			label === "post" ? null : label === "slider" ? "images" : label,
+		);
+		assertEquals(responseMediaKind("instagram", freshMedia), "images");
+		setCachedMedia(url, {
+			kind: "images",
+			metadata,
+			items: kinds.map((kind, index) => ({ kind, fileId: `file-${index}` })),
+		});
+		const messages: InputRichMessage[] = [];
+		try {
+			await downloadMatchedUrl(
+				testContext({
+					i18n: captionI18n(),
+					replyWithRichMessage(message: InputRichMessage) {
+						messages.push(message);
+						return {};
+					},
+				}),
+				url,
+				twitterMatch,
+			);
+			assertEquals(messages.length, 1);
+			assertStringIncludes(messages[0].html ?? "", `shared this ${label}`);
+			assertStringIncludes(messages[0].html ?? "", "Quoted post");
+			assertEquals(messages[0].media?.length, 3);
+		} finally {
+			deleteCachedMedia(url);
+		}
 	}
 });
 
