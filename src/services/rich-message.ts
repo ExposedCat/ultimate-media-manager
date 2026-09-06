@@ -150,12 +150,14 @@ function buildTwitterPost(
 	}
 
 	const text = meta.text ? stripTrailingTcoUrl(meta.text) : "";
+	// Rich HTML collapses literal newlines; encode post line breaks explicitly.
+	const textHtml = renderMarkdownLinks(
+		truncate(text, MAX_RICH_TEXT_LENGTH),
+	).replace(/\r\n|\r|\n/g, "<br>");
 	const author = twitterAuthor(meta);
 	const heading = author
-		? `${author}:${text ? ` ${renderMarkdownLinks(truncate(text, MAX_RICH_TEXT_LENGTH))}` : ""}`
-		: text
-			? renderMarkdownLinks(truncate(text, MAX_RICH_TEXT_LENGTH))
-			: "";
+		? `${author}:${textHtml ? ` ${textHtml}` : ""}`
+		: textHtml;
 	const blocks = [
 		heading ? paragraph(heading) : "",
 		ownMedia,

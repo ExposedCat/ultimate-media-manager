@@ -222,6 +222,31 @@ Deno.test("Twitter removes a t.co URL only when it ends the post", () => {
 	);
 });
 
+Deno.test("X posts preserve line breaks and blank lines in rich HTML", () => {
+	for (const newline of ["\n", "\r\n", "\r"]) {
+		for (const authorName of [undefined, "Author"]) {
+			const result = buildRichMessage({
+				baseHtml: "",
+				captionEnabled: true,
+				media: [],
+				metadata: {
+					authorName,
+					text: `First <line>${newline}${newline}[Second](https://example.com/?a=1&b=2)${newline}Third https://t.co/media`,
+					quotedPost: {
+						authorName: "Quoted",
+						text: `Quoted & first${newline}Quoted second`,
+					},
+				},
+				sourceType: "twitter",
+			});
+			assertEquals(
+				result.html,
+				`<p>${authorName ? "<b>Author</b>: " : ""}First &lt;line&gt;<br><br><a href="https://example.com/?a=1&amp;b=2">Second</a><br>Third</p>\n<blockquote>\n<p><b>Quoted</b>: Quoted &amp; first<br>Quoted second</p>\n</blockquote>`,
+			);
+		}
+	}
+});
+
 Deno.test("X quote posts nest each author, text, and media", () => {
 	const result = buildRichMessage({
 		baseHtml:
