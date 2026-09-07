@@ -31,10 +31,9 @@ export async function downloadWithPostfetch(
 		const files = await Promise.all(
 			result.items.map(async (item): Promise<DownloadMediaFile> => {
 				if (item.mime === "video/mp4") {
-					const video = await downloadBlob(item.url, {
+					const video = await downloadBlob(item, {
 						...fetchOptions,
 						ffmpegPath: APP_ENV.FFMPEG_PATH,
-						headers: item.headers,
 						remux: true,
 					});
 					return {
@@ -49,9 +48,8 @@ export async function downloadWithPostfetch(
 						width: video.width,
 					};
 				}
-				const blob = await downloadBlob(item.url, {
+				const blob = await downloadBlob(item, {
 					...fetchOptions,
-					headers: item.headers,
 				});
 				return {
 					contentType: item.mime,
