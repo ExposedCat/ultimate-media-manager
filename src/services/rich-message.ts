@@ -150,10 +150,7 @@ function buildTwitterPost(
 	}
 
 	const text = meta.text ? stripTrailingTcoUrl(meta.text) : "";
-	// Rich HTML collapses literal newlines; encode post line breaks explicitly.
-	const textHtml = renderMarkdownLinks(
-		truncate(text, MAX_RICH_TEXT_LENGTH),
-	).replace(/\r\n|\r|\n/g, "<br>");
+	const textHtml = renderPostText(text);
 	const author = twitterAuthor(meta);
 	const heading = author
 		? `${author}:${textHtml ? ` ${textHtml}` : ""}`
@@ -222,10 +219,18 @@ function buildQuote(content: string, creditHtml = "") {
 	if (!trimmed) {
 		return paragraph(creditHtml);
 	}
-	const body = renderMarkdownLinks(truncate(trimmed, MAX_RICH_TEXT_LENGTH));
+	const body = renderPostText(trimmed);
 	return joinBlocks(
 		`<blockquote expandable>${body}</blockquote>`,
 		paragraph(creditHtml),
+	);
+}
+
+function renderPostText(text: string) {
+	// Rich HTML collapses literal newlines; encode post line breaks explicitly.
+	return renderMarkdownLinks(truncate(text, MAX_RICH_TEXT_LENGTH)).replace(
+		/\r\n|\r|\n/g,
+		"<br>",
 	);
 }
 
