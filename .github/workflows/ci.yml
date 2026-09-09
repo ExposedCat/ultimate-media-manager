@@ -31,11 +31,9 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Install ffmpeg + yt-dlp
+      - name: Install ffmpeg
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-          sudo curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-          sudo chmod a+rx /usr/local/bin/yt-dlp
 
       - name: Start the WARP sidecar (only where the runner IP is gated)
         run: |

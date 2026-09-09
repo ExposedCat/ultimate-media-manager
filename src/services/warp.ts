@@ -5,8 +5,6 @@ const proxy = APP_ENV.WARP_PROXY;
 const PROXY_RETRY_ATTEMPTS = 10;
 const PROXY_RETRY_DELAY_MS = 1000;
 
-export const warpProxy: string | undefined = proxy;
-
 export const warpFetch: typeof fetch | undefined = proxy
 	? warpClientFetch(proxy)
 	: undefined;

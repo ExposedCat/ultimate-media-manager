@@ -54,7 +54,7 @@ Deno.test("unknown failures retain only their code", () => {
 
 Deno.test("extracts HTTP codes from download error messages", () => {
 	assertEquals(
-		getFailureCode("yt-dlp failed: HTTP Error 403: Forbidden"),
+		getFailureCode("Postfetch failed: HTTP Error 403: Forbidden"),
 		"403",
 	);
 	assertEquals(getFailureCode(new Error("resolver exploded")), "unknown");

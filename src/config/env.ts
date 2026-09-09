@@ -17,6 +17,5 @@ export const APP_ENV = {
 	CACHE_CHAT_ID: requireEnv("CACHE_CHAT_ID"),
 	ADMIN_ID: optionalEnv("ADMIN_ID"),
 	WARP_PROXY: optionalEnv("WARP_PROXY"),
-	YT_DLP_PATH: Deno.env.get("YT_DLP_PATH") ?? "yt-dlp",
 	FFMPEG_PATH: Deno.env.get("FFMPEG_PATH") ?? "ffmpeg",
 };

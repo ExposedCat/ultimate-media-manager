@@ -3,7 +3,6 @@ import { InputFile } from "grammy";
 import type { PostCaptionMeta } from "./caption.ts";
 import type { DownloadMediaFile, DownloadMediaResult } from "./media.ts";
 import { downloadWithPostfetch } from "./postfetch.ts";
-import { downloadWithYtdlp } from "./ytdlp.ts";
 
 export type DownloadedMediaGroupItem = {
 	file: InputFile;
@@ -47,37 +46,30 @@ export async function downloadMediaForUrl(url: string): Promise<{
 	reason?: string;
 	metadata?: PostCaptionMeta;
 }> {
-	let error: string | undefined;
-	let reason: string | undefined;
-	for (const resolver of [downloadWithPostfetch, downloadWithYtdlp]) {
-		let result: DownloadMediaResult | null;
-		try {
-			result = await resolver(url);
-		} catch (caught) {
-			error ??= caught instanceof Error ? caught.message : String(caught);
-			reason ??= postfetchReason(caught);
-			continue;
-		}
-		if (!result) {
-			continue;
-		}
-		if (result.type === "text") {
-			console.info("[DownloadMedia] Resolved a text post", { url });
-			return { media: null, metadata: result.metadata };
-		}
-		console.info("[DownloadMedia] Downloaded media", {
-			url,
-			mediaType: result.type,
-			mediaKind: result.type === "single" ? result.mediaKind : "multiple",
-		});
-		const media = toDownloadedMedia(result);
-		if (media) {
-			return { media };
-		}
+	let result: DownloadMediaResult | null;
+	try {
+		result = await downloadWithPostfetch(url);
+	} catch (caught) {
+		return {
+			media: null,
+			error: caught instanceof Error ? caught.message : String(caught),
+			reason: postfetchReason(caught),
+		};
 	}
-
-	console.info("[DownloadMedia] No resolver could download media", { url });
-	return { media: null, error, reason };
+	if (!result) {
+		console.info("[DownloadMedia] Postfetch returned no media", { url });
+		return { media: null };
+	}
+	if (result.type === "text") {
+		console.info("[DownloadMedia] Resolved a text post", { url });
+		return { media: null, metadata: result.metadata };
+	}
+	console.info("[DownloadMedia] Downloaded media", {
+		url,
+		mediaType: result.type,
+		mediaKind: result.type === "single" ? result.mediaKind : "multiple",
+	});
+	return { media: toDownloadedMedia(result) };
 }
 
 function toDownloadedMedia(

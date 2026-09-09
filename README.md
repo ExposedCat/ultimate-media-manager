@@ -42,8 +42,7 @@ See social media posts right in the Telegram Messenger.
 
 - Install Deno 2
 - Copy `.env.example` to `.env` and configure the bot token, cache chat ID, and MongoDB connection
-- Install `yt-dlp` if you want the yt-dlp fallback outside the app container
-- Install `ffmpeg` for yt-dlp merging and Postfetch MP4 normalization outside the app container
+- Install `ffmpeg` for Postfetch MP4 normalization outside the app container
 - Start the bot with `deno task start`
 - Run checks with `deno task check`
 - Format and apply lint fixes with `deno task format`
@@ -60,7 +59,7 @@ with `docker compose up`.
 
 ### Media resolution
 
-- Media is resolved in-process by [postfetch](https://github.com/chelokot/postfetch), with `yt-dlp` as the fallback.
+- Media is resolved in-process by [postfetch](https://github.com/chelokot/postfetch). Download failures are reported directly, so resolver issues can be diagnosed and fixed in Postfetch.
 - `WARP_PROXY` configures the Cloudflare WARP SOCKS5 proxy provided by the `warp/` sidecar. Leave it empty to fetch directly.
 - `WARP_ROTATE_MINUTES` controls sidecar account rotation (`compose.yml` defaults to `30`; `0` disables rotation).
 
