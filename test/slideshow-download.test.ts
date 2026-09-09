@@ -135,6 +135,44 @@ Deno.test({
 		);
 		assertEquals(response.media.metadata?.text, "Slideshow caption");
 
+		await generate([
+			"-f",
+			"lavfi",
+			"-i",
+			"sine=frequency=440:duration=4.4",
+			`${directory}/long.wav`,
+		]);
+		files.set("sound.wav", await Deno.readFile(`${directory}/long.wav`));
+		const extended = await downloadMediaForUrl(url, { slideshowDelay: 1 });
+		assert(extended.media?.kind === "video");
+		assert(extended.media.bytes);
+		const extendedPath = `${directory}/extended.mp4`;
+		await Deno.writeFile(extendedPath, extended.media.bytes);
+		const probe = await new Deno.Command("ffprobe", {
+			args: [
+				"-v",
+				"error",
+				"-show_entries",
+				"stream=codec_type,duration",
+				"-of",
+				"json",
+				extendedPath,
+			],
+			stdout: "piped",
+			stderr: "piped",
+		}).output();
+		assert(probe.success, new TextDecoder().decode(probe.stderr));
+		const streams = JSON.parse(new TextDecoder().decode(probe.stdout))
+			.streams as { codec_type: string; duration: string }[];
+		assertEquals(
+			streams.map((stream) => stream.codec_type),
+			["video", "audio"],
+		);
+		for (const stream of streams) {
+			assert(Number(stream.duration) >= 4.4);
+			assert(Number(stream.duration) < 4.5);
+		}
+
 		const disabled = await downloadMediaForUrl(url, { slideshowDelay: 0 });
 		assert(disabled.media?.kind === "images");
 		assertEquals(disabled.media.files.length, 2);

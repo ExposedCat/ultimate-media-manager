@@ -160,7 +160,7 @@ Deno.test("settings show status buttons and delay choices without command links"
 	assertEquals((html.match(/data="settings:toggle:/g) ?? []).length, 10);
 	assertStringIncludes(
 		html,
-		'<tg-button-row><tg-button type="callback_data" style="success" data="settings:toggle:clp">Enabled</tg-button></tg-button-row>',
+		'<p>option.cleanup <tg-button type="callback_data" style="success" data="settings:toggle:clp">Enabled</tg-button></p>',
 	);
 	assertStringIncludes(
 		html,
@@ -169,6 +169,11 @@ Deno.test("settings show status buttons and delay choices without command links"
 	assertStringIncludes(
 		html,
 		'style="primary" data="settings:delay:5">5s</tg-button>',
+	);
+	assertEquals((html.match(/<tg-button-row>/g) ?? []).length, 2);
+	assertStringIncludes(
+		html,
+		'<p>option.slideshow 5s <tg-button type="callback_data" style="success" data="settings:toggle:sld">Enabled</tg-button></p>',
 	);
 	for (let seconds = 1; seconds <= 10; seconds++)
 		assertStringIncludes(

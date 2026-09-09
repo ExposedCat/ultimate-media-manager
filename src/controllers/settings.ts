@@ -107,10 +107,10 @@ function renderSettingsOptions(ctx: CustomContext, settings: Settings): string {
 	const options = OPTIONS.map((target) => {
 		const enabled = settings[target.key];
 		const suffix = target.adminOnly ? ` · ${ctx.i18n.t("adminOnly")}` : "";
-		return `<p>${escapeHtml(ctx.i18n.t(target.labelKey) + suffix)}</p>${toggleRow(ctx, target.commandId, enabled)}`;
+		return `<p>${escapeHtml(ctx.i18n.t(target.labelKey) + suffix)} ${toggleButton(ctx, target.commandId, enabled)}</p>`;
 	}).join("\n");
 	const delay = slideshowDelay(settings);
-	const slider = `<p>${escapeHtml(ctx.i18n.t("option.slideshow", { seconds: delay }))}</p>${toggleRow(ctx, "sld", delay > 0)}`;
+	const slider = `<p>${escapeHtml(ctx.i18n.t("option.slideshow", { seconds: delay }))} ${toggleButton(ctx, "sld", delay > 0)}</p>`;
 	const delays = [1, 6]
 		.map((start) => {
 			const buttons = Array.from({ length: 5 }, (_, index) => {
@@ -123,12 +123,12 @@ function renderSettingsOptions(ctx: CustomContext, settings: Settings): string {
 	return `${options}\n${slider}\n<p>${escapeHtml(ctx.i18n.t("slideshowDelayHelp"))}</p>${delays}`;
 }
 
-function toggleRow(
+function toggleButton(
 	ctx: CustomContext,
 	commandId: string,
 	enabled: boolean,
 ): string {
-	return `<tg-button-row><tg-button type="callback_data" style="${enabled ? "success" : "danger"}" data="settings:toggle:${commandId}">${escapeHtml(ctx.i18n.t(enabled ? "enabled" : "disabled"))}</tg-button></tg-button-row>`;
+	return `<tg-button type="callback_data" style="${enabled ? "success" : "danger"}" data="settings:toggle:${commandId}">${escapeHtml(ctx.i18n.t(enabled ? "enabled" : "disabled"))}</tg-button>`;
 }
 
 function settingsMessage(
