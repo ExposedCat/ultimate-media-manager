@@ -66,18 +66,7 @@ export function buildRichMessage(input: RichMessageData): InputRichMessage {
 	const data = selectCommentMedia(input);
 	const { tags: mediaTags, media } = buildMedia(data.media);
 	return {
-		html: joinBlocks(
-			buildRichHtml(
-				data,
-				mediaTags.slice(0, mediaTags.length - commentMediaCount(data)),
-			),
-			data.sourceType === "twitter"
-				? buildComments(
-						data.metadata?.comments ?? [],
-						mediaTags.slice(mediaTags.length - commentMediaCount(data)),
-					)
-				: "",
-		),
+		html: buildRichHtml(data, mediaTags),
 		...(media.length > 0 && { media }),
 	};
 }
@@ -85,21 +74,25 @@ export function buildRichMessage(input: RichMessageData): InputRichMessage {
 function buildRichHtml(data: RichMessageData, mediaTags: string[]) {
 	const { baseHtml, captionEnabled, metadata, sourceType } = data;
 	const senderCredit = buildSenderCredit(sourceType, baseHtml);
-	const mediaHtml = mediaBlock(mediaTags);
-	if (!captionEnabled || !metadata) {
+	if (sourceType === "twitter") {
+		const postMediaCount = mediaTags.length - commentMediaCount(data);
+		const postMedia = mediaTags.slice(0, postMediaCount);
 		return joinBlocks(
-			mediaHtml,
-			sourceType === "twitter" && senderCredit ? "<hr>" : "",
+			captionEnabled && metadata
+				? buildTwitterHtml(metadata, postMedia)
+				: mediaBlock(postMedia),
+			buildComments(metadata?.comments ?? [], mediaTags.slice(postMediaCount)),
+			senderCredit ? "<hr>" : "",
 			paragraph(senderCredit),
 		);
+	}
+	const mediaHtml = mediaBlock(mediaTags);
+	if (!captionEnabled || !metadata) {
+		return joinBlocks(mediaHtml, paragraph(senderCredit));
 	}
 
 	if (sourceType === "reddit") {
 		return buildRedditHtml(metadata, mediaHtml, senderCredit);
-	}
-
-	if (sourceType === "twitter") {
-		return buildTwitterHtml(metadata, mediaTags, senderCredit);
 	}
 
 	return joinBlocks(
@@ -143,18 +136,14 @@ function buildRedditFacts(meta: PostCaptionMeta) {
 	return facts.join(" ");
 }
 
-function buildTwitterHtml(
-	meta: PostCaptionMeta,
-	mediaTags: string[],
-	senderCredit: string,
-) {
+function buildTwitterHtml(meta: PostCaptionMeta, mediaTags: string[]) {
 	const assignedMediaCount =
 		meta.mediaCount === undefined ? mediaTags.length : twitterMediaCount(meta);
 	const rootMediaCount =
 		(meta.mediaCount ?? mediaTags.length) +
 		Math.max(0, mediaTags.length - assignedMediaCount);
 	const { html } = buildTwitterPost(meta, mediaTags, 0, rootMediaCount, false);
-	return joinBlocks(html, senderCredit ? "<hr>" : "", paragraph(senderCredit));
+	return html;
 }
 
 function buildTwitterPost(
@@ -353,16 +342,16 @@ function buildComments(
 			entries
 				.map(
 					({ comment, media }) =>
-						buildTwitterPost(comment, media, 0, media.length, false, true).html,
+						buildTwitterPost(comment, media, 0, media.length, true, true).html,
 				)
 				.join("\n"),
 	);
 	if (sections.length < 2) return sections[0] ?? "";
 	let html = sections[sections.length - 1];
 	for (let i = sections.length - 2; i >= 0; i--) {
-		html = `${sections[i]}\n<details><summary>Show more</summary>\n${html}\n</details>`;
+		html = `${sections[i]}\n<details><summary>More</summary>\n${html}\n</details>`;
 	}
-	return `<details><summary>Show comments</summary>\n${html}\n</details>`;
+	return `<details><summary>Comments</summary>\n${html}\n</details>`;
 }
 
 // Drop attachments along with omitted comments so they are never uploaded or

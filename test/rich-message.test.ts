@@ -368,7 +368,7 @@ Deno.test("X separates sender credit even with captions disabled", () => {
 	assertStringIncludes(result.html ?? "", "<hr>\n<p>");
 });
 
-Deno.test("comments form a nested Show comments / Show more chain, or render directly", () => {
+Deno.test("comments form a nested Comments / More chain, or render directly", () => {
 	const render = (lengths: number[]) =>
 		buildRichMessage({
 			baseHtml: "",
@@ -385,10 +385,10 @@ Deno.test("comments form a nested Show comments / Show more chain, or render dir
 	assertEquals(render([250, 250, 250]).includes("<details>"), false);
 	const two = render([250, 250, 500]);
 	assertEquals((two.match(/<details>/g) ?? []).length, 2);
-	assertStringIncludes(two, "<details><summary>Show comments</summary>");
-	assertStringIncludes(two, "<details><summary>Show more</summary>");
-	assertEquals(two.indexOf("b".repeat(250)) < two.indexOf("Show more"), true);
-	assertEquals(two.indexOf("c".repeat(500)) > two.indexOf("Show more"), true);
+	assertStringIncludes(two, "<details><summary>Comments</summary>");
+	assertStringIncludes(two, "<details><summary>More</summary>");
+	assertEquals(two.indexOf("b".repeat(250)) < two.indexOf("More"), true);
+	assertEquals(two.indexOf("c".repeat(500)) > two.indexOf("More"), true);
 	assertStringIncludes(render([10000]), "a".repeat(10000));
 	assertStringIncludes(render([31000]), "a".repeat(31000));
 	const max = render(Array(14).fill(751));
@@ -419,8 +419,8 @@ Deno.test("comment media stays in its own section, separate from root and quote 
 	});
 	const html = result.html ?? "";
 	assertEquals((html.match(/<details>/g) ?? []).length, 3);
-	assertEquals(html.indexOf("media_1") < html.indexOf("Show comments"), true);
-	assertEquals(html.indexOf("media_2") > html.indexOf("Show more"), true);
+	assertEquals(html.indexOf("media_1") < html.indexOf("Comments"), true);
+	assertEquals(html.indexOf("media_2") > html.indexOf("More"), true);
 	assertEquals(html.includes("tg-slideshow"), false);
 	assertEquals(result.media?.length, 3);
 });
@@ -435,4 +435,59 @@ Deno.test("explicitly requested comments still render with post captions disable
 	});
 	assertEquals(result.html?.includes("hidden root"), false);
 	assertStringIncludes(result.html ?? "", "visible reply");
+});
+
+Deno.test("X comments are individually quoted before the final divider and sender", () => {
+	for (const captionEnabled of [true, false]) {
+		for (const length of [10, 751]) {
+			const result = buildRichMessage({
+				baseHtml: "Sender credit",
+				captionEnabled,
+				sourceType: "twitter",
+				media: [],
+				metadata: {
+					text: "Root text",
+					comments: [
+						{ text: "a".repeat(length) },
+						{ text: "b".repeat(length) },
+					],
+				},
+			});
+			const html = result.html ?? "";
+			assertEquals((html.match(/<blockquote>/g) ?? []).length, 2);
+			assertStringIncludes(
+				html,
+				`<blockquote>\n<p>${"a".repeat(length)}</p>\n</blockquote>`,
+			);
+			assertStringIncludes(
+				html,
+				`<blockquote>\n<p>${"b".repeat(length)}</p>\n</blockquote>`,
+			);
+			assertEquals((html.match(/<hr>/g) ?? []).length, 1);
+			assertEquals(
+				html.indexOf("<hr>") > html.lastIndexOf("</blockquote>"),
+				true,
+			);
+			assertEquals(html.indexOf("<hr>") > html.lastIndexOf("</details>"), true);
+			assertEquals(html.indexOf("Sender credit") > html.indexOf("<hr>"), true);
+			assertEquals(html.endsWith("Sender credit</p>"), true);
+		}
+	}
+});
+
+Deno.test("a media comment quotes both its text and its attachment", () => {
+	const result = buildRichMessage({
+		baseHtml: "Sender",
+		captionEnabled: true,
+		sourceType: "twitter",
+		media: [{ kind: "image", media: "comment-photo" }],
+		metadata: {
+			mediaCount: 0,
+			comments: [{ text: "Photo comment", mediaCount: 1 }],
+		},
+	});
+	assertStringIncludes(
+		result.html ?? "",
+		'<blockquote>\n<p>Photo comment</p>\n<img src="tg://photo?id=media_0"/>\n</blockquote>\n<hr>',
+	);
 });

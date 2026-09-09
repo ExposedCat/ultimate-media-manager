@@ -73,7 +73,7 @@ Licensed under the [GNU General Public License v3.0](LICENSE).
 
 An integer immediately after an X link requests that many replies, for example
 `Check this: https://x.com/paularambles/status/2097547797444911520?s=20 5, cool?`.
-Replies use nested “Show comments” / “Show more” disclosures: text comments share
+Replies use nested “Comments” / “More” disclosures: text comments share
 up to 750 characters per section; media comments occupy a section alone with their
 first attachment. Oversized comments stay intact. A single section is shown directly,
 and at most 13 sections are retained. Comment failures leave the original post usable.

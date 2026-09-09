@@ -86,7 +86,7 @@ Deno.test("UMM parses the link count, bypasses the root cache, downloads reply m
 				assertEquals(await downloadMatchedUrl(ctx, url), true);
 				assertEquals(sent.length, 1);
 				const html = sent[0].html ?? "";
-				assertStringIncludes(html, "Show comments");
+				assertStringIncludes(html, "Comments");
 				assertStringIncludes(html, "d".repeat(10000));
 				assertStringIncludes(html, "reply-5");
 				assertEquals(html.includes("reply-6"), false);
