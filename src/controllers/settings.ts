@@ -111,6 +111,7 @@ function renderSettingsOptions(ctx: CustomContext, settings: Settings): string {
 	}).join("\n");
 	const delay = slideshowDelay(settings);
 	const slider = `<p>${escapeHtml(ctx.i18n.t("option.slideshow", { seconds: delay }))} ${toggleButton(ctx, "sld", delay > 0)}</p>`;
+	if (delay === 0) return `${options}\n${slider}`;
 	const delays = [1, 6]
 		.map((start) => {
 			const buttons = Array.from({ length: 5 }, (_, index) => {
@@ -120,7 +121,7 @@ function renderSettingsOptions(ctx: CustomContext, settings: Settings): string {
 			return `<tg-button-row>${buttons}</tg-button-row>`;
 		})
 		.join("\n");
-	return `${options}\n${slider}\n<p>${escapeHtml(ctx.i18n.t("slideshowDelayHelp"))}</p>${delays}`;
+	return `${options}\n${slider}\n${delays}`;
 }
 
 function toggleButton(

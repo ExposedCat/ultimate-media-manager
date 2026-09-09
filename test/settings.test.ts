@@ -173,7 +173,7 @@ Deno.test("settings show status buttons and delay choices without command links"
 	assertEquals((html.match(/<tg-button-row>/g) ?? []).length, 2);
 	assertStringIncludes(
 		html,
-		'<p>option.slideshow 5s <tg-button type="callback_data" style="success" data="settings:toggle:sld">Enabled</tg-button></p>',
+		'<p>option.slideshow 5s <tg-button type="callback_data" style="success" data="settings:toggle:sld">Enabled</tg-button></p>\n<tg-button-row>',
 	);
 	for (let seconds = 1; seconds <= 10; seconds++)
 		assertStringIncludes(
@@ -221,6 +221,10 @@ Deno.test("slideshow clicks toggle off/default on and select any valid delay", a
 	for (const expected of [0, 1]) {
 		await settingsController.middleware()(toggle.ctx, () => Promise.resolve());
 		assertEquals(responseSlideshowDelay(toggle.ctx), expected);
+		assertEquals(
+			(toggle.edits.at(-1)?.html ?? "").includes("settings:delay:"),
+			expected > 0,
+		);
 		assertEquals(toggle.writes.at(-1)?.update, {
 			$set: { "settings.slideshowDelay": expected },
 		});
