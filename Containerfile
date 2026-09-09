@@ -7,7 +7,10 @@ WORKDIR /app
 COPY deno.json deno.lock ./
 COPY src ./src
 
-RUN deno cache --lock=deno.lock --frozen src/index.ts src/migrations/add-chat-settings.ts
+# Type checks do not execute CommonJS dependencies; verify the cached MongoDB
+# driver can load before shipping the image.
+RUN deno cache --lock=deno.lock --frozen src/index.ts src/migrations/add-chat-settings.ts \
+	&& deno eval --cached-only 'import { MongoClient } from "mongodb"; if (typeof MongoClient !== "function") throw new Error("MongoDB import failed")'
 
 FROM docker.io/denoland/deno:2.9.5
 
