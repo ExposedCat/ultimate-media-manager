@@ -361,3 +361,30 @@ Deno.test("guest video caching uses a rich message upload", async () => {
 		deleteCachedMedia(url);
 	}
 });
+
+Deno.test("cached X replies keep the comment wording in sender attribution", async () => {
+	const url = "https://x.com/example/status/cached-comment";
+	setCachedMedia(url, {
+		kind: "image",
+		fileId: "cached-photo",
+		metadata: { mediaCount: 1, isComment: true },
+	});
+	const messages: InputRichMessage[] = [];
+	try {
+		const sent = await downloadMatchedUrl(
+			testContext({
+				i18n: captionI18n(),
+				replyWithRichMessage(message: InputRichMessage) {
+					messages.push(message);
+					return {};
+				},
+			}),
+			url,
+			twitterMatch,
+		);
+		assertEquals(sent, true);
+		assertStringIncludes(messages[0].html ?? "", "shared this image comment");
+	} finally {
+		deleteCachedMedia(url);
+	}
+});

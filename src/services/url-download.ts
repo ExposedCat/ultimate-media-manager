@@ -592,7 +592,9 @@ export async function downloadMatchedUrl(
 		});
 
 		const comments =
-			type === "twitter" ? commentsAfterUrl(sourceMessage, url) : 0;
+			type === "twitter" || type === "reddit"
+				? commentsAfterUrl(sourceMessage, url)
+				: 0;
 		const responseData = {
 			comments,
 			sourceType: type,
@@ -609,6 +611,8 @@ export async function downloadMatchedUrl(
 				ctx,
 				responseData,
 				attributionKind,
+				undefined,
+				cachedMedia.metadata,
 			);
 			const cachedCaptionEnabled = responseCaptionEnabled(ctx, type);
 			const cachedText = buildDownloadResponseText(

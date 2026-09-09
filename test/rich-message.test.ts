@@ -491,3 +491,41 @@ Deno.test("a media comment quotes both its text and its attachment", () => {
 		'<blockquote>\n<p>Photo comment</p>\n<img src="tg://photo?id=media_0"/>\n</blockquote>\n<hr>',
 	);
 });
+
+Deno.test("Reddit comments use quotes, Reddit author links and the same nested disclosures", () => {
+	const result = buildRichMessage({
+		baseHtml: "Sender",
+		captionEnabled: true,
+		sourceType: "reddit",
+		media: [
+			{ kind: "image", media: "root" },
+			{ kind: "image", media: "reply" },
+		],
+		metadata: {
+			title: "Post title",
+			text: "Root",
+			subreddit: "pics",
+			mediaCount: 1,
+			comments: [
+				{ authorHandle: "reader", text: "A comment", mediaCount: 1 },
+				{ text: "Another comment" },
+			],
+		},
+	});
+	const html = result.html ?? "";
+	assertStringIncludes(
+		html,
+		'<a href="https://www.reddit.com/user/reader"><b>u/reader</b></a>',
+	);
+	assertEquals(html.includes("https://x.com/reader"), false);
+	assertEquals((html.match(/<details>/g) ?? []).length, 2);
+	assertStringIncludes(html, "<summary>Comments</summary>");
+	assertStringIncludes(html, "<summary>More</summary>");
+	assertStringIncludes(
+		html,
+		'<img src="tg://photo?id=media_1"/>\n</blockquote>',
+	);
+	assertEquals(html.indexOf("media_0") < html.indexOf("<details>"), true);
+	assertEquals(html.indexOf("<hr>") > html.lastIndexOf("</details>"), true);
+	assertEquals(html.endsWith("Sender</p>"), true);
+});

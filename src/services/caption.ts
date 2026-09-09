@@ -7,6 +7,7 @@ import type { SourceType } from "./sources.ts";
 // renderer needs. Mapped from the library result at the resolver boundary so the
 // library's own types never leak deeper into the bot.
 export type PostCaptionMeta = {
+	isComment?: boolean;
 	comments?: PostCaptionMeta[];
 	title?: string;
 	text?: string;

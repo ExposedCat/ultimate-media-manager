@@ -69,9 +69,9 @@ with `docker compose up`.
 
 Licensed under the [GNU General Public License v3.0](LICENSE).
 
-### X comments
+### X and Reddit comments
 
-An integer immediately after an X link requests that many replies, for example
+An integer immediately after an X or Reddit link requests that many replies, for example
 `Check this: https://x.com/paularambles/status/2097547797444911520?s=20 5, cool?`.
 Replies use nested “Comments” / “More” disclosures: text comments share
 up to 750 characters per section; media comments occupy a section alone with their
@@ -79,7 +79,7 @@ first attachment. Oversized comments stay intact. A single section is shown dire
 and at most 13 sections are retained. Comment failures leave the original post usable.
 Requests for comments bypass the URL cache.
 
-X comments are supported by Postfetch 0.11.0 and newer. To test both working
+X and Reddit comments are supported by Postfetch 0.12.0 and newer. To test both working
 copies before a future release, run `deno task test:postfetch` (or
 `bash scripts/test-local-postfetch.sh /path/to/postfetch`). The local test command
 uses a temporary import configuration and test credentials.

@@ -38,7 +38,10 @@ export function responseMediaKind(
 	media: DownloadedMedia | CachedMedia,
 ): DownloadResponseMediaKind | null {
 	const count = media.metadata?.mediaCount;
-	if (sourceType !== "twitter" || count === undefined) {
+	if (
+		(sourceType !== "twitter" && sourceType !== "reddit") ||
+		count === undefined
+	) {
 		return media.kind;
 	}
 	if (count === 0) {
@@ -64,10 +67,11 @@ function getPromoText(
 	ctx: CustomContext,
 	data: DownloadResponseData,
 	kind: string,
+	meta?: PostCaptionMeta | null,
 ) {
 	return ctx.i18n.t("promoCaption", {
 		viewUrl: ctx.i18n.t(`viewOn.${data.sourceType}`, {
-			kind,
+			kind: `${kind}${data.sourceType === "twitter" && meta?.isComment ? " comment" : ""}${meta?.comments?.length ? " with comments" : ""}`,
 			postUrl: escapeHtml(data.url),
 			userName: escapeHtml(data.userName),
 			userId: data.userId,
@@ -84,7 +88,7 @@ export function buildDownloadResponseText(
 ) {
 	const base = buildSenderCredit(
 		data.sourceType,
-		buildDownloadResponseBaseText(ctx, data, mediaKind, title),
+		buildDownloadResponseBaseText(ctx, data, mediaKind, title, meta),
 	);
 	if (!meta || !responseCaptionEnabled(ctx, data.sourceType)) {
 		return base;
@@ -98,11 +102,12 @@ export function buildDownloadResponseBaseText(
 	data: DownloadResponseData,
 	mediaKind: DownloadResponseMediaKind | null,
 	title?: string,
+	meta?: PostCaptionMeta | null,
 ) {
 	if (!mediaKind) {
 		return data.sourceType === "youtubeVideo"
 			? ctx.i18n.t("error.video")
-			: getPromoText(ctx, data, "post");
+			: getPromoText(ctx, data, "post", meta);
 	}
 
 	if (data.sourceType === "youtubeVideo") {
@@ -123,7 +128,7 @@ export function buildDownloadResponseBaseText(
 					? "image"
 					: "video";
 
-	return getPromoText(ctx, data, kind);
+	return getPromoText(ctx, data, kind, meta);
 }
 
 export async function buildDownloadResponse(
@@ -142,7 +147,13 @@ export async function buildDownloadResponse(
 	);
 
 	if (!media) {
-		const baseText = buildDownloadResponseBaseText(ctx, data, null);
+		const baseText = buildDownloadResponseBaseText(
+			ctx,
+			data,
+			null,
+			undefined,
+			metadata,
+		);
 		const captionsEnabled = responseCaptionEnabled(ctx, data.sourceType);
 		return {
 			baseText,
@@ -184,7 +195,13 @@ export async function buildDownloadResponse(
 	}
 
 	const attributionKind = responseMediaKind(data.sourceType, media);
-	const baseText = buildDownloadResponseBaseText(ctx, data, attributionKind);
+	const baseText = buildDownloadResponseBaseText(
+		ctx,
+		data,
+		attributionKind,
+		undefined,
+		media.metadata,
+	);
 	return {
 		baseText,
 		captionEnabled: responseCaptionEnabled(ctx, data.sourceType),

@@ -74,14 +74,23 @@ export function buildRichMessage(input: RichMessageData): InputRichMessage {
 function buildRichHtml(data: RichMessageData, mediaTags: string[]) {
 	const { baseHtml, captionEnabled, metadata, sourceType } = data;
 	const senderCredit = buildSenderCredit(sourceType, baseHtml);
-	if (sourceType === "twitter") {
+	if (
+		sourceType === "twitter" ||
+		(sourceType === "reddit" && metadata?.comments?.length)
+	) {
 		const postMediaCount = mediaTags.length - commentMediaCount(data);
 		const postMedia = mediaTags.slice(0, postMediaCount);
 		return joinBlocks(
 			captionEnabled && metadata
-				? buildTwitterHtml(metadata, postMedia)
+				? sourceType === "twitter"
+					? buildTwitterHtml(metadata, postMedia)
+					: buildRedditHtml(metadata, mediaBlock(postMedia), "")
 				: mediaBlock(postMedia),
-			buildComments(metadata?.comments ?? [], mediaTags.slice(postMediaCount)),
+			buildComments(
+				metadata?.comments ?? [],
+				mediaTags.slice(postMediaCount),
+				sourceType,
+			),
 			senderCredit ? "<hr>" : "",
 			paragraph(senderCredit),
 		);
@@ -316,7 +325,7 @@ function formatCount(value: number) {
 }
 
 function commentMediaCount(data: RichMessageData): number {
-	return data.sourceType === "twitter"
+	return data.sourceType === "twitter" || data.sourceType === "reddit"
 		? (data.metadata?.comments ?? []).reduce(
 				(sum, comment) => sum + (comment.mediaCount ?? 0),
 				0,
@@ -327,6 +336,7 @@ function commentMediaCount(data: RichMessageData): number {
 function buildComments(
 	comments: PostCaptionMeta[],
 	mediaTags: string[],
+	platform: "twitter" | "reddit",
 ): string {
 	let offset = 0;
 	const entries = comments.map((comment) => {
@@ -340,9 +350,11 @@ function buildComments(
 	const sections = commentSections(entries, ({ comment }) => comment).map(
 		(entries) =>
 			entries
-				.map(
-					({ comment, media }) =>
-						buildTwitterPost(comment, media, 0, media.length, true, true).html,
+				.map(({ comment, media }) =>
+					platform === "reddit"
+						? buildRedditComment(comment, media)
+						: buildTwitterPost(comment, media, 0, media.length, true, true)
+								.html,
 				)
 				.join("\n"),
 	);
@@ -357,7 +369,10 @@ function buildComments(
 // Drop attachments along with omitted comments so they are never uploaded or
 // accidentally reassigned to the root post by the media fallback logic.
 function selectCommentMedia(data: RichMessageData): RichMessageData {
-	if (data.sourceType !== "twitter" || !data.metadata?.comments?.length)
+	if (
+		(data.sourceType !== "twitter" && data.sourceType !== "reddit") ||
+		!data.metadata?.comments?.length
+	)
 		return data;
 	const comments = data.metadata.comments;
 	const rootCount = Math.max(0, data.media.length - commentMediaCount(data));
@@ -375,4 +390,24 @@ function selectCommentMedia(data: RichMessageData): RichMessageData {
 		media,
 		metadata: { ...data.metadata, comments: normalized },
 	};
+}
+
+function buildRedditComment(
+	meta: PostCaptionMeta,
+	mediaTags: string[],
+): string {
+	const handle = meta.authorHandle;
+	const author = handle
+		? `<a href="https://www.reddit.com/user/${encodeURIComponent(handle)}"><b>${escapeHtml(`u/${handle}`)}</b></a>`
+		: "";
+	const date = meta.createdAt ? new Date(meta.createdAt) : null;
+	const dateLabel =
+		date && !Number.isNaN(date.getTime()) ? POST_DATE.format(date) : "";
+	const header = [author, dateLabel].filter(Boolean).join(" · ");
+	const text = renderPostText(meta.text ?? "", Number.POSITIVE_INFINITY);
+	const content = joinBlocks(
+		paragraph([header, text].filter(Boolean).join("<br>")),
+		mediaBlock(mediaTags),
+	);
+	return content ? `<blockquote>\n${content}\n</blockquote>` : "";
 }

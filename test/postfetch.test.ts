@@ -106,7 +106,20 @@ Deno.test("maps parent metadata and dates without assigning reply media to it", 
 	const meta = toCaptionMeta(result);
 	assertEquals(meta?.createdAt, "2020-07-03T07:20:31.000Z");
 	assertEquals(meta?.parentPost?.text, "Parent");
+	assertEquals(meta?.isComment, true);
 	assertEquals(meta?.parentPost?.authorVerified, true);
 	assertEquals(meta?.parentPost?.createdAt, "2020-07-02T17:07:02.000Z");
 	assertEquals(meta?.parentPost?.mediaCount, 0);
+});
+
+Deno.test("identifies an X reply from its parent ID even without parent text", () => {
+	const result: PostfetchResult = {
+		platform: "twitter",
+		id: "123",
+		archiveFilename: "x.zip",
+		items: [],
+		comments: [],
+		metadata: { text: "Reply", extra: { replyToId: "122" } },
+	};
+	assertEquals(toCaptionMeta(result)?.isComment, true);
 });

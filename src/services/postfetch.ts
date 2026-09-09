@@ -48,7 +48,10 @@ export async function downloadWithPostfetch(
 		const meta = toCaptionMeta(result);
 		// Keep comment attachments after the post/quote attachments, with ownership
 		// retained in metadata for both fresh uploads and Telegram file-id reuse.
-		if (meta && result.platform === "twitter") {
+		if (
+			meta &&
+			(result.platform === "twitter" || result.platform === "reddit")
+		) {
 			try {
 				const selected = commentSections(result.comments, (comment) => ({
 					text: comment.metadata.text,
@@ -155,6 +158,7 @@ export function toCaptionMeta(
 	const meta = result.metadata;
 	return {
 		...toBaseCaptionMeta(meta),
+		...(result.platform === "reddit" && { mediaCount: result.items.length }),
 		subreddit:
 			result.platform === "reddit"
 				? result.metadata?.extra?.subreddit
@@ -182,8 +186,10 @@ function toTwitterCaptionMeta(
 ): PostCaptionMeta {
 	const quoted = meta.extra?.quotedTweet;
 	const parent = meta.extra?.parentTweet;
+	const isComment = !!(parent || meta.extra?.replyToId);
 	return {
 		...toBaseCaptionMeta(meta),
+		...(isComment && { isComment: true }),
 		mediaCount: items.filter((item) => item.id === postId).length,
 		parentPost: parent
 			? toTwitterCaptionMeta(parent.metadata, parent.id, [])
