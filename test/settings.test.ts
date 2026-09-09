@@ -170,7 +170,7 @@ Deno.test("settings show status buttons and delay choices without command links"
 	assertEquals((html.match(/<tg-button-row>/g) ?? []).length, 2);
 	assertStringIncludes(
 		html,
-		'<p>option.slideshow 5s <tg-button type="callback_data" style="success" data="settings:toggle:sld">Enabled</tg-button></p>\n<tg-button-row>',
+		'<p>option.slideshow <tg-button type="callback_data" style="success" data="settings:toggle:sld">Enabled</tg-button></p>\n<tg-button-row>',
 	);
 	for (let seconds = 1; seconds <= 10; seconds++)
 		assertStringIncludes(
@@ -362,7 +362,14 @@ Deno.test("slideshow commands persist on/off and every allowed delay in groups a
 				replies[0].options,
 				`style="${expected ? "success" : "danger"}" data="settings:toggle:sld">${expected ? "Enabled" : "Disabled"}`,
 			);
-			assertStringIncludes(replies[0].options, `${expected}s`);
+			if (expected) {
+				assertStringIncludes(
+					replies[0].options,
+					`style="primary" data="settings:delay:${expected}">${expected}s</tg-button>`,
+				);
+			} else {
+				assertEquals(replies[0].options.includes("settings:delay:"), false);
+			}
 		}
 	}
 });

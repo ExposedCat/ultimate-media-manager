@@ -113,7 +113,7 @@ function renderSettingsOptions(ctx: CustomContext, settings: Settings): string {
 		})
 		.join("\n");
 	const delay = slideshowDelay(settings);
-	const slider = `<p>${escapeHtml(ctx.i18n.t("option.slideshow", { seconds: delay }))} ${toggleButton(ctx, "sld", delay > 0)}</p>`;
+	const slider = `<p>${escapeHtml(ctx.i18n.t("option.slideshow"))} ${toggleButton(ctx, "sld", delay > 0)}</p>`;
 	if (delay === 0) return `${options}\n${slider}`;
 	const delays = [1, 6]
 		.map((start) => {

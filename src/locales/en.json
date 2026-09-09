@@ -60,7 +60,7 @@
 	"settingsUpdateFailed": "Could not save the setting. Please try again.",
 	"settingsRefreshFailed": "Setting saved, but the message could not be refreshed. Open /settings to see the current state.",
 	"option": {
-		"slideshow": "Slideshow videos (minimum ${seconds}s per item)",
+		"slideshow": "Slideshow videos",
 		"cleanup": "Delete links",
 		"captionReddit": "Captions: Reddit",
 		"captionSoundcloud": "Captions: SoundCloud",
