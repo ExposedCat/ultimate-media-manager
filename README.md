@@ -76,7 +76,11 @@ An integer immediately after an X or Reddit link requests that many replies, for
 Replies use nested “Comments” / “More” disclosures: text comments share
 up to 750 characters per section; media comments occupy a section alone with their
 first attachment. Oversized comments stay intact. A single section is shown directly,
-and at most 13 sections are retained. Comment failures leave the original post usable.
+and at most 10 sections are retained. Comment download failures leave the original post usable.
+If sending fails, UMM retries with 5%, 10%, then 50% fewer comments than the first
+attempt, then without comments. Counts are rounded down and duplicate counts are
+skipped. These retries reuse downloaded media and remove attachments belonging to
+omitted comments; they never download the post again.
 Requests for comments bypass the URL cache.
 
 X and Reddit comments are supported by Postfetch 0.12.0 and newer. To test both working

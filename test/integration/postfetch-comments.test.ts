@@ -115,10 +115,10 @@ Deno.test("UMM drops overflow before downloading attachments", async () => {
 		Array.from({ length: 20 }, (_, i) => reply(i + 1, `reply-${i + 1}`, true)),
 		async (requests) => {
 			const result = await downloadWithPostfetch(url, { comments: 20 });
-			assertEquals(result?.metadata?.comments?.length, 13);
+			assertEquals(result?.metadata?.comments?.length, 10);
 			assertEquals(
 				requests.filter((request) => request.includes("pbs.twimg.com")).length,
-				13,
+				10,
 			);
 		},
 	);
@@ -145,6 +145,92 @@ Deno.test("UMM accepts fewer comments than requested", async () => {
 		assertEquals(result?.metadata?.comments?.length, 1);
 	});
 });
+
+for (const guest of [false, true]) {
+	for (const media of [false, true]) {
+		Deno.test(`UMM retries ${guest ? "guest" : "chat"} ${media ? "media" : "text"} sending with fewer comments without downloading again`, async () => {
+			await withResponses(
+				Array.from({ length: 20 }, (_, i) =>
+					reply(i + 1, `reply-${i + 1}`, media && i === 19),
+				),
+				async (requests) => {
+					const messages: InputRichMessage[] = [];
+					let uploads = 0;
+					let firstRequests: string[] = [];
+					const send = (message: InputRichMessage) => {
+						messages.push(message);
+						if (messages.length === 1) firstRequests = [...requests];
+						else assertEquals(requests, firstRequests);
+						if (messages.length < 5) {
+							throw {
+								error_code: 400,
+								description: "Bad Request: can't parse entities",
+							};
+						}
+						return {};
+					};
+					const ctx = {
+						from: { id: 42, first_name: "Tester" },
+						telemetry: { event() {} },
+						msg: { text: `${url} 20` },
+						...(guest && { guestMessage: {} }),
+						i18n: {
+							t(key: string, values: Record<string, unknown>) {
+								return key === "promoCaption"
+									? values.viewUrl
+									: `Sender shared this ${values.kind}`;
+							},
+						},
+						replyWithRichMessage: send,
+						answerGuestQuery(result: {
+							input_message_content: { rich_message: InputRichMessage };
+						}) {
+							return send(result.input_message_content.rich_message);
+						},
+						api: {
+							sendRichMessage() {
+								uploads++;
+								return {
+									rich_message: {
+										blocks: [
+											{ type: "photo", photo: [{ file_id: "cached-comment" }] },
+										],
+									},
+								};
+							},
+						},
+					} as unknown as CustomContext;
+					assertEquals(await downloadMatchedUrl(ctx, url), true);
+					assertEquals(
+						messages.map(
+							(message) => (message.html?.match(/<blockquote>/g) ?? []).length,
+						),
+						[20, 19, 18, 10, 0],
+					);
+					for (const message of messages)
+						assertStringIncludes(message.html ?? "", "Root text");
+					assertEquals(
+						messages.map((message) => message.media?.length ?? 0),
+						media ? [1, 0, 0, 0, 0] : [0, 0, 0, 0, 0],
+					);
+					assertEquals(messages[0].html?.includes("with comments"), true);
+					assertEquals(messages[4].html?.includes("with comments"), false);
+					assertEquals(uploads, guest && media ? 1 : 0);
+					assertEquals(
+						requests.filter((request) => request.includes("/2/conversation/"))
+							.length,
+						1,
+					);
+					assertEquals(
+						requests.filter((request) => request.includes("pbs.twimg.com"))
+							.length,
+						media ? 1 : 0,
+					);
+				},
+			);
+		});
+	}
+}
 
 Deno.test("Reddit link count fetches comment media and attributes the text post with comments", async () => {
 	const original = globalThis.fetch;

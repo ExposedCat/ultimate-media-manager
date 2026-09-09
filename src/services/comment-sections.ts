@@ -1,4 +1,4 @@
-/** Group whole comments, retaining at most thirteen sections in source order. */
+/** Group whole comments, retaining at most ten sections in source order. */
 export function commentSections<T>(
 	comments: T[],
 	describe: (comment: T) => { text?: string; mediaCount?: number },
@@ -11,7 +11,7 @@ export function commentSections<T>(
 		const size = Array.from(info.text ?? "").length;
 		const hasMedia = (info.mediaCount ?? 0) > 0;
 		if (!sections.length || sealed || hasMedia || length + size > 750) {
-			if (sections.length === 13) break;
+			if (sections.length === 10) break;
 			sections.push([]);
 			length = 0;
 		}

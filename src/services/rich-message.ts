@@ -22,6 +22,7 @@ export type RichMediaItem<T = string | InputFile> = {
 
 export type RichMessageData<T = string | InputFile> = {
 	baseHtml: string;
+	baseHtmlWithoutComments?: string;
 	captionEnabled: boolean;
 	media: RichMediaItem<T>[];
 	metadata?: PostCaptionMeta | null;
@@ -63,7 +64,7 @@ export function buildRichMessage(
 ): InputRichMessageWithoutUpload;
 export function buildRichMessage(data: RichMessageData): InputRichMessage;
 export function buildRichMessage(input: RichMessageData): InputRichMessage {
-	const data = selectCommentMedia(input);
+	const data = selectRichMessageComments(input);
 	const { tags: mediaTags, media } = buildMedia(data.media);
 	return {
 		html: buildRichHtml(data, mediaTags),
@@ -327,7 +328,7 @@ function formatCount(value: number) {
 	return value.toLocaleString("en-US");
 }
 
-function commentMediaCount(data: RichMessageData): number {
+function commentMediaCount<T>(data: RichMessageData<T>): number {
 	return data.sourceType === "twitter" || data.sourceType === "reddit"
 		? (data.metadata?.comments ?? []).reduce(
 				(sum, comment) => sum + (comment.mediaCount ?? 0),
@@ -371,7 +372,10 @@ function buildComments(
 
 // Drop attachments along with omitted comments so they are never uploaded or
 // accidentally reassigned to the root post by the media fallback logic.
-function selectCommentMedia(data: RichMessageData): RichMessageData {
+export function selectRichMessageComments<T>(
+	data: RichMessageData<T>,
+	limit = Number.POSITIVE_INFINITY,
+): RichMessageData<T> {
 	if (
 		(data.sourceType !== "twitter" && data.sourceType !== "reddit") ||
 		!data.metadata?.comments?.length
@@ -381,7 +385,9 @@ function selectCommentMedia(data: RichMessageData): RichMessageData {
 	const rootCount = Math.max(0, data.media.length - commentMediaCount(data));
 	const media = data.media.slice(0, rootCount);
 	let offset = rootCount;
-	const selected = commentSections(comments, (comment) => comment).flat();
+	const selected = commentSections(comments, (comment) => comment)
+		.flat()
+		.slice(0, limit);
 	const normalized = selected.map((comment) => {
 		const item = (comment.mediaCount ?? 0) > 0 ? data.media[offset] : undefined;
 		if (item) media.push(item);
@@ -390,6 +396,9 @@ function selectCommentMedia(data: RichMessageData): RichMessageData {
 	});
 	return {
 		...data,
+		baseHtml: selected.length
+			? data.baseHtml
+			: (data.baseHtmlWithoutComments ?? data.baseHtml),
 		media,
 		metadata: { ...data.metadata, comments: normalized },
 	};

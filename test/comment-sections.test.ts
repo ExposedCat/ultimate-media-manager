@@ -15,7 +15,7 @@ Deno.test("comment groups honor the examples, oversized text and media boundarie
 	assertEquals(group([250, 250, 500]), [[250, 250], [500]]);
 	assertEquals(group([10000, 1]), [[10000], [1]]);
 	assertEquals(group([100, 100, 100], 1), [[100], [100], [100]]);
-	assertEquals(group(Array(14).fill(751)).length, 13);
+	assertEquals(group(Array(11).fill(751)).length, 10);
 	assertEquals(group([750, 1]), [[750], [1]]);
 });
 

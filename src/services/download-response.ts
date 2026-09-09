@@ -13,6 +13,7 @@ import type { SourceType } from "./sources.ts";
 
 export type DownloadResponse = {
 	baseText: string;
+	baseTextWithoutComments?: string;
 	captionEnabled: boolean;
 	media: DownloadedMedia | null;
 	sourceType: SourceType;
@@ -157,6 +158,13 @@ export async function buildDownloadResponse(
 		const captionsEnabled = responseCaptionEnabled(ctx, data.sourceType);
 		return {
 			baseText,
+			baseTextWithoutComments: buildDownloadResponseBaseText(
+				ctx,
+				data,
+				null,
+				undefined,
+				{ ...metadata, comments: [] },
+			),
 			captionEnabled: captionsEnabled,
 			media: null,
 			sourceType: data.sourceType,
@@ -204,6 +212,13 @@ export async function buildDownloadResponse(
 	);
 	return {
 		baseText,
+		baseTextWithoutComments: buildDownloadResponseBaseText(
+			ctx,
+			data,
+			attributionKind,
+			undefined,
+			{ ...media.metadata, comments: [] },
+		),
 		captionEnabled: responseCaptionEnabled(ctx, data.sourceType),
 		media,
 		metadata: media.metadata,

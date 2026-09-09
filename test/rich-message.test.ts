@@ -391,9 +391,9 @@ Deno.test("comments form a nested Comments / More chain, or render directly", ()
 	assertEquals(two.indexOf("c".repeat(500)) > two.indexOf("More"), true);
 	assertStringIncludes(render([10000]), "a".repeat(10000));
 	assertStringIncludes(render([31000]), "a".repeat(31000));
-	const max = render(Array(14).fill(751));
-	assertEquals((max.match(/<details>/g) ?? []).length, 13);
-	assertEquals(max.includes("n".repeat(751)), false);
+	const max = render(Array(11).fill(751));
+	assertEquals((max.match(/<details>/g) ?? []).length, 10);
+	assertEquals(max.includes("k".repeat(751)), false);
 });
 
 Deno.test("comment media stays in its own section, separate from root and quote media", () => {
