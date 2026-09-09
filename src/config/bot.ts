@@ -122,7 +122,10 @@ export async function startBot(database: Database) {
 	await bot.api.setMyCommands([
 		{ command: "start", description: "About the bot" },
 		{ command: "download", description: "Download media from a replied link" },
-		{ command: "settings", description: "Configure captions and cleanup" },
+		{
+			command: "settings",
+			description: "Configure captions, slideshows and cleanup",
+		},
 	]);
 
 	await bot.api.deleteWebhook();

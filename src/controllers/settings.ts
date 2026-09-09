@@ -2,11 +2,12 @@ import { Composer } from "grammy";
 
 import { APP_ENV } from "../config/env.ts";
 import { setChatSetting, setUserSetting } from "../services/chat.ts";
+import { slideshowDelay } from "../services/slideshow.ts";
 import type { CustomContext } from "../types/context.ts";
 import type { Settings } from "../types/database.ts";
 
 type SettingOption = {
-	key: keyof Settings;
+	key: Exclude<keyof Settings, "slideshowDelay">;
 	labelKey: string;
 	commandId: string;
 	adminOnly?: boolean;
@@ -71,7 +72,10 @@ const SETTING_COMMANDS = OPTIONS.flatMap((option) => [
 type SettingsTarget = {
 	settings: Settings;
 	replace: (settings: Settings) => void;
-	set: (key: keyof Settings, value: boolean) => Promise<unknown>;
+	set: <K extends keyof Settings>(
+		key: K,
+		value: Settings[K],
+	) => Promise<unknown>;
 };
 
 function isAdmin(userId: number | undefined) {
@@ -100,13 +104,16 @@ function parseSettingCommand(text: string) {
 }
 
 function renderSettingsOptions(ctx: CustomContext, settings: Settings): string {
-	return OPTIONS.map((target) => {
+	const options = OPTIONS.map((target) => {
 		const enabled = settings[target.key];
 		const icon = enabled ? ENABLED_ICON : DISABLED_ICON;
 		const nextState = enabled ? "off" : "on";
 		const suffix = target.adminOnly ? ` · ${ctx.i18n.t("adminOnly")}` : "";
 		return `${icon} ${ctx.i18n.t(target.labelKey)} /set_${target.commandId}_${nextState}${suffix}`;
 	}).join("\n");
+	const delay = slideshowDelay(settings);
+	const slider = `${delay > 0 ? ENABLED_ICON : DISABLED_ICON} ${ctx.i18n.t("option.slideshow", { seconds: delay })} /set_sld_${delay > 0 ? "off" : "on"}`;
+	return `${options}\n${slider}\n${ctx.i18n.t("slideshowDelayHelp")}`;
 }
 
 async function replySettings(ctx: CustomContext, settings: Settings) {
@@ -197,9 +204,28 @@ for (const command of SETTING_COMMANDS) {
 		}
 
 		const settings = { ...settingsTarget.settings, [target.key]: value };
-		settingsTarget.replace(settings);
 		await settingsTarget.set(target.key, value);
+		settingsTarget.replace(settings);
 
+		await replySettings(ctx, settings);
+	});
+}
+
+for (const value of [
+	"on",
+	"off",
+	...Array.from({ length: 11 }, (_, n) => String(n)),
+]) {
+	settingsController.command(`set_sld_${value}`, async (ctx) => {
+		const target = getSettingsTarget(ctx);
+		if (!target) {
+			await ctx.text("settingsGroupOnly");
+			return;
+		}
+		const delay = value === "on" ? 1 : value === "off" ? 0 : Number(value);
+		const settings = { ...target.settings, slideshowDelay: delay };
+		await target.set("slideshowDelay", delay);
+		target.replace(settings);
 		await replySettings(ctx, settings);
 	});
 }

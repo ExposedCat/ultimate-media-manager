@@ -1,7 +1,10 @@
 import {
+	type MediaItem,
 	type PostMetadata,
 	type PostfetchResult,
+	type RemuxedVideo,
 	type TwitterExtra,
+	buildAudioSliderVideo,
 	downloadBlob,
 	postfetch,
 } from "@postfetch/core";
@@ -13,6 +16,7 @@ import {
 	type DownloadMediaResult,
 	bundle,
 } from "./media.ts";
+import { slideshowDelay } from "./slideshow.ts";
 import { warpFetch } from "./warp.ts";
 
 export const POSTFETCH_MAX_BYTES = 50_000_000;
@@ -25,41 +29,36 @@ const resolveOptions = {
 
 export async function downloadWithPostfetch(
 	url: string,
+	options: { slideshowDelay?: number } = {},
 ): Promise<DownloadMediaResult | null> {
 	try {
 		const result = await postfetch(url, resolveOptions);
-		const files = await Promise.all(
-			result.items.map(async (item): Promise<DownloadMediaFile> => {
-				if (item.mime === "video/mp4") {
-					const video = await downloadBlob(item, {
-						...fetchOptions,
-						ffmpegPath: APP_ENV.FFMPEG_PATH,
-						remux: true,
-					});
-					return {
-						contentType: item.mime,
-						data: new Uint8Array(await video.blob.arrayBuffer()),
-						duration: video.duration,
-						extension: extensionOf(item.filename),
-						filename: item.filename,
-						height: video.height,
-						mediaKind: item.kind,
-						thumbnail: new Uint8Array(await video.thumbnail.arrayBuffer()),
-						width: video.width,
-					};
-				}
-				const blob = await downloadBlob(item, {
-					...fetchOptions,
-				});
-				return {
-					contentType: item.mime,
-					data: new Uint8Array(await blob.arrayBuffer()),
-					extension: extensionOf(item.filename),
-					filename: item.filename,
-					mediaKind: item.kind,
-				};
-			}),
-		);
+		const delay = slideshowDelay(options);
+		const files =
+			delay > 0 && isAudioSlideshow(result.items)
+				? [await downloadSlideshow(result, delay)]
+				: await Promise.all(
+						result.items.map(async (item): Promise<DownloadMediaFile> => {
+							if (item.mime === "video/mp4") {
+								const video = await downloadBlob(item, {
+									...fetchOptions,
+									ffmpegPath: APP_ENV.FFMPEG_PATH,
+									remux: true,
+								});
+								return toVideoFile(video, item.filename);
+							}
+							const blob = await downloadBlob(item, {
+								...fetchOptions,
+							});
+							return {
+								contentType: item.mime,
+								data: new Uint8Array(await blob.arrayBuffer()),
+								extension: extensionOf(item.filename),
+								filename: item.filename,
+								mediaKind: item.kind,
+							};
+						}),
+					);
 		console.info("[Postfetch] Resolved media", {
 			url,
 			platform: result.platform,
@@ -77,6 +76,58 @@ export async function downloadWithPostfetch(
 		});
 		throw error;
 	}
+}
+
+function isAudioSlideshow(items: MediaItem[]): boolean {
+	return (
+		items.length >= 2 &&
+		items.at(-1)?.kind === "audio" &&
+		items
+			.slice(0, -1)
+			.every((item) => item.kind === "image" || item.kind === "video")
+	);
+}
+
+async function downloadSlideshow(
+	result: PostfetchResult,
+	delay: number,
+): Promise<DownloadMediaFile> {
+	const blob = await buildAudioSliderVideo(result.items, {
+		...fetchOptions,
+		delay: delay * 1000,
+		ffmpegPath: APP_ENV.FFMPEG_PATH,
+	});
+	// Reuse Postfetch's upload metadata/thumbnail path on the local generated Blob.
+	const url = URL.createObjectURL(blob);
+	try {
+		const video = await downloadBlob(url, {
+			ffmpegPath: APP_ENV.FFMPEG_PATH,
+			remux: true,
+		});
+		return await toVideoFile(
+			video,
+			`${result.archiveFilename.replace(/\.zip$/i, "")}_slideshow.mp4`,
+		);
+	} finally {
+		URL.revokeObjectURL(url);
+	}
+}
+
+async function toVideoFile(
+	video: RemuxedVideo,
+	filename: string,
+): Promise<DownloadMediaFile> {
+	return {
+		contentType: "video/mp4",
+		data: new Uint8Array(await video.blob.arrayBuffer()),
+		duration: video.duration,
+		extension: "mp4",
+		filename,
+		height: video.height,
+		mediaKind: "video",
+		thumbnail: new Uint8Array(await video.thumbnail.arrayBuffer()),
+		width: video.width,
+	};
 }
 
 type TwitterMetadata = PostMetadata & { extra?: TwitterExtra };

@@ -5,10 +5,10 @@ import {
 	buildPostCaption,
 	captionEnabled,
 } from "./caption.ts";
-import { DEFAULT_SETTINGS } from "./chat.ts";
 import { type DownloadedMedia, downloadMediaForUrl } from "./download-media.ts";
 import type { CachedMedia } from "./media-file-cache.ts";
 import { buildSenderCredit } from "./rich-message.ts";
+import { getResponseSettings, responseSlideshowDelay } from "./slideshow.ts";
 import type { SourceType } from "./sources.ts";
 
 export type DownloadResponse = {
@@ -50,22 +50,6 @@ export function responseMediaKind(
 	return media.kind === "images"
 		? (("files" in media ? media.files : media.items)[0]?.kind ?? null)
 		: media.kind;
-}
-
-function getResponseSettings(ctx: CustomContext) {
-	if (ctx.guestMessage && ctx.chat?.type === "private") {
-		return (
-			ctx.objects?.guestReceiverUser?.settings ??
-			ctx.objects?.guestSenderUser?.settings ??
-			DEFAULT_SETTINGS
-		);
-	}
-
-	return (
-		ctx.objects?.chat?.settings ??
-		ctx.objects?.user?.settings ??
-		DEFAULT_SETTINGS
-	);
 }
 
 export function responseCaptionEnabled(
@@ -153,6 +137,7 @@ export async function buildDownloadResponse(
 
 	const { media, error, reason, metadata } = await downloadMediaForUrl(
 		data.url,
+		{ slideshowDelay: responseSlideshowDelay(ctx) },
 	);
 
 	if (!media) {

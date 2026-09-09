@@ -56,7 +56,9 @@
 	},
 	"settingsGroupOnly": "Settings are only available in group chats and direct messages with the bot.",
 	"settings": "Chat settings:\n\n${options}\n\nClick command to toggle",
+	"slideshowDelayHelp": "Slideshow delay: /set_sld_0 through /set_sld_10 seconds (0 = off, /set_sld_on = 1 second).",
 	"option": {
+		"slideshow": "Slideshow videos (${seconds}s per item)",
 		"cleanup": "Delete links",
 		"captionReddit": "Captions: Reddit",
 		"captionSoundcloud": "Captions: SoundCloud",

@@ -4,6 +4,7 @@ import { buildPostCaption, captionEnabled } from "../src/services/caption.ts";
 import type { Settings } from "../src/types/database.ts";
 
 const settings: Settings = {
+	slideshowDelay: 1,
 	cleanup: true,
 	captionReddit: true,
 	captionSoundcloud: true,

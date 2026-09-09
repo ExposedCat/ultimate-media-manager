@@ -1,4 +1,5 @@
 import type { PostCaptionMeta } from "./caption.ts";
+import { DEFAULT_SETTINGS } from "./chat.ts";
 
 export type CachedMedia =
 	| {
@@ -60,15 +61,27 @@ export function normalizeMediaCacheUrl(url: string) {
 	}
 }
 
-export function getCachedMedia(url: string) {
-	return mediaCache.get(normalizeMediaCacheUrl(url)) ?? null;
+function mediaCacheKey(url: string, slideshowDelay: number): string {
+	return JSON.stringify([normalizeMediaCacheUrl(url), slideshowDelay]);
 }
 
-export function setCachedMedia(url: string, media: CachedMedia) {
-	const normalizedUrl = normalizeMediaCacheUrl(url);
+export function getCachedMedia(
+	url: string,
+	slideshowDelay = DEFAULT_SETTINGS.slideshowDelay,
+) {
+	return mediaCache.get(mediaCacheKey(url, slideshowDelay)) ?? null;
+}
 
-	if (mediaCache.has(normalizedUrl)) {
-		mediaCache.delete(normalizedUrl);
+export function setCachedMedia(
+	url: string,
+	media: CachedMedia,
+	slideshowDelay = DEFAULT_SETTINGS.slideshowDelay,
+) {
+	const normalizedUrl = normalizeMediaCacheUrl(url);
+	const key = mediaCacheKey(url, slideshowDelay);
+
+	if (mediaCache.has(key)) {
+		mediaCache.delete(key);
 	} else if (mediaCache.size >= MAX_CACHE_ENTRIES) {
 		const oldestUrl = mediaCache.keys().next().value;
 		if (oldestUrl) {
@@ -76,12 +89,15 @@ export function setCachedMedia(url: string, media: CachedMedia) {
 		}
 	}
 
-	mediaCache.set(normalizedUrl, media);
+	mediaCache.set(key, media);
 	return normalizedUrl;
 }
 
-export function deleteCachedMedia(url: string) {
-	return mediaCache.delete(normalizeMediaCacheUrl(url));
+export function deleteCachedMedia(
+	url: string,
+	slideshowDelay = DEFAULT_SETTINGS.slideshowDelay,
+) {
+	return mediaCache.delete(mediaCacheKey(url, slideshowDelay));
 }
 
 export function getCachedMediaFromRichMessage(

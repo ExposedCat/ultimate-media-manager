@@ -1,6 +1,8 @@
 import type { Collection } from "mongodb";
 
 export type Settings = {
+	/** Seconds per slideshow item. Zero disables video conversion. */
+	slideshowDelay: number;
 	cleanup: boolean;
 	captionReddit: boolean;
 	captionSoundcloud: boolean;

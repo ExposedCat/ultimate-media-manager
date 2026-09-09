@@ -20,6 +20,7 @@ import {
 } from "./media-file-cache.ts";
 import { prepareDownloadedRichMedia } from "./rich-media-upload.ts";
 import { type RichMediaItem, buildRichMessage } from "./rich-message.ts";
+import { responseSlideshowDelay } from "./slideshow.ts";
 import {
 	type InputMatcher,
 	type MatchInputResult,
@@ -376,7 +377,7 @@ async function answerGuestQueryWithCachedMedia(
 		});
 		return true;
 	} catch (error) {
-		deleteCachedMedia(url);
+		deleteCachedMedia(url, responseSlideshowDelay(ctx));
 		console.warn(
 			"[GuestQuery] Cached media answer failed; removed cache entry",
 			{
@@ -593,7 +594,8 @@ export async function downloadMatchedUrl(
 			url,
 			fallbackUrl: fallbackUrl ?? undefined,
 		};
-		const cachedMedia = getCachedMedia(url);
+		const delay = responseSlideshowDelay(ctx);
+		const cachedMedia = getCachedMedia(url, delay);
 		if (cachedMedia) {
 			const attributionKind = responseMediaKind(type, cachedMedia);
 			const cachedBaseText = buildDownloadResponseBaseText(
@@ -640,7 +642,7 @@ export async function downloadMatchedUrl(
 					});
 					return finish(true);
 				} catch (error) {
-					deleteCachedMedia(url);
+					deleteCachedMedia(url, delay);
 					console.warn(
 						"[Download] Cached media send failed; removed cache entry",
 						{
@@ -703,10 +705,14 @@ export async function downloadMatchedUrl(
 				);
 				const cachedMedia = getCachedMediaFromRichMessage(sentMessage);
 				if (cachedMedia) {
-					const normalizedUrl = setCachedMedia(url, {
-						...cachedMedia,
-						metadata: media.metadata,
-					});
+					const normalizedUrl = setCachedMedia(
+						url,
+						{
+							...cachedMedia,
+							metadata: media.metadata,
+						},
+						delay,
+					);
 					console.info("[Download] Cached rich media file IDs", {
 						userId: ctx.from.id,
 						sourceType: type,

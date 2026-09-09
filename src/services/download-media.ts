@@ -40,7 +40,10 @@ function postfetchReason(error: unknown): string | undefined {
 	return undefined;
 }
 
-export async function downloadMediaForUrl(url: string): Promise<{
+export async function downloadMediaForUrl(
+	url: string,
+	options: { slideshowDelay?: number } = {},
+): Promise<{
 	media: DownloadedMedia | null;
 	error?: string;
 	reason?: string;
@@ -48,7 +51,7 @@ export async function downloadMediaForUrl(url: string): Promise<{
 }> {
 	let result: DownloadMediaResult | null;
 	try {
-		result = await downloadWithPostfetch(url);
+		result = await downloadWithPostfetch(url, options);
 	} catch (caught) {
 		return {
 			media: null,

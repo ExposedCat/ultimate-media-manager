@@ -9,14 +9,16 @@ import {
 } from "./media-file-cache.ts";
 import { prepareDownloadedRichMedia } from "./rich-media-upload.ts";
 import { buildRichMessage } from "./rich-message.ts";
+import { responseSlideshowDelay } from "./slideshow.ts";
 
 export async function cacheDownloadedMedia(
 	ctx: CustomContext,
 	media: DownloadedMedia,
 	sourceUrl?: string,
 ): Promise<CachedMedia | null> {
+	const delay = responseSlideshowDelay(ctx);
 	if (sourceUrl) {
-		const cachedMedia = getCachedMedia(sourceUrl);
+		const cachedMedia = getCachedMedia(sourceUrl, delay);
 		if (cachedMedia) {
 			return cachedMedia;
 		}
@@ -42,7 +44,7 @@ export async function cacheDownloadedMedia(
 		metadata: media.metadata,
 	};
 	if (sourceUrl) {
-		setCachedMedia(sourceUrl, cachedWithMetadata);
+		setCachedMedia(sourceUrl, cachedWithMetadata, delay);
 	}
 	return cachedWithMetadata;
 }

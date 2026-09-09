@@ -8,6 +8,7 @@ import type {
 } from "../types/database.ts";
 
 export const DEFAULT_SETTINGS: Settings = {
+	slideshowDelay: 1,
 	cleanup: true,
 	captionReddit: true,
 	captionSoundcloud: true,
@@ -47,17 +48,20 @@ export async function getOrCreateChat(args: {
 	);
 
 	if (chat.ok && chat.value) {
-		return chat.value;
+		return {
+			...chat.value,
+			settings: { ...DEFAULT_SETTINGS, ...chat.value.settings },
+		};
 	}
 
 	return createChat(args);
 }
 
-export function setChatSetting(args: {
+export function setChatSetting<K extends keyof Settings>(args: {
 	db: Database;
 	chatId: number;
-	key: keyof Settings;
-	value: boolean;
+	key: K;
+	value: Settings[K];
 }): Promise<UpdateResult> {
 	return args.db.chat.updateOne(
 		{ chatId: args.chatId },
@@ -65,11 +69,14 @@ export function setChatSetting(args: {
 	);
 }
 
-export function getUserSettings(args: {
+export async function getUserSettings(args: {
 	db: Database;
 	userId: number;
 }): Promise<UserSettings | null> {
-	return args.db.userSettings.findOne({ userId: args.userId });
+	const user = await args.db.userSettings.findOne({ userId: args.userId });
+	return user
+		? { ...user, settings: { ...DEFAULT_SETTINGS, ...user.settings } }
+		: null;
 }
 
 async function createUserSettings(args: {
@@ -98,11 +105,11 @@ export async function getOrCreateUserSettings(args: {
 	return createUserSettings(args);
 }
 
-export function setUserSetting(args: {
+export function setUserSetting<K extends keyof Settings>(args: {
 	db: Database;
 	userId: number;
-	key: keyof Settings;
-	value: boolean;
+	key: K;
+	value: Settings[K];
 }): Promise<UpdateResult> {
 	return args.db.userSettings.updateOne(
 		{ userId: args.userId },
