@@ -104,11 +104,14 @@ function parseSettingCommand(text: string) {
 }
 
 function renderSettingsOptions(ctx: CustomContext, settings: Settings): string {
-	const options = OPTIONS.map((target) => {
-		const enabled = settings[target.key];
-		const suffix = target.adminOnly ? ` · ${ctx.i18n.t("adminOnly")}` : "";
-		return `<p>${escapeHtml(ctx.i18n.t(target.labelKey) + suffix)} ${toggleButton(ctx, target.commandId, enabled)}</p>`;
-	}).join("\n");
+	const options = OPTIONS.filter(
+		(target) => !target.adminOnly || isAdmin(ctx.from?.id),
+	)
+		.map((target) => {
+			const enabled = settings[target.key];
+			return `<p>${escapeHtml(ctx.i18n.t(target.labelKey))} ${toggleButton(ctx, target.commandId, enabled)}</p>`;
+		})
+		.join("\n");
 	const delay = slideshowDelay(settings);
 	const slider = `<p>${escapeHtml(ctx.i18n.t("option.slideshow", { seconds: delay }))} ${toggleButton(ctx, "sld", delay > 0)}</p>`;
 	if (delay === 0) return `${options}\n${slider}`;

@@ -74,7 +74,6 @@
 	"unknownOption": "Unknown option \"${option}\"\nSee /settings",
 	"settingsUpdated": "\"${option}\" was set to \"${value}\"",
 	"optionAdminOnly": "\"${option}\" can only be changed by the admin.",
-	"adminOnly": "admin only",
 	"enabled": "Enabled",
 	"disabled": "Disabled"
 }

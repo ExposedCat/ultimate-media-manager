@@ -157,15 +157,12 @@ Deno.test("settings show status buttons and delay choices without command links"
 	await settingsController.middleware()(ctx, () => Promise.resolve());
 	const html = replies[0].options;
 	assertEquals(html.includes("/set_"), false);
-	assertEquals((html.match(/data="settings:toggle:/g) ?? []).length, 10);
+	assertEquals((html.match(/data="settings:toggle:/g) ?? []).length, 9);
 	assertStringIncludes(
 		html,
 		'<p>option.cleanup <tg-button type="callback_data" style="success" data="settings:toggle:clp">Enabled</tg-button></p>',
 	);
-	assertStringIncludes(
-		html,
-		'style="danger" data="settings:toggle:err">Disabled</tg-button>',
-	);
+	assertEquals(html.includes("settings:toggle:err"), false);
 	assertStringIncludes(
 		html,
 		'style="primary" data="settings:delay:5">5s</tg-button>',
@@ -241,6 +238,26 @@ Deno.test("slideshow clicks toggle off/default on and select any valid delay", a
 			`style="${seconds ? "success" : "danger"}" data="settings:toggle:sld">${seconds ? "Enabled" : "Disabled"}`,
 		);
 		assertEquals(answers.length, 1);
+	}
+});
+
+Deno.test("Show errors is visible only to ADMIN_ID without an admin-only suffix", async () => {
+	const originalAdmin = APP_ENV.ADMIN_ID;
+	try {
+		for (const scope of ["private", "group"] as const) {
+			for (const admin of [undefined, "7", "42"]) {
+				APP_ENV.ADMIN_ID = admin;
+				const { ctx, replies } = settingsContext("/settings", scope);
+				await settingsController.middleware()(ctx, () => Promise.resolve());
+				const html = replies[0].options;
+				assertEquals(html.includes("option.errors"), admin === "42");
+				assertEquals(html.includes("settings:toggle:err"), admin === "42");
+				assertEquals(html.includes("adminOnly"), false);
+				assertEquals(html.includes(" · "), false);
+			}
+		}
+	} finally {
+		APP_ENV.ADMIN_ID = originalAdmin;
 	}
 });
 
