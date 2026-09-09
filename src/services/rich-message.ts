@@ -80,7 +80,7 @@ function buildRichHtml(data: RichMessageData, mediaTags: string[]) {
 	) {
 		const postMediaCount = mediaTags.length - commentMediaCount(data);
 		const postMedia = mediaTags.slice(0, postMediaCount);
-		return joinBlocks(
+		const content = joinBlocks(
 			captionEnabled && metadata
 				? sourceType === "twitter"
 					? buildTwitterHtml(metadata, postMedia)
@@ -91,7 +91,10 @@ function buildRichHtml(data: RichMessageData, mediaTags: string[]) {
 				mediaTags.slice(postMediaCount),
 				sourceType,
 			),
-			senderCredit ? "<hr>" : "",
+		);
+		return joinBlocks(
+			content,
+			senderCredit && !content.includes("<details>") ? "<hr>" : "",
 			paragraph(senderCredit),
 		);
 	}

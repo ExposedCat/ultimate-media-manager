@@ -437,7 +437,7 @@ Deno.test("explicitly requested comments still render with post captions disable
 	assertStringIncludes(result.html ?? "", "visible reply");
 });
 
-Deno.test("X comments are individually quoted before the final divider and sender", () => {
+Deno.test("X comments are quoted before the sender, with a manual divider only without details", () => {
 	for (const captionEnabled of [true, false]) {
 		for (const length of [10, 751]) {
 			const result = buildRichMessage({
@@ -463,13 +463,23 @@ Deno.test("X comments are individually quoted before the final divider and sende
 				html,
 				`<blockquote>\n<p>${"b".repeat(length)}</p>\n</blockquote>`,
 			);
-			assertEquals((html.match(/<hr>/g) ?? []).length, 1);
-			assertEquals(
-				html.indexOf("<hr>") > html.lastIndexOf("</blockquote>"),
-				true,
-			);
-			assertEquals(html.indexOf("<hr>") > html.lastIndexOf("</details>"), true);
-			assertEquals(html.indexOf("Sender credit") > html.indexOf("<hr>"), true);
+			if (length === 10) {
+				assertEquals((html.match(/<hr>/g) ?? []).length, 1);
+				assertEquals(
+					html.indexOf("<hr>") > html.lastIndexOf("</blockquote>"),
+					true,
+				);
+				assertEquals(
+					html.indexOf("Sender credit") > html.indexOf("<hr>"),
+					true,
+				);
+			} else {
+				assertEquals(html.includes("<hr>"), false);
+				assertEquals(
+					html.indexOf("Sender credit") > html.lastIndexOf("</details>"),
+					true,
+				);
+			}
 			assertEquals(html.endsWith("Sender credit</p>"), true);
 		}
 	}
@@ -526,6 +536,10 @@ Deno.test("Reddit comments use quotes, Reddit author links and the same nested d
 		'<img src="tg://photo?id=media_1"/>\n</blockquote>',
 	);
 	assertEquals(html.indexOf("media_0") < html.indexOf("<details>"), true);
-	assertEquals(html.indexOf("<hr>") > html.lastIndexOf("</details>"), true);
+	assertEquals(html.includes("<hr>"), false);
+	assertEquals(
+		html.indexOf("Sender</p>") > html.lastIndexOf("</details>"),
+		true,
+	);
 	assertEquals(html.endsWith("Sender</p>"), true);
 });
