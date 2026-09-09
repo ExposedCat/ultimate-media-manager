@@ -1,6 +1,8 @@
 import { Composer } from "grammy";
+import type { InputRichMessage } from "grammy/types";
 
 import { APP_ENV } from "../config/env.ts";
+import { escapeHtml } from "../helpers/html.ts";
 import { setChatSetting, setUserSetting } from "../services/chat.ts";
 import { slideshowDelay } from "../services/slideshow.ts";
 import type { CustomContext } from "../types/context.ts";
@@ -13,8 +15,6 @@ type SettingOption = {
 	adminOnly?: boolean;
 };
 
-const ENABLED_ICON = `<tg-emoji emoji-id="5825794181183836432">✔️</tg-emoji>`;
-const DISABLED_ICON = `<tg-emoji emoji-id="5364330229043062830">➰</tg-emoji>`;
 const SETTING_COMMAND_PATTERN = /^set_([a-z0-9]+)_(on|off)$/;
 
 const OPTIONS: SettingOption[] = [
@@ -106,18 +106,45 @@ function parseSettingCommand(text: string) {
 function renderSettingsOptions(ctx: CustomContext, settings: Settings): string {
 	const options = OPTIONS.map((target) => {
 		const enabled = settings[target.key];
-		const icon = enabled ? ENABLED_ICON : DISABLED_ICON;
-		const nextState = enabled ? "off" : "on";
 		const suffix = target.adminOnly ? ` · ${ctx.i18n.t("adminOnly")}` : "";
-		return `${icon} ${ctx.i18n.t(target.labelKey)} /set_${target.commandId}_${nextState}${suffix}`;
+		return `<p>${escapeHtml(ctx.i18n.t(target.labelKey) + suffix)}</p>${toggleRow(ctx, target.commandId, enabled)}`;
 	}).join("\n");
 	const delay = slideshowDelay(settings);
-	const slider = `${delay > 0 ? ENABLED_ICON : DISABLED_ICON} ${ctx.i18n.t("option.slideshow", { seconds: delay })} /set_sld_${delay > 0 ? "off" : "on"}`;
-	return `${options}\n${slider}\n${ctx.i18n.t("slideshowDelayHelp")}`;
+	const slider = `<p>${escapeHtml(ctx.i18n.t("option.slideshow", { seconds: delay }))}</p>${toggleRow(ctx, "sld", delay > 0)}`;
+	const delays = [1, 6]
+		.map((start) => {
+			const buttons = Array.from({ length: 5 }, (_, index) => {
+				const seconds = start + index;
+				return `<tg-button type="callback_data"${seconds === delay ? ' style="primary"' : ""} data="settings:delay:${seconds}">${seconds}s</tg-button>`;
+			}).join("");
+			return `<tg-button-row>${buttons}</tg-button-row>`;
+		})
+		.join("\n");
+	return `${options}\n${slider}\n<p>${escapeHtml(ctx.i18n.t("slideshowDelayHelp"))}</p>${delays}`;
+}
+
+function toggleRow(
+	ctx: CustomContext,
+	commandId: string,
+	enabled: boolean,
+): string {
+	return `<tg-button-row><tg-button type="callback_data" style="${enabled ? "success" : "danger"}" data="settings:toggle:${commandId}">${escapeHtml(ctx.i18n.t(enabled ? "enabled" : "disabled"))}</tg-button></tg-button-row>`;
+}
+
+function settingsMessage(
+	ctx: CustomContext,
+	settings: Settings,
+): InputRichMessage {
+	return {
+		html: ctx.i18n.t("settings", {
+			options: renderSettingsOptions(ctx, settings),
+		}),
+		skip_entity_detection: true,
+	};
 }
 
 async function replySettings(ctx: CustomContext, settings: Settings) {
-	await ctx.text("settings", { options: renderSettingsOptions(ctx, settings) });
+	await ctx.replyWithRichMessage(settingsMessage(ctx, settings));
 }
 
 function getSettingsTarget(ctx: CustomContext): SettingsTarget | null {
@@ -163,6 +190,81 @@ function getSettingsTarget(ctx: CustomContext): SettingsTarget | null {
 }
 
 export const settingsController = new Composer<CustomContext>();
+
+settingsController.callbackQuery(/^settings:/, async (ctx) => {
+	const target = getSettingsTarget(ctx);
+	if (!ctx.callbackQuery.message || !target) {
+		await ctx.answerCallbackQuery({
+			text: ctx.i18n.t("settingsGroupOnly"),
+			show_alert: true,
+		});
+		return;
+	}
+	const data = ctx.callbackQuery.data;
+	const toggle = data.match(/^settings:toggle:([a-z0-9]+)$/);
+	const delay = data.match(/^settings:delay:(10|[0-9])$/);
+	const option = toggle ? OPTION_BY_COMMAND_ID.get(toggle[1]) : undefined;
+	let key: keyof Settings;
+	let value: boolean | number;
+	if (toggle?.[1] === "sld") {
+		key = "slideshowDelay";
+		value = slideshowDelay(target.settings) > 0 ? 0 : 1;
+	} else if (option) {
+		if (option.adminOnly && !isAdmin(ctx.from.id)) {
+			await ctx.answerCallbackQuery({
+				text: ctx.i18n.t("optionAdminOnly", {
+					option: ctx.i18n.t(option.labelKey),
+				}),
+				show_alert: true,
+			});
+			return;
+		}
+		key = option.key;
+		value = !target.settings[key];
+	} else if (delay) {
+		key = "slideshowDelay";
+		value = Number(delay[1]);
+	} else {
+		await ctx.answerCallbackQuery({
+			text: ctx.i18n.t("settingsInvalidButton"),
+			show_alert: true,
+		});
+		return;
+	}
+
+	let saved = false;
+	try {
+		const settings = { ...target.settings, [key]: value };
+		if (target.settings[key] !== value) {
+			await target.set(key, value);
+			target.replace(settings);
+		}
+		saved = true;
+		try {
+			await ctx.editMessageText(settingsMessage(ctx, settings));
+		} catch (error) {
+			// Selecting an already-active delay needs only a callback acknowledgement.
+			if (
+				!(
+					error instanceof Error &&
+					error.message.includes("message is not modified")
+				)
+			)
+				throw error;
+		}
+	} catch (error) {
+		console.warn("[Settings] Button update failed", { key, saved, error });
+		await ctx.answerCallbackQuery({
+			text: ctx.i18n.t(
+				saved ? "settingsRefreshFailed" : "settingsUpdateFailed",
+			),
+			show_alert: true,
+		});
+		return;
+	}
+	await ctx.answerCallbackQuery();
+});
+
 settingsController.command("settings", async (ctx) => {
 	if (!ctx.message) {
 		return;

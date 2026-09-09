@@ -60,7 +60,8 @@ with `docker compose up`.
 ### Media resolution
 
 - Media is resolved in-process by [postfetch](https://github.com/chelokot/postfetch). Download failures are reported directly, so resolver issues can be diagnosed and fixed in Postfetch.
-- Photo/video slideshows with a soundtrack are sent as one video by default, with one second per item and looping audio. Use `/set_sld_on` to restore the one-second default, `/set_sld_off` or `/set_sld_0` to send the original visuals, or `/set_sld_1` through `/set_sld_10` to choose seconds per item. Settings apply to the current group or your private chat; `/settings` shows the current value. Existing chats inherit the default automatically. Cached media is kept separately for each delay.
+- Open `/settings` to change settings using rich-message buttons. Each setting has an **Enabled** button in green or a **Disabled** button in red; tap it to toggle and refresh the message in place. Settings apply to the current group or your private chat. Admin-only settings still require the bot admin.
+- Photo/video slideshows with a soundtrack are sent as one video by default, with one second per item and looping audio. The slideshow status button turns conversion off or back on at one second; the **1s–10s** buttons select a delay and enable conversion. Existing `/set_sld_on`, `/set_sld_off`, and `/set_sld_0`–`/set_sld_10` commands still work. Existing chats inherit the default automatically. Cached media is kept separately for each delay.
 - `WARP_PROXY` configures the Cloudflare WARP SOCKS5 proxy provided by the `warp/` sidecar. Leave it empty to fetch directly.
 - `WARP_ROTATE_MINUTES` controls sidecar account rotation (`compose.yml` defaults to `30`; `0` disables rotation).
 
