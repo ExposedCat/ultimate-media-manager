@@ -55,7 +55,7 @@
 		"notFound": "<tg-emoji emoji-id=\"5879896690210639947\">🗑</tg-emoji> Post was removed"
 	},
 	"settingsGroupOnly": "Settings are only available in group chats and direct messages with the bot.",
-	"settings": "<h2>Chat settings</h2><p>Tap a status button to toggle a setting.</p>${options}",
+	"settings": "<h2>Chat settings</h2>${options}",
 	"settingsInvalidButton": "This settings button is no longer available. Open /settings again.",
 	"settingsUpdateFailed": "Could not save the setting. Please try again.",
 	"settingsRefreshFailed": "Setting saved, but the message could not be refreshed. Open /settings to see the current state.",
