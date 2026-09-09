@@ -218,7 +218,7 @@ Deno.test("Twitter removes a t.co URL only when it ends the post", () => {
 	});
 	assertEquals(
 		result.html,
-		'<p>hello</p>\n<img src="tg://photo?id=media_0"/>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> Sender shared this image</p>',
+		'<p>hello</p>\n<img src="tg://photo?id=media_0"/>\n<hr>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> Sender shared this image</p>',
 	);
 });
 
@@ -241,7 +241,7 @@ Deno.test("X posts preserve line breaks and blank lines in rich HTML", () => {
 			});
 			assertEquals(
 				result.html,
-				`<p>${authorName ? "<b>Author</b>: " : ""}First &lt;line&gt;<br><br><a href="https://example.com/?a=1&amp;b=2">Second</a><br>Third</p>\n<blockquote>\n<p><b>Quoted</b>: Quoted &amp; first<br>Quoted second</p>\n</blockquote>`,
+				`<p>${authorName ? "<b>Author</b><br>" : ""}First &lt;line&gt;<br><br><a href="https://example.com/?a=1&amp;b=2">Second</a><br>Third</p>\n<blockquote>\n<p><b>Quoted</b><br>Quoted &amp; first<br>Quoted second</p>\n</blockquote>`,
 			);
 		}
 	}
@@ -273,7 +273,7 @@ Deno.test("X quote posts nest each author, text, and media", () => {
 
 	assertEquals(
 		result.html,
-		'<p><a href="https://x.com/outer"><b>Outer Name</b></a>: Outer text</p>\n<img src="tg://photo?id=media_0"/>\n<blockquote>\n<p><a href="https://x.com/quoted"><b>Quoted Name</b></a>: Quoted text</p>\n<video src="tg://video?id=media_1"/>\n</blockquote>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> <a href="tg://user?id=42">Sender</a> shared <a href="https://x.com/outer/status/100">this slider</a></p>',
+		'<p><a href="https://x.com/outer"><b>Outer Name</b></a><br>Outer text</p>\n<img src="tg://photo?id=media_0"/>\n<blockquote>\n<p><a href="https://x.com/quoted"><b>Quoted Name</b></a><br>Quoted text</p>\n<video src="tg://video?id=media_1"/>\n</blockquote>\n<hr>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> <a href="tg://user?id=42">Sender</a> shared <a href="https://x.com/outer/status/100">this slider</a></p>',
 	);
 	assertEquals(result.html?.includes("@outer"), false);
 	assertEquals(result.html?.includes("@quoted"), false);
@@ -325,4 +325,45 @@ Deno.test("sender attribution names only the media kind", async () => {
 	]) {
 		assertEquals(locale.viewOn[sourceType], genericAttribution);
 	}
+});
+
+Deno.test("X reply parents appear above replies with verified, dated author lines", () => {
+	const result = buildRichMessage({
+		baseHtml: "Sender shared this post",
+		captionEnabled: true,
+		media: [],
+		sourceType: "twitter",
+		metadata: {
+			authorName: "Reply",
+			authorVerified: true,
+			createdAt: "2020-07-03T07:20:31.000Z",
+			text: "Reply text",
+			parentPost: {
+				authorName: "Parent",
+				authorVerified: true,
+				createdAt: "2020-07-02T17:07:02.000Z",
+				text: "Parent text",
+			},
+			quotedPost: {
+				authorName: "Quote",
+				authorVerified: true,
+				createdAt: "invalid",
+				text: "Quote text",
+			},
+		},
+	});
+	const badge = '<tg-emoji emoji-id="5951665890079544884">✅</tg-emoji> ';
+	assertEquals(
+		result.html,
+		`<blockquote>\n<p>${badge}<b>Parent</b> · Jul 2, 2020<br>Parent text</p>\n</blockquote>\n<p>${badge}<b>Reply</b> · Jul 3, 2020<br>Reply text</p>\n<blockquote>\n<p>${badge}<b>Quote</b><br>Quote text</p>\n</blockquote>\n<hr>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> Sender shared this post</p>`,
+	);
+});
+Deno.test("X separates sender credit even with captions disabled", () => {
+	const result = buildRichMessage({
+		baseHtml: "Sender",
+		captionEnabled: false,
+		media: [],
+		sourceType: "twitter",
+	});
+	assertStringIncludes(result.html ?? "", "<hr>\n<p>");
 });

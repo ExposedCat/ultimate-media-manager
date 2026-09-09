@@ -44,6 +44,13 @@ const PLATFORM_EMOJI: Record<SourceType, string> = {
 	youtube: '<tg-emoji emoji-id="5454010052421626926">▶️</tg-emoji>',
 	youtubeVideo: '<tg-emoji emoji-id="5454010052421626926">▶️</tg-emoji>',
 };
+const VERIFIED_EMOJI = '<tg-emoji emoji-id="5951665890079544884">✅</tg-emoji>';
+const POST_DATE = new Intl.DateTimeFormat("en-US", {
+	month: "short",
+	day: "numeric",
+	year: "numeric",
+	timeZone: "UTC",
+});
 const TRAILING_TCO_URL = /(?:^|\s)https:\/\/t\.co\/[^\s]+\s*$/i;
 
 export function stripTrailingTcoUrl(value: string) {
@@ -67,7 +74,11 @@ function buildRichHtml(data: RichMessageData, mediaTags: string[]) {
 	const senderCredit = buildSenderCredit(sourceType, baseHtml);
 	const mediaHtml = mediaBlock(mediaTags);
 	if (!captionEnabled || !metadata) {
-		return joinBlocks(mediaHtml, paragraph(senderCredit));
+		return joinBlocks(
+			mediaHtml,
+			sourceType === "twitter" && senderCredit ? "<hr>" : "",
+			paragraph(senderCredit),
+		);
 	}
 
 	if (sourceType === "reddit") {
@@ -130,7 +141,7 @@ function buildTwitterHtml(
 		(meta.mediaCount ?? mediaTags.length) +
 		Math.max(0, mediaTags.length - assignedMediaCount);
 	const { html } = buildTwitterPost(meta, mediaTags, 0, rootMediaCount, false);
-	return joinBlocks(html, paragraph(senderCredit));
+	return joinBlocks(html, senderCredit ? "<hr>" : "", paragraph(senderCredit));
 }
 
 function buildTwitterPost(
@@ -149,13 +160,19 @@ function buildTwitterPost(
 		next = quoted.next;
 	}
 
+	const parentHtml = meta.parentPost
+		? buildTwitterPost(meta.parentPost, [], 0).html
+		: "";
 	const text = meta.text ? stripTrailingTcoUrl(meta.text) : "";
 	const textHtml = renderPostText(text);
 	const author = twitterAuthor(meta);
-	const heading = author
-		? `${author}:${textHtml ? ` ${textHtml}` : ""}`
-		: textHtml;
+	const date = meta.createdAt ? new Date(meta.createdAt) : null;
+	const dateLabel =
+		date && !Number.isNaN(date.getTime()) ? POST_DATE.format(date) : "";
+	const header = [author, dateLabel].filter(Boolean).join(" · ");
+	const heading = [header, textHtml].filter(Boolean).join("<br>");
 	const blocks = [
+		parentHtml,
 		heading ? paragraph(heading) : "",
 		ownMedia,
 		quotedHtml,
@@ -175,14 +192,15 @@ function buildTwitterPost(
 function twitterAuthor(meta: PostCaptionMeta) {
 	const name = meta.authorName?.trim();
 	const handle = meta.authorHandle?.replace(/^@/, "").trim();
-	const label = name ?? handle;
+	const label = name || handle;
 	if (!label) {
 		return "";
 	}
 	const nameHtml = `<b>${escapeHtml(label)}</b>`;
-	return handle
+	const author = handle
 		? `<a href="https://x.com/${encodeURIComponent(handle)}">${nameHtml}</a>`
 		: nameHtml;
+	return `${meta.authorVerified === true ? `${VERIFIED_EMOJI} ` : ""}${author}`;
 }
 
 function twitterMediaCount(meta: PostCaptionMeta): number {

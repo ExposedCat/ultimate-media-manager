@@ -130,7 +130,12 @@ async function toVideoFile(
 	};
 }
 
-type TwitterMetadata = PostMetadata & { extra?: TwitterExtra };
+// Accept parent metadata while deployments transition to the next Postfetch patch.
+type TwitterMetadata = PostMetadata & {
+	extra?: TwitterExtra & {
+		parentTweet?: { id: string; metadata: TwitterMetadata };
+	};
+};
 
 export function toCaptionMeta(
 	result: PostfetchResult,
@@ -158,6 +163,7 @@ function toBaseCaptionMeta(meta: PostMetadata): PostCaptionMeta {
 		authorHandle: meta.author?.handle,
 		authorName: meta.author?.name,
 		authorVerified: meta.author?.verified,
+		createdAt: meta.createdAt,
 		likeCount: meta.likeCount,
 		commentCount: meta.commentCount,
 	};
@@ -169,9 +175,13 @@ function toTwitterCaptionMeta(
 	items: PostfetchResult["items"],
 ): PostCaptionMeta {
 	const quoted = meta.extra?.quotedTweet;
+	const parent = meta.extra?.parentTweet;
 	return {
 		...toBaseCaptionMeta(meta),
 		mediaCount: items.filter((item) => item.id === postId).length,
+		parentPost: parent
+			? toTwitterCaptionMeta(parent.metadata, parent.id, [])
+			: undefined,
 		quotedPost: quoted
 			? toTwitterCaptionMeta(quoted.metadata, quoted.id, items)
 			: undefined,

@@ -56,6 +56,8 @@ Deno.test("preserves nested X metadata and media ownership", () => {
 		authorHandle: "outer",
 		authorName: "Outer Name",
 		authorVerified: undefined,
+		createdAt: undefined,
+		parentPost: undefined,
 		likeCount: undefined,
 		commentCount: undefined,
 		mediaCount: 1,
@@ -65,10 +67,44 @@ Deno.test("preserves nested X metadata and media ownership", () => {
 			authorHandle: "quoted",
 			authorName: "Quoted Name",
 			authorVerified: undefined,
+			createdAt: undefined,
+			parentPost: undefined,
 			likeCount: undefined,
 			commentCount: undefined,
 			mediaCount: 1,
 			quotedPost: undefined,
 		},
 	});
+});
+
+Deno.test("maps parent metadata and dates without assigning reply media to it", () => {
+	const result: PostfetchResult = {
+		platform: "twitter",
+		id: "100",
+		archiveFilename: "twitter_100.zip",
+		items: [],
+		metadata: {
+			text: "Reply",
+			createdAt: "2020-07-03T07:20:31.000Z",
+			extra: {
+				lang: "en",
+				...{
+					parentTweet: {
+						id: "90",
+						metadata: {
+							text: "Parent",
+							author: { name: "Parent author", verified: true },
+							createdAt: "2020-07-02T17:07:02.000Z",
+						},
+					},
+				},
+			},
+		},
+	};
+	const meta = toCaptionMeta(result);
+	assertEquals(meta?.createdAt, "2020-07-03T07:20:31.000Z");
+	assertEquals(meta?.parentPost?.text, "Parent");
+	assertEquals(meta?.parentPost?.authorVerified, true);
+	assertEquals(meta?.parentPost?.createdAt, "2020-07-02T17:07:02.000Z");
+	assertEquals(meta?.parentPost?.mediaCount, 0);
 });

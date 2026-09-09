@@ -12,10 +12,12 @@ export type PostCaptionMeta = {
 	authorHandle?: string;
 	authorName?: string;
 	authorVerified?: boolean;
+	createdAt?: string;
 	likeCount?: number;
 	commentCount?: number;
 	mediaCount?: number;
 	quotedPost?: PostCaptionMeta;
+	parentPost?: PostCaptionMeta;
 	subreddit?: string;
 };
 
