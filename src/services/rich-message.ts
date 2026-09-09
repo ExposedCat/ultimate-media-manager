@@ -7,6 +7,7 @@ import type {
 import { escapeHtml } from "../helpers/html.ts";
 import { renderMarkdownLinks } from "../helpers/markdown.ts";
 import type { PostCaptionMeta } from "./caption.ts";
+import { commentSections } from "./comment-sections.ts";
 import type { SourceType } from "./sources.ts";
 
 export type RichMediaKind = "image" | "video" | "audio";
@@ -61,10 +62,22 @@ export function buildRichMessage(
 	data: RichMessageData<string>,
 ): InputRichMessageWithoutUpload;
 export function buildRichMessage(data: RichMessageData): InputRichMessage;
-export function buildRichMessage(data: RichMessageData): InputRichMessage {
+export function buildRichMessage(input: RichMessageData): InputRichMessage {
+	const data = selectCommentMedia(input);
 	const { tags: mediaTags, media } = buildMedia(data.media);
 	return {
-		html: buildRichHtml(data, mediaTags),
+		html: joinBlocks(
+			buildRichHtml(
+				data,
+				mediaTags.slice(0, mediaTags.length - commentMediaCount(data)),
+			),
+			data.sourceType === "twitter"
+				? buildComments(
+						data.metadata?.comments ?? [],
+						mediaTags.slice(mediaTags.length - commentMediaCount(data)),
+					)
+				: "",
+		),
 		...(media.length > 0 && { media }),
 	};
 }
@@ -150,6 +163,7 @@ function buildTwitterPost(
 	start: number,
 	mediaCount = meta.mediaCount ?? 0,
 	quoted = true,
+	unlimitedText = false,
 ): { html: string; next: number } {
 	const ownMedia = mediaBlock(mediaTags.slice(start, start + mediaCount));
 	let next = start + mediaCount;
@@ -164,7 +178,10 @@ function buildTwitterPost(
 		? buildTwitterPost(meta.parentPost, [], 0).html
 		: "";
 	const text = meta.text ? stripTrailingTcoUrl(meta.text) : "";
-	const textHtml = renderPostText(text);
+	const textHtml = renderPostText(
+		text,
+		unlimitedText ? Number.POSITIVE_INFINITY : MAX_RICH_TEXT_LENGTH,
+	);
 	const author = twitterAuthor(meta);
 	const date = meta.createdAt ? new Date(meta.createdAt) : null;
 	const dateLabel =
@@ -244,9 +261,9 @@ function buildQuote(content: string, creditHtml = "") {
 	);
 }
 
-function renderPostText(text: string) {
+function renderPostText(text: string, maxLength = MAX_RICH_TEXT_LENGTH) {
 	// Rich HTML collapses literal newlines; encode post line breaks explicitly.
-	return renderMarkdownLinks(truncate(text, MAX_RICH_TEXT_LENGTH)).replace(
+	return renderMarkdownLinks(truncate(text, maxLength)).replace(
 		/\r\n|\r|\n/g,
 		"<br>",
 	);
@@ -307,4 +324,66 @@ function truncate(text: string, max: number) {
 
 function formatCount(value: number) {
 	return value.toLocaleString("en-US");
+}
+
+function commentMediaCount(data: RichMessageData): number {
+	return data.sourceType === "twitter"
+		? (data.metadata?.comments ?? []).reduce(
+				(sum, comment) => sum + (comment.mediaCount ?? 0),
+				0,
+			)
+		: 0;
+}
+
+function buildComments(
+	comments: PostCaptionMeta[],
+	mediaTags: string[],
+): string {
+	let offset = 0;
+	const entries = comments.map((comment) => {
+		const media = mediaTags.slice(
+			offset,
+			offset + Math.min(1, comment.mediaCount ?? 0),
+		);
+		offset += comment.mediaCount ?? 0;
+		return { comment, media };
+	});
+	const sections = commentSections(entries, ({ comment }) => comment).map(
+		(entries) =>
+			entries
+				.map(
+					({ comment, media }) =>
+						buildTwitterPost(comment, media, 0, media.length, false, true).html,
+				)
+				.join("\n"),
+	);
+	if (sections.length < 2) return sections[0] ?? "";
+	let html = sections[sections.length - 1];
+	for (let i = sections.length - 2; i >= 0; i--) {
+		html = `${sections[i]}\n<details><summary>Show more</summary>\n${html}\n</details>`;
+	}
+	return `<details><summary>Show comments</summary>\n${html}\n</details>`;
+}
+
+// Drop attachments along with omitted comments so they are never uploaded or
+// accidentally reassigned to the root post by the media fallback logic.
+function selectCommentMedia(data: RichMessageData): RichMessageData {
+	if (data.sourceType !== "twitter" || !data.metadata?.comments?.length)
+		return data;
+	const comments = data.metadata.comments;
+	const rootCount = Math.max(0, data.media.length - commentMediaCount(data));
+	const media = data.media.slice(0, rootCount);
+	let offset = rootCount;
+	const selected = commentSections(comments, (comment) => comment).flat();
+	const normalized = selected.map((comment) => {
+		const item = (comment.mediaCount ?? 0) > 0 ? data.media[offset] : undefined;
+		if (item) media.push(item);
+		offset += comment.mediaCount ?? 0;
+		return { ...comment, mediaCount: item ? 1 : 0 };
+	});
+	return {
+		...data,
+		media,
+		metadata: { ...data.metadata, comments: normalized },
+	};
 }

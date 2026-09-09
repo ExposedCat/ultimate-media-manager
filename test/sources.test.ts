@@ -18,3 +18,14 @@ Deno.test("matches X text post URLs", () => {
 		"twitter",
 	);
 });
+
+Deno.test("matches legacy Twitter links for comment requests", () => {
+	assertEquals(
+		matchInput("https://twitter.com/example/status/123").type,
+		"twitter",
+	);
+	assertEquals(
+		matchInput("https://mobile.twitter.com/example/statuses/123").type,
+		"twitter",
+	);
+});

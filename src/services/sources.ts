@@ -35,7 +35,11 @@ const SOURCES: MediaSource[] = [
 	},
 
 	{ type: "youtube", match: "youtube.com/shorts/" },
-	{ type: "twitter", match: /x.com\/.+?\/status\// },
+	{
+		type: "twitter",
+		match:
+			/(?:^|\/\/)(?:www\.|mobile\.)?(?:x|twitter)\.com\/.+?\/status(?:es)?\//,
+	},
 
 	{ type: "pinterest", match: "pinterest.com/pin/" },
 

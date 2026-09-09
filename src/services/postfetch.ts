@@ -11,6 +11,7 @@ import {
 
 import { APP_ENV } from "../config/env.ts";
 import type { PostCaptionMeta } from "./caption.ts";
+import { commentSections } from "./comment-sections.ts";
 import {
 	type DownloadMediaFile,
 	type DownloadMediaResult,
@@ -29,42 +30,47 @@ const resolveOptions = {
 
 export async function downloadWithPostfetch(
 	url: string,
-	options: { slideshowDelay?: number } = {},
+	options: { slideshowDelay?: number; comments?: number } = {},
 ): Promise<DownloadMediaResult | null> {
 	try {
-		const result = await postfetch(url, resolveOptions);
+		const requestOptions = { ...resolveOptions, comments: options.comments };
+		const result = await postfetch(url, requestOptions);
 		const delay = slideshowDelay(options);
 		const files =
 			delay > 0 && isAudioSlideshow(result.items)
 				? [await downloadSlideshow(result, delay)]
-				: await Promise.all(
-						result.items.map(async (item): Promise<DownloadMediaFile> => {
-							if (item.mime === "video/mp4") {
-								const video = await downloadBlob(item, {
-									...fetchOptions,
-									ffmpegPath: APP_ENV.FFMPEG_PATH,
-									remux: true,
-								});
-								return toVideoFile(video, item.filename);
-							}
-							const blob = await downloadBlob(item, {
-								...fetchOptions,
-							});
-							return {
-								contentType: item.mime,
-								data: new Uint8Array(await blob.arrayBuffer()),
-								extension: extensionOf(item.filename),
-								filename: item.filename,
-								mediaKind: item.kind,
-							};
-						}),
-					);
+				: await Promise.all(result.items.map(downloadItem));
 		console.info("[Postfetch] Resolved media", {
 			url,
 			platform: result.platform,
 			fileCount: files.length,
 		});
 		const meta = toCaptionMeta(result);
+		// Keep comment attachments after the post/quote attachments, with ownership
+		// retained in metadata for both fresh uploads and Telegram file-id reuse.
+		if (meta && result.platform === "twitter") {
+			try {
+				const selected = commentSections(result.comments, (comment) => ({
+					text: comment.metadata.text,
+					mediaCount: comment.items.length,
+				})).flat();
+				const downloaded = await Promise.all(
+					selected.map(async (comment) => ({
+						metadata: {
+							...toBaseCaptionMeta(comment.metadata),
+							mediaCount: Math.min(1, comment.items.length),
+						},
+						files: await Promise.all(
+							comment.items.slice(0, 1).map(downloadItem),
+						),
+					})),
+				);
+				meta.comments = downloaded.map((comment) => comment.metadata);
+				files.push(...downloaded.flatMap((comment) => comment.files));
+			} catch {
+				meta.comments = [];
+			}
+		}
 		const resolved = bundle(files);
 		return resolved
 			? { ...resolved, metadata: meta }
@@ -191,4 +197,25 @@ function toTwitterCaptionMeta(
 function extensionOf(filename: string): string {
 	const extension = filename.split(".").at(-1);
 	return extension && extension !== filename ? extension.toLowerCase() : "bin";
+}
+
+async function downloadItem(item: MediaItem): Promise<DownloadMediaFile> {
+	if (item.mime === "video/mp4") {
+		return toVideoFile(
+			await downloadBlob(item, {
+				...fetchOptions,
+				ffmpegPath: APP_ENV.FFMPEG_PATH,
+				remux: true,
+			}),
+			item.filename,
+		);
+	}
+	const blob = await downloadBlob(item, fetchOptions);
+	return {
+		contentType: item.mime,
+		data: new Uint8Array(await blob.arrayBuffer()),
+		extension: extensionOf(item.filename),
+		filename: item.filename,
+		mediaKind: item.kind,
+	};
 }

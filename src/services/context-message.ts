@@ -121,3 +121,26 @@ export function isBotMentioned(
 		return mention === normalizedBotUsername;
 	});
 }
+
+/** Read a nonnegative integer immediately after this link, including text links. */
+export function commentsAfterUrl(
+	message: MessageLike | null | undefined,
+	url: string,
+): number {
+	const text = getMessageText(message);
+	const entity = getMessageEntities(message).find(
+		(entity) =>
+			(entity.type === "text_link" && entity.url === url) ||
+			(entity.type === "url" &&
+				message &&
+				extractEntityText(message, entity) === url),
+	);
+	const start = entity ? entity.offset : text.indexOf(url);
+	if (start < 0) return 0;
+	const end = entity ? entity.offset + entity.length : start + url.length;
+	const match = text
+		.slice(end)
+		.match(/^[ \t]+(\d+)(?=$|[\s,;!?)\]}`]|\.(?!\d))/);
+	const value = match ? Number(match[1]) : 0;
+	return Number.isSafeInteger(value) ? value : 0;
+}

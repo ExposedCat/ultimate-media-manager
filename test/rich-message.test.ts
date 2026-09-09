@@ -367,3 +367,72 @@ Deno.test("X separates sender credit even with captions disabled", () => {
 	});
 	assertStringIncludes(result.html ?? "", "<hr>\n<p>");
 });
+
+Deno.test("comments form a nested Show comments / Show more chain, or render directly", () => {
+	const render = (lengths: number[]) =>
+		buildRichMessage({
+			baseHtml: "",
+			captionEnabled: true,
+			sourceType: "twitter",
+			media: [],
+			metadata: {
+				text: "root",
+				comments: lengths.map((length, i) => ({
+					text: String.fromCharCode(97 + i).repeat(length),
+				})),
+			},
+		}).html ?? "";
+	assertEquals(render([250, 250, 250]).includes("<details>"), false);
+	const two = render([250, 250, 500]);
+	assertEquals((two.match(/<details>/g) ?? []).length, 2);
+	assertStringIncludes(two, "<details><summary>Show comments</summary>");
+	assertStringIncludes(two, "<details><summary>Show more</summary>");
+	assertEquals(two.indexOf("b".repeat(250)) < two.indexOf("Show more"), true);
+	assertEquals(two.indexOf("c".repeat(500)) > two.indexOf("Show more"), true);
+	assertStringIncludes(render([10000]), "a".repeat(10000));
+	assertStringIncludes(render([31000]), "a".repeat(31000));
+	const max = render(Array(14).fill(751));
+	assertEquals((max.match(/<details>/g) ?? []).length, 13);
+	assertEquals(max.includes("n".repeat(751)), false);
+});
+
+Deno.test("comment media stays in its own section, separate from root and quote media", () => {
+	const result = buildRichMessage({
+		baseHtml: "",
+		captionEnabled: true,
+		sourceType: "twitter",
+		media: [
+			{ kind: "image", media: "root" },
+			{ kind: "video", media: "quote" },
+			{ kind: "image", media: "reply" },
+		],
+		metadata: {
+			text: "root",
+			mediaCount: 1,
+			quotedPost: { text: "quote", mediaCount: 1 },
+			comments: [
+				{ text: "first" },
+				{ text: "with media", mediaCount: 1 },
+				{ text: "last" },
+			],
+		},
+	});
+	const html = result.html ?? "";
+	assertEquals((html.match(/<details>/g) ?? []).length, 3);
+	assertEquals(html.indexOf("media_1") < html.indexOf("Show comments"), true);
+	assertEquals(html.indexOf("media_2") > html.indexOf("Show more"), true);
+	assertEquals(html.includes("tg-slideshow"), false);
+	assertEquals(result.media?.length, 3);
+});
+
+Deno.test("explicitly requested comments still render with post captions disabled", () => {
+	const result = buildRichMessage({
+		baseHtml: "",
+		captionEnabled: false,
+		sourceType: "twitter",
+		media: [],
+		metadata: { text: "hidden root", comments: [{ text: "visible reply" }] },
+	});
+	assertEquals(result.html?.includes("hidden root"), false);
+	assertStringIncludes(result.html ?? "", "visible reply");
+});

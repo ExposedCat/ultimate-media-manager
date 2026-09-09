@@ -1,7 +1,11 @@
 import type { InputRichMessageWithoutUpload } from "grammy/types";
 import type { CustomContext } from "../types/context.ts";
 import { cacheDownloadedMedia } from "./cache-media.ts";
-import { type MessageLike, extractUrlsFromMessage } from "./context-message.ts";
+import {
+	type MessageLike,
+	commentsAfterUrl,
+	extractUrlsFromMessage,
+} from "./context-message.ts";
 import {
 	type DownloadResponse,
 	buildDownloadResponse,
@@ -587,7 +591,10 @@ export async function downloadMatchedUrl(
 			url,
 		});
 
+		const comments =
+			type === "twitter" ? commentsAfterUrl(sourceMessage, url) : 0;
 		const responseData = {
+			comments,
 			sourceType: type,
 			userId: captionAuthor.userId,
 			userName: captionAuthor.userName,
@@ -595,7 +602,7 @@ export async function downloadMatchedUrl(
 			fallbackUrl: fallbackUrl ?? undefined,
 		};
 		const delay = responseSlideshowDelay(ctx);
-		const cachedMedia = getCachedMedia(url, delay);
+		const cachedMedia = comments > 0 ? null : getCachedMedia(url, delay);
 		if (cachedMedia) {
 			const attributionKind = responseMediaKind(type, cachedMedia);
 			const cachedBaseText = buildDownloadResponseBaseText(
@@ -704,7 +711,7 @@ export async function downloadMatchedUrl(
 					replyExtra,
 				);
 				const cachedMedia = getCachedMediaFromRichMessage(sentMessage);
-				if (cachedMedia) {
+				if (cachedMedia && comments === 0) {
 					const normalizedUrl = setCachedMedia(
 						url,
 						{

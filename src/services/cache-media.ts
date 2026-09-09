@@ -17,8 +17,9 @@ export async function cacheDownloadedMedia(
 	sourceUrl?: string,
 ): Promise<CachedMedia | null> {
 	const delay = responseSlideshowDelay(ctx);
-	if (sourceUrl) {
-		const cachedMedia = getCachedMedia(sourceUrl, delay);
+	const cacheUrl = media.metadata?.comments?.length ? undefined : sourceUrl;
+	if (cacheUrl) {
+		const cachedMedia = getCachedMedia(cacheUrl, delay);
 		if (cachedMedia) {
 			return cachedMedia;
 		}
@@ -43,8 +44,8 @@ export async function cacheDownloadedMedia(
 		...cachedMedia,
 		metadata: media.metadata,
 	};
-	if (sourceUrl) {
-		setCachedMedia(sourceUrl, cachedWithMetadata, delay);
+	if (cacheUrl) {
+		setCachedMedia(cacheUrl, cachedWithMetadata, delay);
 	}
 	return cachedWithMetadata;
 }

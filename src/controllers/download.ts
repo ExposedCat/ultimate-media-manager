@@ -12,7 +12,7 @@ function getCommandUrlSource(ctx: CustomContext) {
 	const directUrl =
 		typeof ctx.match === "string" ? ctx.match.trim() : ctx.match?.[0]?.trim();
 	if (directUrl) {
-		return { url: directUrl, sourceMessage: ctx.message };
+		return { url: directUrl.split(/\s+/)[0], sourceMessage: ctx.message };
 	}
 
 	const repliedMessage = ctx.message?.reply_to_message;

@@ -23,6 +23,7 @@ export type DownloadResponse = {
 };
 
 type DownloadResponseData = {
+	comments?: number;
 	sourceType: SourceType;
 	userId: number;
 	userName: string;
@@ -137,7 +138,7 @@ export async function buildDownloadResponse(
 
 	const { media, error, reason, metadata } = await downloadMediaForUrl(
 		data.url,
-		{ slideshowDelay: responseSlideshowDelay(ctx) },
+		{ slideshowDelay: responseSlideshowDelay(ctx), comments: data.comments },
 	);
 
 	if (!media) {

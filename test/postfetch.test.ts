@@ -12,6 +12,7 @@ Deno.test("requests media within the 50 MB Postfetch budget", () => {
 
 Deno.test("preserves nested X metadata and media ownership", () => {
 	const result: PostfetchResult = {
+		comments: [],
 		archiveFilename: "twitter_100.zip",
 		id: "100",
 		items: [
@@ -79,6 +80,7 @@ Deno.test("preserves nested X metadata and media ownership", () => {
 
 Deno.test("maps parent metadata and dates without assigning reply media to it", () => {
 	const result: PostfetchResult = {
+		comments: [],
 		platform: "twitter",
 		id: "100",
 		archiveFilename: "twitter_100.zip",
