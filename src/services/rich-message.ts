@@ -53,12 +53,6 @@ const POST_DATE = new Intl.DateTimeFormat("en-US", {
 	year: "numeric",
 	timeZone: "UTC",
 });
-const TRAILING_TCO_URL = /(?:^|\s)https:\/\/t\.co\/[^\s]+\s*$/i;
-
-export function stripTrailingTcoUrl(value: string) {
-	return value.replace(TRAILING_TCO_URL, "").trim();
-}
-
 export function buildRichMessage(
 	data: RichMessageData<string>,
 ): InputRichMessageWithoutUpload;
@@ -179,7 +173,7 @@ function buildTwitterPost(
 	const parentHtml = meta.parentPost
 		? buildTwitterPost(meta.parentPost, [], 0).html
 		: "";
-	const text = meta.text ? stripTrailingTcoUrl(meta.text) : "";
+	const text = meta.text ?? "";
 	const textHtml = renderPostText(
 		text,
 		unlimitedText ? Number.POSITIVE_INFINITY : MAX_RICH_TEXT_LENGTH,

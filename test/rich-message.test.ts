@@ -1,9 +1,6 @@
 import { assertEquals, assertStringIncludes } from "jsr:@std/assert@^1";
 
-import {
-	buildRichMessage,
-	stripTrailingTcoUrl,
-} from "../src/services/rich-message.ts";
+import { buildRichMessage } from "../src/services/rich-message.ts";
 
 Deno.test("reddit rich messages put an h5 title above a media slideshow", () => {
 	const result = buildRichMessage({
@@ -198,17 +195,7 @@ Deno.test("non-X post author names and verification are omitted from credits", (
 	assertEquals(facebook.html?.includes("5951665890079544884"), false);
 });
 
-Deno.test("Twitter removes a t.co URL only when it ends the post", () => {
-	assertEquals(stripTrailingTcoUrl("hello https://t.co/abc123"), "hello");
-	assertEquals(
-		stripTrailingTcoUrl("hello https://t.co/abc123 still here"),
-		"hello https://t.co/abc123 still here",
-	);
-	assertEquals(
-		stripTrailingTcoUrl("hellohttps://t.co/abc123"),
-		"hellohttps://t.co/abc123",
-	);
-
+Deno.test("Twitter preserves genuine trailing links supplied by Postfetch", () => {
 	const result = buildRichMessage({
 		baseHtml: "Sender shared this image",
 		captionEnabled: true,
@@ -218,7 +205,7 @@ Deno.test("Twitter removes a t.co URL only when it ends the post", () => {
 	});
 	assertEquals(
 		result.html,
-		'<p>hello</p>\n<img src="tg://photo?id=media_0"/>\n<hr>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> Sender shared this image</p>',
+		'<p>hello https://t.co/abc123</p>\n<img src="tg://photo?id=media_0"/>\n<hr>\n<p><tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji> Sender shared this image</p>',
 	);
 });
 
@@ -231,7 +218,7 @@ Deno.test("X posts preserve line breaks and blank lines in rich HTML", () => {
 				media: [],
 				metadata: {
 					authorName,
-					text: `First <line>${newline}${newline}[Second](https://example.com/?a=1&b=2)${newline}Third https://t.co/media`,
+					text: `First <line>${newline}${newline}[Second](https://example.com/?a=1&b=2)${newline}Third`,
 					quotedPost: {
 						authorName: "Quoted",
 						text: `Quoted & first${newline}Quoted second`,
@@ -257,7 +244,7 @@ Deno.test("X quote posts nest each author, text, and media", () => {
 			{ kind: "video", media: "quoted-video" },
 		],
 		metadata: {
-			text: "Outer text https://t.co/quoted",
+			text: "Outer text",
 			authorName: "Outer Name",
 			authorHandle: "outer",
 			mediaCount: 1,
