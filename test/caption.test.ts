@@ -83,3 +83,12 @@ Deno.test("captionEnabled follows per-platform settings", () => {
 	assertEquals(captionEnabled(settings, "linkedin"), true);
 	assertEquals(captionEnabled(settings, "youtubeVideo"), false);
 });
+
+Deno.test("captions render emphasis and literal multiline code", () => {
+	assertEquals(
+		buildPostCaption("instagram", {
+			text: "**bold *italic***\n```\n<b>\n&\n```",
+		}),
+		"<blockquote expandable><b>bold <i>italic</i></b>\n<pre>&lt;b&gt;\n&amp;</pre></blockquote>",
+	);
+});

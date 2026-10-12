@@ -1,5 +1,5 @@
 import { escapeHtml } from "../helpers/html.ts";
-import { renderMarkdownLinks } from "../helpers/markdown.ts";
+import { renderMarkdown } from "../helpers/markdown.ts";
 import type { Settings } from "../types/database.ts";
 import type { SourceType } from "./sources.ts";
 
@@ -93,7 +93,7 @@ function redditBody(meta: PostCaptionMeta): string | null {
 	if (!meta.text || budget <= 0) {
 		return head;
 	}
-	return `${head}\n\n${renderMarkdownLinks(truncate(meta.text, budget))}`;
+	return `${head}\n\n${renderMarkdown(truncate(meta.text, budget))}`;
 }
 
 function soundcloudBody(meta: PostCaptionMeta): string | null {
@@ -107,7 +107,7 @@ function soundcloudBody(meta: PostCaptionMeta): string | null {
 
 function textBody(meta: PostCaptionMeta): string | null {
 	return meta.text
-		? renderMarkdownLinks(truncate(meta.text, CAPTION_LIMIT - RESERVE))
+		? renderMarkdown(truncate(meta.text, CAPTION_LIMIT - RESERVE))
 		: null;
 }
 
