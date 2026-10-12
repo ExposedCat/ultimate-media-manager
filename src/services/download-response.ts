@@ -64,6 +64,22 @@ export function responseCaptionEnabled(
 	return captionEnabled(getResponseSettings(ctx), sourceType);
 }
 
+function captionPostUrl(data: DownloadResponseData): string {
+	if (data.sourceType !== "instagram") {
+		return data.url;
+	}
+	try {
+		const url = new URL(data.url);
+		if (!url.searchParams.has("rpxt")) {
+			return data.url;
+		}
+		url.searchParams.delete("rpxt");
+		return url.href;
+	} catch {
+		return data.url;
+	}
+}
+
 function getPromoText(
 	ctx: CustomContext,
 	data: DownloadResponseData,
@@ -73,7 +89,7 @@ function getPromoText(
 	return ctx.i18n.t("promoCaption", {
 		viewUrl: ctx.i18n.t(`viewOn.${data.sourceType}`, {
 			kind: `${kind}${data.sourceType === "twitter" && meta?.isComment ? " comment" : ""}${meta?.comments?.length ? " with comments" : ""}`,
-			postUrl: escapeHtml(data.url),
+			postUrl: escapeHtml(captionPostUrl(data)),
 			userName: escapeHtml(data.userName),
 			userId: data.userId,
 		}),
