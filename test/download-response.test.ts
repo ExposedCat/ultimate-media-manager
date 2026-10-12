@@ -82,3 +82,38 @@ Deno.test("Reddit attribution counts root media separately from comment attachme
 		"video",
 	);
 });
+
+Deno.test("Instagram attribution removes rpxt and preserves other query parameters", () => {
+	const linkContext = {
+		i18n: {
+			t(key: string, values: Record<string, unknown>) {
+				return key === "promoCaption" ? values.viewUrl : values.postUrl;
+			},
+		},
+	} as unknown as CustomContext;
+	for (const kind of ["video", null] as const) {
+		assertEquals(
+			buildDownloadResponseBaseText(
+				linkContext,
+				{
+					...data,
+					sourceType: "instagram",
+					url: "https://www.instagram.com/reel/abc/?rpxt=sender&foo=bar&rpxt=other#fragment",
+				},
+				kind,
+			),
+			"https://www.instagram.com/reel/abc/?foo=bar#fragment",
+		);
+	}
+	assertEquals(
+		buildDownloadResponseBaseText(
+			linkContext,
+			{
+				...data,
+				url: "https://x.com/a/status/1?rpxt=keep",
+			},
+			"video",
+		),
+		"https://x.com/a/status/1?rpxt=keep",
+	);
+});
