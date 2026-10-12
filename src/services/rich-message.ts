@@ -5,7 +5,7 @@ import type {
 } from "grammy/types";
 
 import { escapeHtml } from "../helpers/html.ts";
-import { renderMarkdownLinks } from "../helpers/markdown.ts";
+import { renderMarkdown } from "../helpers/markdown.ts";
 import type { PostCaptionMeta } from "./caption.ts";
 import { commentSections } from "./comment-sections.ts";
 import type { SourceType } from "./sources.ts";
@@ -259,9 +259,9 @@ function buildQuote(content: string, creditHtml = "") {
 
 function renderPostText(text: string, maxLength = MAX_RICH_TEXT_LENGTH) {
 	// Rich HTML collapses literal newlines; encode post line breaks explicitly.
-	return renderMarkdownLinks(truncate(text, maxLength)).replace(
-		/\r\n|\r|\n/g,
-		"<br>",
+	return renderMarkdown(truncate(text, maxLength)).replace(
+		/<pre>[\s\S]*?<\/pre>|\r\n|\r|\n/g,
+		(match) => (match.startsWith("<pre>") ? match : "<br>"),
 	);
 }
 

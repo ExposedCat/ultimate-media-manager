@@ -530,3 +530,17 @@ Deno.test("Reddit comments use quotes, Reddit author links and the same nested d
 	);
 	assertEquals(html.endsWith("Sender</p>"), true);
 });
+
+Deno.test("Markdown formatting and code preserve rich post line breaks", () => {
+	const result = buildRichMessage({
+		baseHtml: "Sender shared this image",
+		captionEnabled: true,
+		media: [{ kind: "image", media: "photo-file" }],
+		metadata: { text: "**bold *italic***\n```\n<b>\nhttps://example.com\n```" },
+		sourceType: "facebook",
+	});
+	assertStringIncludes(
+		result.html ?? "",
+		"<b>bold <i>italic</i></b><br><pre>&lt;b&gt;\nhttps://example.com</pre>",
+	);
+});

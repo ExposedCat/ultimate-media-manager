@@ -21,6 +21,7 @@
 		"@opentelemetry/api": "npm:@opentelemetry/api@^1.9.1",
 		"@postfetch/core": "npm:@postfetch/core@^0.12.3",
 		"grammy": "npm:grammy@1.46.0",
+		"marked": "npm:marked@18.1.0",
 		"mongodb": "npm:mongodb@4.17.2"
 	}
 }

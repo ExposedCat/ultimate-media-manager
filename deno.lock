@@ -12,6 +12,7 @@
     "npm:@opentelemetry/api@^1.9.1": "1.9.1",
     "npm:@postfetch/core@~0.12.3": "0.12.3",
     "npm:grammy@1.46.0": "1.46.0",
+    "npm:marked@18.1.0": "18.1.0",
     "npm:mongodb@4.17.2": "4.17.2"
   },
   "jsr": {
@@ -1229,6 +1230,10 @@
     "long@5.3.2": {
       "integrity": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA=="
     },
+    "marked@18.1.0": {
+      "integrity": "sha512-PamYXWWWg2nboG3oX5Ffzpy3EFZROqZJK9hSlMmUnekp7TxPs5DcT95vwd46m73/exfKCRVMtgXoPMI4FEJL6w==",
+      "bin": true
+    },
     "memory-pager@1.5.0": {
       "integrity": "sha512-ZS4Bp4r/Zoeq6+NLJpP+0Zzm0pR8whtGPf1XExKLJBAczGMnSi3It14OiNCStjQjM6NU1okjQGSxgEZN8eBYKg=="
     },
@@ -1348,6 +1353,7 @@
       "npm:@opentelemetry/api@^1.9.1",
       "npm:@postfetch/core@~0.12.3",
       "npm:grammy@1.46.0",
+      "npm:marked@18.1.0",
       "npm:mongodb@4.17.2"
     ]
   }
