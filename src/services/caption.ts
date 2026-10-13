@@ -18,6 +18,8 @@ export type PostCaptionMeta = {
 	likeCount?: number;
 	commentCount?: number;
 	mediaCount?: number;
+	/** Trailing website preview images included in mediaCount, outside the attachment gallery. */
+	linkPreviewCount?: number;
 	quotedPost?: PostCaptionMeta;
 	parentPost?: PostCaptionMeta;
 	subreddit?: string;

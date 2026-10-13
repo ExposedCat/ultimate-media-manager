@@ -187,10 +187,15 @@ function toTwitterCaptionMeta(
 	const quoted = meta.extra?.quotedTweet;
 	const parent = meta.extra?.parentTweet;
 	const isComment = !!(parent || meta.extra?.replyToId);
+	const ownItems = items.filter((item) => item.id === postId);
+	const linkPreviewCount = ownItems.filter(
+		(item) => item.role === "linkPreview",
+	).length;
 	return {
 		...toBaseCaptionMeta(meta),
 		...(isComment && { isComment: true }),
-		mediaCount: items.filter((item) => item.id === postId).length,
+		mediaCount: ownItems.length,
+		...(linkPreviewCount > 0 && { linkPreviewCount }),
 		parentPost: parent
 			? toTwitterCaptionMeta(parent.metadata, parent.id, [])
 			: undefined,

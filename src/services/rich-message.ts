@@ -76,9 +76,9 @@ function buildRichHtml(data: RichMessageData, mediaTags: string[]) {
 		const postMediaCount = mediaTags.length - commentMediaCount(data);
 		const postMedia = mediaTags.slice(0, postMediaCount);
 		const content = joinBlocks(
-			captionEnabled && metadata
+			metadata && (captionEnabled || sourceType === "twitter")
 				? sourceType === "twitter"
-					? buildTwitterHtml(metadata, postMedia)
+					? buildTwitterHtml(metadata, postMedia, captionEnabled)
 					: buildRedditHtml(metadata, mediaBlock(postMedia), "")
 				: mediaBlock(postMedia),
 			buildComments(
@@ -143,13 +143,25 @@ function buildRedditFacts(meta: PostCaptionMeta) {
 	return facts.join(" ");
 }
 
-function buildTwitterHtml(meta: PostCaptionMeta, mediaTags: string[]) {
+function buildTwitterHtml(
+	meta: PostCaptionMeta,
+	mediaTags: string[],
+	captionEnabled = true,
+) {
 	const assignedMediaCount =
 		meta.mediaCount === undefined ? mediaTags.length : twitterMediaCount(meta);
 	const rootMediaCount =
 		(meta.mediaCount ?? mediaTags.length) +
 		Math.max(0, mediaTags.length - assignedMediaCount);
-	const { html } = buildTwitterPost(meta, mediaTags, 0, rootMediaCount, false);
+	const { html } = buildTwitterPost(
+		meta,
+		mediaTags,
+		0,
+		rootMediaCount,
+		false,
+		false,
+		captionEnabled,
+	);
 	return html;
 }
 
@@ -160,19 +172,34 @@ function buildTwitterPost(
 	mediaCount = meta.mediaCount ?? 0,
 	quoted = true,
 	unlimitedText = false,
+	captionEnabled = true,
 ): { html: string; next: number } {
-	const ownMedia = mediaBlock(mediaTags.slice(start, start + mediaCount));
-	let next = start + mediaCount;
+	const previewCount = Math.min(mediaCount, meta.linkPreviewCount ?? 0);
+	const ownMedia = mediaBlock(
+		mediaTags.slice(start, start + mediaCount - previewCount),
+	);
+	let next = start + mediaCount - previewCount;
 	let quotedHtml = "";
 	if (meta.quotedPost) {
-		const quoted = buildTwitterPost(meta.quotedPost, mediaTags, next);
+		const quoted = buildTwitterPost(
+			meta.quotedPost,
+			mediaTags,
+			next,
+			undefined,
+			true,
+			false,
+			captionEnabled,
+		);
 		quotedHtml = quoted.html;
 		next = quoted.next;
 	}
+	const previewHtml = mediaTags.slice(next, next + previewCount).join("\n");
+	next += previewCount;
 
-	const parentHtml = meta.parentPost
-		? buildTwitterPost(meta.parentPost, [], 0).html
-		: "";
+	const parentHtml =
+		captionEnabled && meta.parentPost
+			? buildTwitterPost(meta.parentPost, [], 0).html
+			: "";
 	const text = meta.text ?? "";
 	const textHtml = renderPostText(
 		text,
@@ -186,15 +213,16 @@ function buildTwitterPost(
 	const heading = [header, textHtml].filter(Boolean).join("<br>");
 	const blocks = [
 		parentHtml,
-		heading ? paragraph(heading) : "",
+		captionEnabled && heading ? paragraph(heading) : "",
 		ownMedia,
 		quotedHtml,
+		previewHtml,
 	].filter(Boolean);
 
 	return {
 		html:
 			blocks.length > 0
-				? quoted
+				? quoted && captionEnabled
 					? `<blockquote>\n${blocks.join("\n")}\n</blockquote>`
 					: blocks.join("\n")
 				: "",
