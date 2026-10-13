@@ -16,7 +16,7 @@ type MediaSource = {
 };
 
 const SOURCES: MediaSource[] = [
-	{ type: "tiktok", match: "tiktok.com/" },
+	{ type: "tiktok", match: /tiktok\.com\/(?!@[^/?#]+\/?(?:[?#]|$))/ },
 
 	{ type: "instagram", match: /instagram.com\/.+?\/reel\// },
 	{ type: "instagram", match: "instagram.com/reels/" },
@@ -78,15 +78,20 @@ export type MatchInputResult =
 			match: null;
 	  };
 
+export function normalizeInputUrl(input: string) {
+	const url = input.trim();
+	if (/^[a-z][a-z\d+.-]*:/i.test(url)) return url;
+	return url.startsWith("//") ? `https:${url}` : `https://${url}`;
+}
+
 function matchWithSources(
 	input: string,
 	sources: MediaSource[],
 ): MatchInputResult {
+	const url = normalizeInputUrl(input);
 	for (const { type, match } of sources) {
-		if (matchesSource(input, match)) {
-			const fallbackUrl = PROXIES[type]
-				? input.replace(...PROXIES[type])
-				: input;
+		if (matchesSource(url, match)) {
+			const fallbackUrl = PROXIES[type] ? url.replace(...PROXIES[type]) : url;
 
 			return { type, fallbackUrl, match };
 		}

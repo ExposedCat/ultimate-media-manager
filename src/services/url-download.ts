@@ -35,6 +35,7 @@ import {
 	type MatchInputResult,
 	type SourceType,
 	matchInput,
+	normalizeInputUrl,
 } from "./sources.ts";
 
 type InputMatcherOrResult = InputMatcher | MatchInputResult;
@@ -481,10 +482,11 @@ async function answerGuestQuery(
 
 export async function downloadMatchedUrl(
 	ctx: CustomContext,
-	url: string,
+	inputUrl: string,
 	matcherOrResult: InputMatcherOrResult = matchInput,
 	sourceMessage: MessageLike | null | undefined = ctx.msg,
 ) {
+	const url = normalizeInputUrl(inputUrl);
 	const captionAuthor = getCaptionAuthor(ctx, sourceMessage);
 	if (!ctx.from || !captionAuthor) {
 		return false;
@@ -539,7 +541,7 @@ export async function downloadMatchedUrl(
 
 		const comments =
 			type === "twitter" || type === "reddit"
-				? commentsAfterUrl(sourceMessage, url)
+				? commentsAfterUrl(sourceMessage, inputUrl)
 				: 0;
 		const responseData = {
 			comments,

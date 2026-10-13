@@ -1,6 +1,48 @@
 import { assertEquals } from "jsr:@std/assert@^1";
 
-import { matchInput } from "../src/services/sources.ts";
+import {
+	matchDownloadCommandInput,
+	matchInput,
+	normalizeInputUrl,
+} from "../src/services/sources.ts";
+
+Deno.test("ignores TikTok profiles while accepting posts and short links", () => {
+	for (const matcher of [matchInput, matchDownloadCommandInput]) {
+		for (const url of [
+			"http://www.tiktok.com/@best.location.agency",
+			"https://www.tiktok.com/@best.location.agency/",
+			"tiktok.com/@best.location.agency?lang=en",
+			"https://m.tiktok.com/@best.location.agency/?lang=en#profile",
+			"https://www.tiktok.com/@best.location.agency#profile",
+		]) {
+			assertEquals(matcher(url).type, null, url);
+		}
+		for (const url of [
+			"https://www.tiktok.com/@best.location.agency/video/123",
+			"tiktok.com/@best.location.agency/photo/123",
+			"https://vm.tiktok.com/Zexample/",
+			"https://vt.tiktok.com/Zexample/",
+			"https://www.tiktok.com/t/Zexample/",
+		]) {
+			assertEquals(matcher(url).type, "tiktok", url);
+		}
+	}
+});
+
+Deno.test("adds HTTPS to scheme-less URLs and their fallback links", () => {
+	const path = "x.com/morganlinton/status/2109709413032546346";
+	for (const matcher of [matchInput, matchDownloadCommandInput]) {
+		assertEquals(matcher(path).type, "twitter");
+		assertEquals(
+			matcher(path).fallbackUrl,
+			"https://fixupx.com/morganlinton/status/2109709413032546346",
+		);
+	}
+	assertEquals(normalizeInputUrl(` ${path} `), `https://${path}`);
+	assertEquals(normalizeInputUrl(`//${path}`), `https://${path}`);
+	assertEquals(normalizeInputUrl(`http://${path}`), `http://${path}`);
+	assertEquals(normalizeInputUrl(`https://${path}`), `https://${path}`);
+});
 
 Deno.test("matches Facebook text post URLs", () => {
 	for (const url of [

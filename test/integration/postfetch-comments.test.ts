@@ -6,6 +6,7 @@ import {
 	setCachedMedia,
 } from "../../src/services/media-file-cache.ts";
 import { downloadWithPostfetch } from "../../src/services/postfetch.ts";
+import { matchDownloadCommandInput } from "../../src/services/sources.ts";
 import { downloadMatchedUrl } from "../../src/services/url-download.ts";
 import type { CustomContext } from "../../src/types/context.ts";
 
@@ -107,6 +108,40 @@ Deno.test("UMM parses the link count, bypasses the root cache, downloads reply m
 		);
 	} finally {
 		deleteCachedMedia(url);
+	}
+});
+
+Deno.test("scheme-less X links download with comments and normalized attribution", async () => {
+	const inputUrl = url.replace("https://", "");
+	for (const matcher of [undefined, matchDownloadCommandInput(inputUrl)]) {
+		await withResponses([reply(1)], async (requests) => {
+			const sent: InputRichMessage[] = [];
+			const ctx = {
+				from: { id: 42, first_name: "Tester" },
+				telemetry: { event() {} },
+				msg: {
+					text: `${inputUrl} 1`,
+					entities: [{ type: "url", offset: 0, length: inputUrl.length }],
+				},
+				i18n: {
+					t: (_key: string, data: Record<string, unknown> = {}) =>
+						String(data.postUrl ?? data.viewUrl ?? "Sender"),
+				},
+				replyWithRichMessage(message: InputRichMessage) {
+					sent.push(message);
+					return {};
+				},
+			} as unknown as CustomContext;
+			assertEquals(await downloadMatchedUrl(ctx, inputUrl, matcher), true);
+			assertEquals(sent.length, 1);
+			assertStringIncludes(sent[0].html ?? "", "Root text");
+			assertStringIncludes(sent[0].html ?? "", "reply-1");
+			assertStringIncludes(sent[0].html ?? "", url);
+			assertEquals(
+				requests.some((request) => request.includes("/2/conversation/")),
+				true,
+			);
+		});
 	}
 });
 

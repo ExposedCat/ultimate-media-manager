@@ -42,6 +42,29 @@ function captionI18n() {
 	};
 }
 
+Deno.test("TikTok profiles are skipped before reacting or sending cached media", async () => {
+	const url = "http://www.tiktok.com/@best.location.agency";
+	const calls: string[] = [];
+	setCachedMedia(url, { kind: "video", fileId: "profile-cache" });
+	try {
+		const sent = await downloadMatchedUrl(
+			testContext({
+				chat: { id: 42 },
+				msg: { message_id: 1 },
+				i18n: captionI18n(),
+				api: { setMessageReaction: () => calls.push("reaction") },
+				replyWithRichMessage: () => calls.push("media"),
+				reply: () => calls.push("reply"),
+			}),
+			url,
+		);
+		assertEquals(sent, false);
+		assertEquals(calls, []);
+	} finally {
+		deleteCachedMedia(url);
+	}
+});
+
 Deno.test("rich download retries cached media without a rejected caption", async () => {
 	const url = "https://x.com/example/status/caption-fallback";
 	setCachedMedia(url, {
