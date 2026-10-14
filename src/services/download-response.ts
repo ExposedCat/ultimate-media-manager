@@ -86,7 +86,7 @@ function getPromoText(
 	kind: string,
 	meta?: PostCaptionMeta | null,
 ) {
-	return ctx.i18n.t("promoCaption", {
+	const text = ctx.i18n.t("promoCaption", {
 		viewUrl: ctx.i18n.t(`viewOn.${data.sourceType}`, {
 			kind: `${kind}${data.sourceType === "twitter" && meta?.isComment ? " comment" : ""}${meta?.comments?.length ? " with comments" : ""}`,
 			postUrl: escapeHtml(captionPostUrl(data)),
@@ -94,6 +94,9 @@ function getPromoText(
 			userId: data.userId,
 		}),
 	});
+	return data.sourceType === "spotify" && meta?.youtubeUrl
+		? `${text} ${ctx.i18n.t("songSource", { url: escapeHtml(meta.youtubeUrl) })}`
+		: text;
 }
 
 export function buildDownloadResponseText(
@@ -118,7 +121,7 @@ export function buildDownloadResponseBaseText(
 	ctx: CustomContext,
 	data: DownloadResponseData,
 	mediaKind: DownloadResponseMediaKind | null,
-	title?: string,
+	_title?: string,
 	meta?: PostCaptionMeta | null,
 ) {
 	if (!mediaKind) {
@@ -127,13 +130,12 @@ export function buildDownloadResponseBaseText(
 			: getPromoText(ctx, data, "post", meta);
 	}
 
-	if (data.sourceType === "youtubeVideo") {
-		const resourceKey =
-			mediaKind === "audio" ? "downloaded.audio" : "downloaded.video";
-		return ctx.i18n.t(resourceKey, {
-			title: escapeHtml(title ?? "Downloaded Video"),
-			url: escapeHtml(data.url),
-		});
+	if (
+		data.sourceType === "spotify" ||
+		data.sourceType === "youtubeMusic" ||
+		data.sourceType === "youtubeVideo"
+	) {
+		return getPromoText(ctx, data, "song", meta);
 	}
 
 	const kind =
@@ -188,33 +190,6 @@ export async function buildDownloadResponse(
 			error,
 			reason,
 			metadata,
-		};
-	}
-
-	if (data.sourceType === "youtubeVideo") {
-		const title =
-			media.kind === "images"
-				? "Downloaded Video"
-				: (media.title ?? "Downloaded Video");
-		const baseText = buildDownloadResponseBaseText(
-			ctx,
-			data,
-			media.kind,
-			title,
-		);
-		return {
-			baseText,
-			captionEnabled: responseCaptionEnabled(ctx, data.sourceType),
-			media,
-			metadata: media.metadata,
-			sourceType: data.sourceType,
-			text: buildDownloadResponseText(
-				ctx,
-				data,
-				media.kind,
-				title,
-				media.metadata,
-			),
 		};
 	}
 

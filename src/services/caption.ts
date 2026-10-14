@@ -10,6 +10,7 @@ export type PostCaptionMeta = {
 	isComment?: boolean;
 	comments?: PostCaptionMeta[];
 	title?: string;
+	youtubeUrl?: string;
 	text?: string;
 	authorHandle?: string;
 	authorName?: string;
@@ -38,6 +39,7 @@ export const CAPTION_SETTING: Partial<Record<SourceType, CaptionSetting>> = {
 	pinterest: "captionPinterest",
 	youtube: "captionYoutube",
 	youtubeVideo: "captionYoutube",
+	youtubeMusic: "captionYoutube",
 };
 
 const MAX_TITLE_LENGTH = 256;

@@ -7,7 +7,9 @@ export type SourceType =
 	| "twitter"
 	| "pinterest"
 	| "soundcloud"
+	| "spotify"
 	| "reddit"
+	| "youtubeMusic"
 	| "youtubeVideo";
 
 type MediaSource = {
@@ -35,7 +37,7 @@ const SOURCES: MediaSource[] = [
 	},
 
 	{ type: "youtube", match: "youtube.com/shorts/" },
-	{ type: "youtubeVideo", match: "music.youtube.com/watch" },
+	{ type: "youtubeMusic", match: "music.youtube.com/watch" },
 	{
 		type: "twitter",
 		match:
@@ -47,6 +49,11 @@ const SOURCES: MediaSource[] = [
 	{ type: "reddit", match: /reddit.com\/r\/.+?\// },
 
 	{ type: "soundcloud", match: /soundcloud\.com\/.+?/ },
+	{
+		type: "spotify",
+		match:
+			/^https?:\/\/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(?:embed\/)?track\/[A-Za-z0-9]{22}\/?(?:[?#]|$)/i,
+	},
 ];
 
 const DOWNLOAD_COMMAND_SOURCES: MediaSource[] = [

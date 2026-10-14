@@ -158,6 +158,9 @@ export function toCaptionMeta(
 	const meta = result.metadata;
 	return {
 		...toBaseCaptionMeta(meta),
+		...(result.platform === "spotify" && {
+			youtubeUrl: result.metadata.extra?.youtubeUrl,
+		}),
 		...(result.platform === "reddit" && { mediaCount: result.items.length }),
 		subreddit:
 			result.platform === "reddit"

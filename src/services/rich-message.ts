@@ -41,10 +41,12 @@ const PLATFORM_EMOJI: Record<SourceType, string> = {
 	pinterest: '<tg-emoji emoji-id="5467420297529401124">📌</tg-emoji>',
 	reddit: REDDIT_EMOJI,
 	soundcloud: '<tg-emoji emoji-id="5454046508104035795">☁️</tg-emoji>',
+	spotify: '<tg-emoji emoji-id="5431766850587347346">🎵</tg-emoji>',
 	tiktok: '<tg-emoji emoji-id="5454351124364542651">🎵</tg-emoji>',
 	twitter: '<tg-emoji emoji-id="5334651953488080684">🐦</tg-emoji>',
 	youtube: '<tg-emoji emoji-id="5454010052421626926">▶️</tg-emoji>',
 	youtubeVideo: '<tg-emoji emoji-id="5454010052421626926">▶️</tg-emoji>',
+	youtubeMusic: '<tg-emoji emoji-id="5404657863123550178">🎵</tg-emoji>',
 };
 const VERIFIED_EMOJI = '<tg-emoji emoji-id="5951665890079544884">✅</tg-emoji>';
 const POST_DATE = new Intl.DateTimeFormat("en-US", {

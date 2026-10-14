@@ -10,7 +10,10 @@
 		"pinterest": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
 		"soundcloud": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
 		"reddit": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
-		"null": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this video</a>"
+		"null": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this video</a>",
+		"spotify": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
+		"youtubeMusic": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>",
+		"youtubeVideo": "<a href=\"tg://user?id=${userId}\">${userName}</a> shared <a href=\"${postUrl}\">this ${kind}</a>"
 	},
 	"rawCaption": "${kind} ${type}",
 	"rawErrorCaption": "${kind} ${type}\n\n<i>${error}</i>",
@@ -75,5 +78,6 @@
 	"settingsUpdated": "\"${option}\" was set to \"${value}\"",
 	"optionAdminOnly": "\"${option}\" can only be changed by the admin.",
 	"enabled": "Enabled",
-	"disabled": "Disabled"
+	"disabled": "Disabled",
+	"songSource": "(<a href=\"${url}\">source</a>)"
 }
