@@ -35,6 +35,7 @@ const SOURCES: MediaSource[] = [
 	},
 
 	{ type: "youtube", match: "youtube.com/shorts/" },
+	{ type: "youtubeVideo", match: "music.youtube.com/watch" },
 	{
 		type: "twitter",
 		match:
