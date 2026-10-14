@@ -12,10 +12,25 @@ function runs(name: string): boolean {
 async function downloads(
 	url: string,
 	kind: "image" | "video" | "audio" | "images",
+	groupKinds?: Array<"image" | "video">,
 ): Promise<void> {
-	const { media } = await downloadMediaForUrl(url);
-	assert(media !== null, `no media resolved for ${url}`);
+	const { media, error } = await downloadMediaForUrl(url);
+	assert(
+		media !== null,
+		`no media resolved for ${url}: ${error ?? "no error reported"}`,
+	);
 	assert(media.kind === kind, `expected ${kind}, got ${media.kind} for ${url}`);
+	if (media.kind === "images") {
+		if (groupKinds) {
+			assertEquals(
+				media.files.map((file) => file.kind),
+				groupKinds,
+			);
+		}
+		for (const file of media.files) {
+			assert(file.media.data.length > 0, `empty group item for ${url}`);
+		}
+	}
 	const bytes =
 		media.kind === "images"
 			? media.files.reduce((total, file) => total + file.media.data.length, 0)
@@ -38,8 +53,9 @@ Deno.test({
 	...options,
 }, () =>
 	downloads(
-		"https://www.reddit.com/r/pics/comments/1ugzn9p/seen_in_the_uk/",
+		"https://www.reddit.com/r/aww/comments/1um1cks/i_was_sitting_in_a_field_when_my_horse_came_over/",
 		"images",
+		["image", "image", "image"],
 	));
 
 Deno.test({
@@ -65,10 +81,14 @@ Deno.test({
 }, () => downloads("https://vt.tiktok.com/ZSxpHvCUM/", "video"));
 
 Deno.test({
-	name: "x i/status link downloads as a video",
+	name: "x i/status link downloads its video and quoted image as a media group",
 	ignore: !runs("twitter"),
 	...options,
-}, () => downloads("https://x.com/i/status/2034598055668769263", "video"));
+}, () =>
+	downloads("https://x.com/i/status/2034598055668769263", "images", [
+		"video",
+		"image",
+	]));
 
 Deno.test({
 	name: "x handle status with /video/1 suffix downloads as a video",
