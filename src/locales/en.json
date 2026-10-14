@@ -55,7 +55,8 @@
 		"private": "<tg-emoji emoji-id=\"5879895758202735862\">🔒</tg-emoji> Post account is private",
 		"loginRequired": "<tg-emoji emoji-id=\"5879895758202735862\">🔒</tg-emoji> Post requires login to open",
 		"deleted": "<tg-emoji emoji-id=\"5879896690210639947\">🗑</tg-emoji> Post was removed",
-		"notFound": "<tg-emoji emoji-id=\"5879896690210639947\">🗑</tg-emoji> Post was removed"
+		"notFound": "<tg-emoji emoji-id=\"5879896690210639947\">🗑</tg-emoji> Post was removed",
+		"noMatch": "<tg-emoji emoji-id=\"5879813604068298387\">😢</tg-emoji> No matching YouTube video found for this Spotify track"
 	},
 	"settingsGroupOnly": "Settings are only available in group chats and direct messages with the bot.",
 	"settings": "<h2>Chat settings</h2>${options}",
@@ -79,5 +80,6 @@
 	"optionAdminOnly": "\"${option}\" can only be changed by the admin.",
 	"enabled": "Enabled",
 	"disabled": "Disabled",
-	"songSource": "(<a href=\"${url}\">source</a>)"
+	"songSource": "(<a href=\"${url}\">source</a>)",
+	"songSourceLive": "(<a href=\"${url}\">live recording</a>)"
 }

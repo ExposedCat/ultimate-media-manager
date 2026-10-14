@@ -156,10 +156,19 @@ export function toCaptionMeta(
 		return toTwitterCaptionMeta(result.metadata, result.id, result.items);
 	}
 	const meta = result.metadata;
+	// Read the optional fallback marker while the published dependency catches up.
+	const spotifyExtra =
+		result.platform === "spotify"
+			? (result.metadata.extra as {
+					youtubeUrl?: string;
+					youtubeLiveFallback?: boolean;
+				})
+			: undefined;
 	return {
 		...toBaseCaptionMeta(meta),
 		...(result.platform === "spotify" && {
-			youtubeUrl: result.metadata.extra?.youtubeUrl,
+			youtubeUrl: spotifyExtra?.youtubeUrl,
+			...(spotifyExtra?.youtubeLiveFallback && { youtubeLiveFallback: true }),
 		}),
 		...(result.platform === "reddit" && { mediaCount: result.items.length }),
 		subreddit:

@@ -95,7 +95,7 @@ function getPromoText(
 		}),
 	});
 	return data.sourceType === "spotify" && meta?.youtubeUrl
-		? `${text} ${ctx.i18n.t("songSource", { url: escapeHtml(meta.youtubeUrl) })}`
+		? `${text} ${ctx.i18n.t(meta.youtubeLiveFallback ? "songSourceLive" : "songSource", { url: escapeHtml(meta.youtubeUrl) })}`
 		: text;
 }
 

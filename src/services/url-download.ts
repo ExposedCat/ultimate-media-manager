@@ -188,6 +188,7 @@ const USER_FACING_REASONS = new Set([
 	"loginRequired",
 	"deleted",
 	"notFound",
+	"noMatch",
 ]);
 
 async function replyWithDownloadFailure(

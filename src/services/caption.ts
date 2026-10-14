@@ -11,6 +11,7 @@ export type PostCaptionMeta = {
 	comments?: PostCaptionMeta[];
 	title?: string;
 	youtubeUrl?: string;
+	youtubeLiveFallback?: boolean;
 	text?: string;
 	authorHandle?: string;
 	authorName?: string;
