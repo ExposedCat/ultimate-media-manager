@@ -24,6 +24,7 @@ const SOURCES: MediaSource[] = [
 	{ type: "instagram", match: "instagram.com/reels/" },
 	{ type: "instagram", match: "instagram.com/reel/" },
 	{ type: "instagram", match: "instagram.com/p/" },
+	{ type: "instagram", match: /instagram\.com\/[^/?#]+\/p\// },
 
 	{ type: "facebook", match: "fb.watch/" },
 	{ type: "facebook", match: /facebook.com\/share\// },

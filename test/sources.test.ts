@@ -6,6 +6,35 @@ import {
 	normalizeInputUrl,
 } from "../src/services/sources.ts";
 
+Deno.test("matches Instagram posts with an optional username and query parameters", () => {
+	for (const matcher of [matchInput, matchDownloadCommandInput]) {
+		for (const path of [
+			"p/DbvaYYcEwwy/",
+			"_.ved.musical._/p/DbvaYYcEwwy/",
+			"reel/DbvaYYcEwwy/",
+			"reels/DbvaYYcEwwy/",
+			"_.ved.musical._/reel/DbvaYYcEwwy/",
+		]) {
+			for (const query of [
+				"",
+				"?somethingsomething",
+				"?img_index=4&igsh=abc",
+			]) {
+				const url = `https://www.instagram.com/${path}${query}`;
+				assertEquals(matcher(url).type, "instagram", url);
+				assertEquals(
+					matcher(url).fallbackUrl,
+					`https://www.ssinstagram.com/${path}${query}`,
+				);
+			}
+		}
+		assertEquals(
+			matcher("https://www.instagram.com/_.ved.musical._/?igsh=abc").type,
+			null,
+		);
+	}
+});
+
 Deno.test("ignores TikTok profiles while accepting posts and short links", () => {
 	for (const matcher of [matchInput, matchDownloadCommandInput]) {
 		for (const url of [
