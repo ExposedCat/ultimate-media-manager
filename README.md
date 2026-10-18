@@ -40,6 +40,9 @@ See social media posts right in the Telegram Messenger.
 
 ## Development
 
+SigNoz dashboard SQL for usage, unique users, unique downloads, and all-time
+bucket statistics is documented in [telemetry/README.md](telemetry/README.md).
+
 - Install Deno 2
 - Copy `.env.example` to `.env` and configure the bot token, cache chat ID, and MongoDB connection
 - Install `ffmpeg` for Postfetch MP4 normalization outside the app container
