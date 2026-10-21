@@ -92,13 +92,15 @@ function setupMiddlewares(bot: Bot, localeEngine: I18n) {
 	bot.catch(console.error);
 }
 
-function setupControllers(bot: Bot) {
+export function setupControllers(bot: Bot) {
+	// Explicit downloads take priority over contextual and automatic handling,
+	// including their forward and bot checks.
+	bot.use(downloadController);
+
 	bot.use(contextMessageController);
 
 	bot.use(startController);
 	bot.use(settingsController);
-
-	bot.use(downloadController);
 
 	bot.use(mediaDownloadController);
 }
