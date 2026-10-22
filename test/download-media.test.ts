@@ -80,3 +80,69 @@ Deno.test("Postfetch text posts retain metadata without attempting another downl
 		assertEquals(result.error, undefined);
 	});
 });
+
+Deno.test("Reddit downloads its image when the comments endpoint returns 403", async () => {
+	const originalFetch = globalThis.fetch;
+	const bytes = Uint8Array.of(0xff, 0xd8, 0xff, 0xd9);
+	const requests: string[] = [];
+	globalThis.fetch = (input) => {
+		const url = String(input);
+		requests.push(url);
+		if (url === "https://www.reddit.com/api/v1/access_token") {
+			return Promise.resolve(Response.json({ access_token: "test-token" }));
+		}
+		if (
+			url === "https://oauth.reddit.com/comments/1xchebs?raw_json=1&limit=1"
+		) {
+			return Promise.resolve(new Response("Blocked", { status: 403 }));
+		}
+		if (url === "https://oauth.reddit.com/by_id/t3_1xchebs?raw_json=1") {
+			return Promise.resolve(
+				Response.json({
+					data: {
+						children: [
+							{
+								data: {
+									id: "1xchebs",
+									title: "Apple заблокировала все iPhone Duo",
+									selftext: "Post body",
+									subreddit: "KafkaFPS",
+									post_hint: "image",
+									url: "https://i.redd.it/y02w5nv4k0xh1.jpeg",
+								},
+							},
+						],
+					},
+				}),
+			);
+		}
+		if (url === "https://i.redd.it/y02w5nv4k0xh1.jpeg") {
+			return Promise.resolve(new Response(bytes));
+		}
+		throw new Error(`Unexpected URL: ${url}`);
+	};
+	try {
+		const result = await downloadMediaForUrl(
+			"https://www.reddit.com/r/KafkaFPS/comments/1xchebs/",
+		);
+		assertEquals(result.error, undefined);
+		assertEquals(result.media?.kind, "image");
+		if (result.media?.kind !== "image") throw new Error("Expected an image");
+		assertEquals(result.media.bytes, bytes);
+		assertEquals(
+			result.media.metadata?.title,
+			"Apple заблокировала все iPhone Duo",
+		);
+		assertEquals(result.media.metadata?.text, "Post body");
+		assertEquals(result.media.metadata?.subreddit, "KafkaFPS");
+		assertEquals(
+			requests.filter((url) => url.startsWith("https://oauth.reddit.com/")),
+			[
+				"https://oauth.reddit.com/comments/1xchebs?raw_json=1&limit=1",
+				"https://oauth.reddit.com/by_id/t3_1xchebs?raw_json=1",
+			],
+		);
+	} finally {
+		globalThis.fetch = originalFetch;
+	}
+});

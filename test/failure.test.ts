@@ -57,5 +57,8 @@ Deno.test("extracts HTTP codes from download error messages", () => {
 		getFailureCode("Postfetch failed: HTTP Error 403: Forbidden"),
 		"403",
 	);
+	assertEquals(getFailureCode("Reddit post failed: 403"), "403");
+	assertEquals(getFailureCode(new Error("Reddit auth failed: 429")), "429");
+	assertEquals(getFailureCode("download failed: 503"), "503");
 	assertEquals(getFailureCode(new Error("resolver exploded")), "unknown");
 });

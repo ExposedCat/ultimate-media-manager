@@ -56,7 +56,7 @@ export function getFailureCode(error: unknown): string {
 
 	const description = errorDescription(error);
 	const describedCode = description.match(
-		/(?:http(?:\s+error)?|status(?:\s+code)?|error)\D{0,8}(\d{3})/i,
+		/(?:http(?:\s+error)?|status(?:\s+code)?|error|failed:)\D{0,8}(\d{3})/i,
 	)?.[1];
 	return describedCode ?? "unknown";
 }
