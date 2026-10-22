@@ -8,6 +8,8 @@ services:
     restart: always
     environment:
       WARP_ROTATE_MINUTES: "30"
+    volumes:
+      - warp-state:/var/lib/warp
     networks:
       - dev-infra
     healthcheck:
@@ -44,3 +46,6 @@ networks:
   dev-infra:
     name: dev-infra
     external: true
+
+volumes:
+  warp-state:

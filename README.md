@@ -68,6 +68,7 @@ with `docker compose up`.
 - Photo/video slideshows with a soundtrack are sent as one video by default, with a minimum of one second per item. Actual time per item is the larger of the selected minimum and audio length divided by slide count, so the whole track plays. Shorter audio loops when needed. The slideshow status button turns conversion off or back on at a one-second minimum; the **1s–10s** button rows appear directly below the toggle only while conversion is enabled and select a minimum. Existing `/set_sld_on`, `/set_sld_off`, and `/set_sld_0`–`/set_sld_10` commands still work. Existing chats inherit the default automatically. Cached media is kept separately for each selected minimum.
 - `WARP_PROXY` configures the Cloudflare WARP SOCKS5 proxy provided by the `warp/` sidecar. Leave it empty to fetch directly.
 - `WARP_ROTATE_MINUTES` controls sidecar account rotation (`compose.yml` defaults to `30`; `0` disables rotation).
+- The WARP sidecar keeps its profile in the `warp-state` volume across deployments. Initial registration retries with a 10–60 second backoff; failed rotations preserve the working proxy.
 
 ## License
 
