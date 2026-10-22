@@ -1,5 +1,6 @@
 import { escapeHtml } from "../helpers/html.ts";
 import { renderMarkdown } from "../helpers/markdown.ts";
+import { truncateText as truncate } from "../helpers/text.ts";
 import type { Settings } from "../types/database.ts";
 import type { SourceType } from "./sources.ts";
 
@@ -114,13 +115,6 @@ function textBody(meta: PostCaptionMeta): string | null {
 	return meta.text
 		? renderMarkdown(truncate(meta.text, CAPTION_LIMIT - RESERVE))
 		: null;
-}
-
-function truncate(text: string, max: number): string {
-	const trimmed = text.trim();
-	return trimmed.length > max
-		? `${trimmed.slice(0, max - 1).trimEnd()}…`
-		: trimmed;
 }
 
 function formatCount(value: number): string {

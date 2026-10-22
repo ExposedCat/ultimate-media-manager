@@ -6,6 +6,7 @@ import type {
 
 import { escapeHtml } from "../helpers/html.ts";
 import { renderMarkdown } from "../helpers/markdown.ts";
+import { truncateText as truncate } from "../helpers/text.ts";
 import type { PostCaptionMeta } from "./caption.ts";
 import { commentSections } from "./comment-sections.ts";
 import type { SourceType } from "./sources.ts";
@@ -339,13 +340,6 @@ function mediaBlock(tags: string[]) {
 	return tags.length > 1
 		? `<tg-slideshow>${tags.join("")}</tg-slideshow>`
 		: (tags[0] ?? "");
-}
-
-function truncate(text: string, max: number) {
-	const trimmed = text.trim();
-	return trimmed.length > max
-		? `${trimmed.slice(0, max - 1).trimEnd()}…`
-		: trimmed;
 }
 
 function formatCount(value: number) {

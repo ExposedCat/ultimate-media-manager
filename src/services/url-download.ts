@@ -1,4 +1,5 @@
 import type { InputRichMessageWithoutUpload } from "grammy/types";
+import { sliceUtf16 } from "../helpers/text.ts";
 import type { CustomContext } from "../types/context.ts";
 import { cacheDownloadedMedia } from "./cache-media.ts";
 import {
@@ -215,8 +216,8 @@ function buildGuestMediaMetadata(text: string): GuestMediaMetadata {
 	const plainText = stripHtml(text);
 	return {
 		plainText,
-		title: plainText.slice(0, 64) || "Download result",
-		description: plainText.slice(0, 128) || undefined,
+		title: sliceUtf16(plainText, 64) || "Download result",
+		description: sliceUtf16(plainText, 128) || undefined,
 	};
 }
 
