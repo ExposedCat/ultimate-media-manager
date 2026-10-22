@@ -36,6 +36,7 @@ const SOURCES: MediaSource[] = [
 		type: "linkedin",
 		match: /linkedin\.com\/(?:posts\/|(?:embed\/)?feed\/update\/)/,
 	},
+	{ type: "linkedin", match: /^https?:\/\/lnkd\.in\/[^?#]+/i },
 
 	{ type: "youtube", match: "youtube.com/shorts/" },
 	{ type: "youtubeMusic", match: "music.youtube.com/watch" },

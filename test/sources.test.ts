@@ -73,6 +73,25 @@ Deno.test("adds HTTPS to scheme-less URLs and their fallback links", () => {
 	assertEquals(normalizeInputUrl(`https://${path}`), `https://${path}`);
 });
 
+Deno.test("matches LinkedIn shortlinks for messages and download commands", () => {
+	for (const matcher of [matchInput, matchDownloadCommandInput]) {
+		for (const input of [
+			"https://lnkd.in/p/dCMkSApV",
+			"https://lnkd.in/dCMkSApV?trk=share",
+			"lnkd.in/p/dCMkSApV",
+		]) {
+			assertEquals(matcher(input).type, "linkedin", input);
+			assertEquals(matcher(input).fallbackUrl, normalizeInputUrl(input));
+		}
+		for (const input of [
+			"https://lnkd.in.example.com/p/dCMkSApV",
+			"https://example.com/lnkd.in/p/dCMkSApV",
+		]) {
+			assertEquals(matcher(input).type, null, input);
+		}
+	}
+});
+
 Deno.test("matches Facebook text post URLs", () => {
 	for (const url of [
 		"https://www.facebook.com/Engineering/posts/1091181673044313/",
