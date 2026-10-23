@@ -36,13 +36,12 @@ export async function downloadWithPostfetch(
 		const requestOptions = { ...resolveOptions, comments: options.comments };
 		const result = await postfetch(url, requestOptions);
 		const delay = slideshowDelay(options);
-		const files =
-			delay > 0 && isAudioSlideshow(result.items)
-				? [await downloadSlideshow(result, delay)]
-				: await Promise.all(result.items.map(downloadItem));
+		const files = await downloadPostfetchItems(result, options);
 		console.info("[Postfetch] Resolved media", {
 			url,
 			platform: result.platform,
+			itemKinds: result.items.map((item) => item.kind),
+			slideshowDelay: delay,
 			fileCount: files.length,
 		});
 		const meta = toCaptionMeta(result);
@@ -85,6 +84,18 @@ export async function downloadWithPostfetch(
 		});
 		throw error;
 	}
+}
+
+// All resolvers use the same visual(s) + soundtrack contract, including one
+// photo with music. Only extracting those items depends on the source platform.
+export async function downloadPostfetchItems(
+	result: PostfetchResult,
+	options: { slideshowDelay?: number } = {},
+): Promise<DownloadMediaFile[]> {
+	const delay = slideshowDelay(options);
+	return delay > 0 && isAudioSlideshow(result.items)
+		? [await downloadSlideshow(result, delay)]
+		: await Promise.all(result.items.map(downloadItem));
 }
 
 function isAudioSlideshow(items: MediaItem[]): boolean {
