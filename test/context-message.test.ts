@@ -3,6 +3,7 @@ import { assertEquals, assertStrictEquals } from "jsr:@std/assert@^1";
 import {
 	type MessageLike,
 	findFirstMatchedUrlSource,
+	isStandaloneUrlMessage,
 	shouldIgnoreForwardedMessage,
 } from "../src/services/context-message.ts";
 import { matchDownloadCommandInput } from "../src/services/sources.ts";
@@ -17,6 +18,62 @@ function textMessage(text: string, urls: string[]): MessageLike {
 		})),
 	};
 }
+
+Deno.test("standalone links allow X and Reddit comment counts for cleanup", () => {
+	for (const url of [
+		"https://x.com/example/status/123?s=20",
+		"x.com/example/status/123",
+		"https://twitter.com/example/status/123",
+		"https://www.reddit.com/r/pics/comments/abc/title/",
+	]) {
+		for (const suffix of ["", " 5", "\t12", " 0", " 005", " 5 \n"]) {
+			assertEquals(
+				isStandaloneUrlMessage(textMessage(url + suffix, [url]), url),
+				true,
+			);
+			assertEquals(
+				isStandaloneUrlMessage({ caption: url + suffix }, url),
+				true,
+			);
+		}
+	}
+});
+
+Deno.test("cleanup preserves other text, links, invalid counts and unsupported counts", () => {
+	const url = "https://x.com/example/status/123";
+	for (const text of [
+		`Check this: ${url} 5`,
+		`${url} 5, cool?`,
+		`${url} 5!`,
+		`${url} 5 https://x.com/other/status/456`,
+		`${url} 5 10`,
+		`${url} -2`,
+		`${url} 1.5`,
+		`${url} 5abc`,
+		`${url} 1e3`,
+		`${url} 999999999999999999999`,
+		`${url}\n5`,
+		`${url}5`,
+	]) {
+		assertEquals(isStandaloneUrlMessage(textMessage(text, [url]), url), false);
+	}
+	assertEquals(
+		isStandaloneUrlMessage(
+			{
+				text: "Click here 5",
+				entities: [{ type: "text_link", offset: 0, length: 10, url }],
+			},
+			url,
+		),
+		false,
+	);
+	const instagram = "https://www.instagram.com/p/abc/";
+	assertEquals(isStandaloneUrlMessage({ text: instagram }, instagram), true);
+	assertEquals(
+		isStandaloneUrlMessage({ text: `${instagram} 5` }, instagram),
+		false,
+	);
+});
 
 Deno.test("matched URL selection prefers the triggering message", () => {
 	const trigger = textMessage("@ummrobot https://youtu.be/direct", [

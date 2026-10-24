@@ -1,4 +1,4 @@
-import type { InputMatcher } from "./sources.ts";
+import { type InputMatcher, matchInput } from "./sources.ts";
 
 export type MessageEntityLike = {
 	type: string;
@@ -61,6 +61,19 @@ export function extractUrlsFromMessage(message?: MessageLike | null) {
 	}
 
 	return urls;
+}
+
+/** A bare URL may also include the comment count supported by its source. */
+export function isStandaloneUrlMessage(message: MessageLike, url: string) {
+	const text = getMessageText(message);
+	if (text === url) return true;
+	if (!text.startsWith(url)) return false;
+
+	const { type } = matchInput(url);
+	if (type !== "twitter" && type !== "reddit") return false;
+
+	const suffix = text.slice(url.length);
+	return /^[ \t]+\d+\s*$/.test(suffix) && Number.isSafeInteger(Number(suffix));
 }
 
 export function shouldIgnoreForwardedMessage(

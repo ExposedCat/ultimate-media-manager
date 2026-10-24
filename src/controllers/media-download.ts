@@ -2,6 +2,7 @@ import { Composer } from "grammy";
 
 import {
 	extractUrlsFromMessage,
+	isStandaloneUrlMessage,
 	shouldIgnoreForwardedMessage,
 } from "../services/context-message.ts";
 import { downloadMatchedUrl } from "../services/url-download.ts";
@@ -15,7 +16,6 @@ mediaDownloadController.on(
 			return;
 		}
 
-		const text = ctx.message.text ?? ctx.message.caption ?? "";
 		const urls = extractUrlsFromMessage(ctx.message);
 		console.info("[AutoDownload] Processing message URLs", {
 			userId: ctx.from.id,
@@ -37,7 +37,7 @@ mediaDownloadController.on(
 			const sent = await downloadMatchedUrl(ctx, url, undefined, ctx.message);
 			if (sent) {
 				somethingSent = true;
-				if (!shouldCleanup && text === url) {
+				if (!shouldCleanup && isStandaloneUrlMessage(ctx.message, url)) {
 					shouldCleanup = true;
 				}
 			}
