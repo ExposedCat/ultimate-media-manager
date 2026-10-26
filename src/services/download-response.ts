@@ -130,12 +130,13 @@ export function buildDownloadResponseBaseText(
 			: getPromoText(ctx, data, "post", meta);
 	}
 
-	if (
-		data.sourceType === "spotify" ||
-		data.sourceType === "youtubeMusic" ||
-		data.sourceType === "youtubeVideo"
-	) {
+	if (data.sourceType === "spotify" || data.sourceType === "youtubeMusic") {
 		return getPromoText(ctx, data, "song", meta);
+	}
+
+	// The "youtube" source matches /shorts/ links; regular links use "youtubeVideo".
+	if (data.sourceType === "youtube" && mediaKind === "video") {
+		return getPromoText(ctx, data, "short", meta);
 	}
 
 	const kind =

@@ -25,6 +25,7 @@ const spotifyUrl =
 const spotifyPlaylistUrl =
 	"https://open.spotify.com/playlist/7nndZmU2Kpa0FlRtUbQhsk?si=f0fcaeb2aa114488";
 const youtubeUrl = "https://www.youtube.com/watch?v=Lq2TmRzg19k";
+const shortsUrl = "https://www.youtube.com/shorts/OR9PgMqSjtw?si=share";
 const musicUrl = "https://music.youtube.com/watch?v=Lq2TmRzg19k";
 const i18n = initLocaleEngine(
 	new URL("../src/locales", import.meta.url).pathname,
@@ -204,11 +205,25 @@ Deno.test("Spotify live fallbacks label the selected source as a live recording"
 	assertEquals(text.includes(">source</a>"), false);
 });
 
-Deno.test("YouTube song captions use the original link and the correct platform icon", () => {
-	for (const [sourceType, url, emojiId] of [
-		["youtubeMusic", musicUrl, "5404657863123550178"],
-		["youtubeVideo", youtubeUrl, "5454010052421626926"],
+Deno.test("YouTube captions distinguish Shorts, videos, and music while preserving links and icons", () => {
+	for (const [url, kind, emojiId] of [
+		[musicUrl, "song", "5404657863123550178"],
+		[youtubeUrl, "video", "5454010052421626926"],
+		["https://youtu.be/Lq2TmRzg19k?si=share", "video", "5454010052421626926"],
+		[
+			"https://www.youtube.com/live/Lq2TmRzg19k",
+			"video",
+			"5454010052421626926",
+		],
+		[shortsUrl, "short", "5454010052421626926"],
+		[
+			"https://m.youtube.com/shorts/OR9PgMqSjtw",
+			"short",
+			"5454010052421626926",
+		],
 	] as const) {
+		const sourceType = matchDownloadCommandInput(url).type;
+		if (!sourceType) throw new Error(`YouTube URL did not match: ${url}`);
 		const text = buildDownloadResponseText(
 			ctx,
 			{ ...data, sourceType, url },
@@ -217,9 +232,43 @@ Deno.test("YouTube song captions use the original link and the correct platform 
 		assertStringIncludes(text, `emoji-id="${emojiId}"`);
 		assertStringIncludes(
 			text,
-			`<a href="tg://user?id=42">Sender &amp; Friend</a> shared <a href="${url}">this song</a>`,
+			`<a href="tg://user?id=42">Sender &amp; Friend</a> shared <a href="${escapeHtml(url)}">this ${kind}</a>`,
 		);
 		assertEquals(text.includes(">source</a>"), false);
+	}
+});
+
+Deno.test("cached YouTube downloads preserve the Short, video, or song label", async () => {
+	for (const [url, kind] of [
+		[shortsUrl, "short"],
+		[youtubeUrl, "video"],
+		[musicUrl, "song"],
+	] as const) {
+		const sentMessages: { html?: string }[] = [];
+		setCachedMedia(url, { kind: "video", fileId: "youtube-video" });
+		try {
+			const sent = await downloadMatchedUrl(
+				{
+					i18n,
+					from: { id: 42, first_name: data.userName },
+					telemetry: { event() {} },
+					replyWithRichMessage(message: { html?: string }) {
+						sentMessages.push(message);
+						return {};
+					},
+				} as unknown as CustomContext,
+				url,
+				matchDownloadCommandInput,
+			);
+			assertEquals(sent, true);
+			assertEquals(sentMessages.length, 1);
+			assertStringIncludes(
+				sentMessages[0].html ?? "",
+				`<a href="${escapeHtml(url)}">this ${kind}</a>`,
+			);
+		} finally {
+			deleteCachedMedia(url);
+		}
 	}
 });
 
