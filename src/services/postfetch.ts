@@ -181,7 +181,14 @@ export function toCaptionMeta(
 			youtubeUrl: spotifyExtra?.youtubeUrl,
 			...(spotifyExtra?.youtubeLiveFallback && { youtubeLiveFallback: true }),
 		}),
-		...(result.platform === "reddit" && { mediaCount: result.items.length }),
+		...(result.platform === "reddit" && {
+			mediaCount: result.items.length,
+			...(result.items.some((item) => item.role === "linkPreview") && {
+				linkPreviewCount: result.items.filter(
+					(item) => item.role === "linkPreview",
+				).length,
+			}),
+		}),
 		subreddit:
 			result.platform === "reddit"
 				? result.metadata?.extra?.subreddit

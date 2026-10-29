@@ -82,8 +82,8 @@ function buildRichHtml(data: RichMessageData, mediaTags: string[]) {
 			metadata && (captionEnabled || sourceType === "twitter")
 				? sourceType === "twitter"
 					? buildTwitterHtml(metadata, postMedia, captionEnabled)
-					: buildRedditHtml(metadata, mediaBlock(postMedia), "")
-				: mediaBlock(postMedia),
+					: buildRedditHtml(metadata, postMedia, "")
+				: buildPostMedia(postMedia, metadata?.linkPreviewCount),
 			buildComments(
 				metadata?.comments ?? [],
 				mediaTags.slice(postMediaCount),
@@ -96,13 +96,13 @@ function buildRichHtml(data: RichMessageData, mediaTags: string[]) {
 			paragraph(senderCredit),
 		);
 	}
-	const mediaHtml = mediaBlock(mediaTags);
+	const mediaHtml = buildPostMedia(mediaTags, metadata?.linkPreviewCount);
 	if (!captionEnabled || !metadata) {
 		return joinBlocks(mediaHtml, paragraph(senderCredit));
 	}
 
 	if (sourceType === "reddit") {
-		return buildRedditHtml(metadata, mediaHtml, senderCredit);
+		return buildRedditHtml(metadata, mediaTags, senderCredit);
 	}
 
 	return joinBlocks(
@@ -113,17 +113,20 @@ function buildRichHtml(data: RichMessageData, mediaTags: string[]) {
 
 function buildRedditHtml(
 	meta: PostCaptionMeta,
-	mediaHtml: string,
+	mediaTags: string[],
 	senderCredit: string,
 ) {
 	const content = meta.text ? truncate(meta.text, MAX_RICH_TEXT_LENGTH) : "";
 	const facts = buildRedditFacts(meta);
+	const previewCount = Math.min(mediaTags.length, meta.linkPreviewCount ?? 0);
+	const attachmentCount = mediaTags.length - previewCount;
 	return joinBlocks(
 		meta.title
 			? `<h5>${escapeHtml(truncate(meta.title, MAX_TITLE_LENGTH))}</h5>`
 			: "",
-		mediaHtml,
+		mediaBlock(mediaTags.slice(0, attachmentCount)),
 		buildQuote(content),
+		mediaTags.slice(attachmentCount).join("\n"),
 		paragraph(facts),
 		paragraph(senderCredit),
 	);
@@ -340,6 +343,14 @@ function mediaBlock(tags: string[]) {
 	return tags.length > 1
 		? `<tg-slideshow>${tags.join("")}</tg-slideshow>`
 		: (tags[0] ?? "");
+}
+
+function buildPostMedia(tags: string[], linkPreviewCount = 0) {
+	const attachmentCount = tags.length - Math.min(tags.length, linkPreviewCount);
+	return joinBlocks(
+		mediaBlock(tags.slice(0, attachmentCount)),
+		tags.slice(attachmentCount).join("\n"),
+	);
 }
 
 function formatCount(value: number) {

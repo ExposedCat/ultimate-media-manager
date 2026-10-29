@@ -48,6 +48,19 @@ async function resolvesText(url: string, expectedText: string): Promise<void> {
 const options = { sanitizeResources: false, sanitizeOps: false } as const;
 
 Deno.test({
+	name: "reddit external link downloads its website preview",
+	ignore: !runs("reddit"),
+	...options,
+}, async () => {
+	const { media, error } = await downloadMediaForUrl(
+		"https://www.reddit.com/r/LocalLLaMA/comments/1xhu3b0/mac_studio_m5_ultra_512gb_starts_at_2229900_usd/",
+	);
+	assert(media?.kind === "image", error ?? "Expected Reddit link preview");
+	assert((media.bytes?.length ?? 0) > 0);
+	assertEquals(media.metadata?.linkPreviewCount, 1);
+});
+
+Deno.test({
 	name: "reddit gallery downloads as a media group",
 	ignore: !runs("reddit"),
 	...options,
