@@ -94,6 +94,16 @@ Deno.test({
 }, () => downloads("https://vt.tiktok.com/ZSxpHvCUM/", "video"));
 
 Deno.test({
+	name: "tiktok classified shortlink reports that login is required",
+	ignore: !runs("tiktok"),
+	...options,
+}, async () => {
+	const result = await downloadMediaForUrl("https://vt.tiktok.com/ZSgonwH4F/");
+	assertEquals(result.media, null);
+	assertEquals(result.reason, "loginRequired");
+});
+
+Deno.test({
 	name: "x i/status link downloads its video and quoted image as a media group",
 	ignore: !runs("twitter"),
 	...options,

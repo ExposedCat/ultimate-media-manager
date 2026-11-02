@@ -63,6 +63,7 @@ with `docker compose up`.
 ### Media resolution
 
 - Media is resolved in-process by [postfetch](https://github.com/chelokot/postfetch). Download failures are reported directly, so resolver issues can be diagnosed and fixed in Postfetch.
+- TikTok sensitive-content posts that require login are reported as “Post requires login to open” with Postfetch 0.13.8 and newer.
 - X website preview images supplied by Postfetch 0.12.5 and newer are downloaded and shown below their post's text, attachments, and quoted content, outside attachment slideshows. Parent-post previews are not downloaded.
 - Reddit external-link posts also download the website preview supplied by Reddit with Postfetch 0.13.7 and newer, using the original image or the largest available rendition. Previews appear below the post body, outside attachment slideshows; native media takes precedence to avoid duplicate previews.
 - Open `/settings` to change settings using rich-message buttons. Each setting has an **Enabled** button in green or a **Disabled** button in red beside its label; tap it to toggle and refresh the message in place. Settings apply to the current group or your private chat. Admin-only settings still require the bot admin.
