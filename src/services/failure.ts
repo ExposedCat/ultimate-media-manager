@@ -34,6 +34,14 @@ function errorDescription(error: unknown): string {
 	return typeof error === "string" ? error : "";
 }
 
+export function isYoutubeBotCheck(error: unknown): boolean {
+	const description = errorDescription(error);
+	return (
+		/youtube/i.test(description) &&
+		/sign in to confirm you[’']re not a bot/i.test(description)
+	);
+}
+
 function explicitErrorCode(error: unknown): string | null {
 	for (const key of ["error_code", "status", "statusCode", "code"]) {
 		const value = errorProperty(error, key);

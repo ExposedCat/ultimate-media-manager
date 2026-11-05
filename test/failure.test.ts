@@ -3,7 +3,29 @@ import { assertEquals } from "jsr:@std/assert@^1";
 import {
 	classifyMediaSendFailure,
 	getFailureCode,
+	isYoutubeBotCheck,
 } from "../src/services/failure.ts";
+
+Deno.test("identifies YouTube bot checks without treating other login failures as bot checks", () => {
+	for (const apostrophe of ["'", "’"]) {
+		assertEquals(
+			isYoutubeBotCheck(
+				new Error(
+					`YouTube resolution failed: Sign in to confirm you${apostrophe}re not a bot`,
+				),
+			),
+			true,
+		);
+	}
+	for (const message of [
+		"YouTube resolution failed: This video is not available",
+		"YouTube player failed: 403",
+		"Sign in to confirm you’re not a bot",
+		"Post requires login to open",
+	]) {
+		assertEquals(isYoutubeBotCheck(new Error(message)), false, message);
+	}
+});
 
 Deno.test("classifies Telegram's 413 response as a large file", () => {
 	assertEquals(

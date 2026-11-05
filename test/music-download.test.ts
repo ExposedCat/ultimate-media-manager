@@ -81,6 +81,40 @@ Deno.test("Spotify match failures explain the missing YouTube match instead of s
 	}
 });
 
+Deno.test("Spotify YouTube bot checks explain the upstream block", async () => {
+	const originalFetch = globalThis.fetch;
+	const replies: string[] = [];
+	globalThis.fetch = () =>
+		Promise.reject(
+			new Error(
+				"YouTube resolution failed: Sign in to confirm you’re not a bot; visionOS HLS: Sign in to confirm you’re not a bot",
+			),
+		);
+	try {
+		const sent = await downloadMatchedUrl(
+			{
+				i18n,
+				from: { id: 42, first_name: data.userName },
+				telemetry: { event() {} },
+				reply(text: string) {
+					replies.push(text);
+					return {};
+				},
+			} as unknown as CustomContext,
+			"https://open.spotify.com/track/1dxbCgNcuuQcqdJopqhv2N?si=aeI6zThVTbS3vtdjS6FAKg&utm_source=copy-link",
+		);
+		assertEquals(sent, false);
+		assertEquals(replies.length, 1);
+		assertStringIncludes(
+			replies[0],
+			"YouTube blocked the download with a bot check",
+		);
+		assertEquals(replies[0].includes("error unknown"), false);
+	} finally {
+		globalThis.fetch = originalFetch;
+	}
+});
+
 Deno.test("auto-download and command match Spotify tracks and YouTube Music", () => {
 	for (const matcher of [matchInput, matchDownloadCommandInput]) {
 		for (const url of [

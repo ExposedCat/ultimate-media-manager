@@ -12,6 +12,7 @@ import {
 import { APP_ENV } from "../config/env.ts";
 import type { PostCaptionMeta } from "./caption.ts";
 import { commentSections } from "./comment-sections.ts";
+import { isYoutubeBotCheck } from "./failure.ts";
 import {
 	type DownloadMediaFile,
 	type DownloadMediaResult,
@@ -22,21 +23,38 @@ import { warpFetch } from "./warp.ts";
 
 export const POSTFETCH_MAX_BYTES = 50_000_000;
 
-const fetchOptions = warpFetch ? { fetch: warpFetch } : {};
-const resolveOptions = {
-	...fetchOptions,
-	tryMaxBytes: POSTFETCH_MAX_BYTES,
-};
-
 export async function downloadWithPostfetch(
 	url: string,
 	options: { slideshowDelay?: number; comments?: number } = {},
+	proxyFetch: typeof fetch | undefined = warpFetch,
 ): Promise<DownloadMediaResult | null> {
 	try {
-		const requestOptions = { ...resolveOptions, comments: options.comments };
+		return await downloadPostfetchAttempt(url, options, proxyFetch);
+	} catch (error) {
+		if (!proxyFetch || !isYoutubeBotCheck(error)) throw error;
+		// YouTube can block the shared WARP exit while the direct route works.
+		// Resolve again and download with the same route: stream URLs can be IP-bound.
+		console.warn("[Postfetch] YouTube bot check via WARP; retrying directly", {
+			url,
+		});
+		return await downloadPostfetchAttempt(url, options, globalThis.fetch);
+	}
+}
+
+async function downloadPostfetchAttempt(
+	url: string,
+	options: { slideshowDelay?: number; comments?: number },
+	fetcher: typeof fetch | undefined,
+): Promise<DownloadMediaResult | null> {
+	try {
+		const requestOptions = {
+			...(fetcher ? { fetch: fetcher } : {}),
+			tryMaxBytes: POSTFETCH_MAX_BYTES,
+			comments: options.comments,
+		};
 		const result = await postfetch(url, requestOptions);
 		const delay = slideshowDelay(options);
-		const files = await downloadPostfetchItems(result, options);
+		const files = await downloadPostfetchItems(result, options, fetcher);
 		console.info("[Postfetch] Resolved media", {
 			url,
 			platform: result.platform,
@@ -63,7 +81,9 @@ export async function downloadWithPostfetch(
 							mediaCount: Math.min(1, comment.items.length),
 						},
 						files: await Promise.all(
-							comment.items.slice(0, 1).map(downloadItem),
+							comment.items
+								.slice(0, 1)
+								.map((item) => downloadItem(item, fetcher)),
 						),
 					})),
 				);
@@ -91,11 +111,14 @@ export async function downloadWithPostfetch(
 export async function downloadPostfetchItems(
 	result: PostfetchResult,
 	options: { slideshowDelay?: number } = {},
+	fetcher: typeof fetch | undefined = warpFetch,
 ): Promise<DownloadMediaFile[]> {
 	const delay = slideshowDelay(options);
 	return delay > 0 && isAudioSlideshow(result.items)
-		? [await downloadSlideshow(result, delay)]
-		: await Promise.all(result.items.map(downloadItem));
+		? [await downloadSlideshow(result, delay, fetcher)]
+		: await Promise.all(
+				result.items.map((item) => downloadItem(item, fetcher)),
+			);
 }
 
 function isAudioSlideshow(items: MediaItem[]): boolean {
@@ -111,9 +134,10 @@ function isAudioSlideshow(items: MediaItem[]): boolean {
 async function downloadSlideshow(
 	result: PostfetchResult,
 	delay: number,
+	fetcher: typeof fetch | undefined,
 ): Promise<DownloadMediaFile> {
 	const blob = await buildAudioSliderVideo(result.items, {
-		...fetchOptions,
+		...(fetcher ? { fetch: fetcher } : {}),
 		delay: delay * 1000,
 		ffmpegPath: APP_ENV.FFMPEG_PATH,
 	});
@@ -240,7 +264,11 @@ function extensionOf(filename: string): string {
 	return extension && extension !== filename ? extension.toLowerCase() : "bin";
 }
 
-async function downloadItem(item: MediaItem): Promise<DownloadMediaFile> {
+async function downloadItem(
+	item: MediaItem,
+	fetcher: typeof fetch | undefined,
+): Promise<DownloadMediaFile> {
+	const fetchOptions = fetcher ? { fetch: fetcher } : {};
 	if (item.mime === "video/mp4") {
 		return toVideoFile(
 			await downloadBlob(item, {

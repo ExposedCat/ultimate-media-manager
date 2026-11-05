@@ -190,6 +190,7 @@ const USER_FACING_REASONS = new Set([
 	"deleted",
 	"notFound",
 	"noMatch",
+	"youtubeBotCheck",
 ]);
 
 async function replyWithDownloadFailure(

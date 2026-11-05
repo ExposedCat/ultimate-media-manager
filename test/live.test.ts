@@ -192,6 +192,16 @@ Deno.test({
 }, () => downloads("https://www.youtube.com/watch?v=jNQXAC9IVRw", "video"));
 
 Deno.test({
+	name: "spotify track downloads its matched YouTube video",
+	ignore: !runs("spotify"),
+	...options,
+}, () =>
+	downloads(
+		"https://open.spotify.com/track/1dxbCgNcuuQcqdJopqhv2N?si=aeI6zThVTbS3vtdjS6FAKg&utm_source=copy-link",
+		"video",
+	));
+
+Deno.test({
 	name: "youtube shorts downloads as a video",
 	ignore: !runs("youtube"),
 	...options,

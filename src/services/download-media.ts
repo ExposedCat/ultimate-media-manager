@@ -1,6 +1,7 @@
 import { InputFile } from "grammy";
 
 import type { PostCaptionMeta } from "./caption.ts";
+import { isYoutubeBotCheck } from "./failure.ts";
 import type { DownloadMediaFile, DownloadMediaResult } from "./media.ts";
 import { downloadWithPostfetch } from "./postfetch.ts";
 
@@ -35,9 +36,9 @@ export type DownloadedMedia =
 function postfetchReason(error: unknown): string | undefined {
 	if (error instanceof Error && "reason" in error) {
 		const value = (error as { reason?: unknown }).reason;
-		return typeof value === "string" ? value : undefined;
+		if (typeof value === "string") return value;
 	}
-	return undefined;
+	return isYoutubeBotCheck(error) ? "youtubeBotCheck" : undefined;
 }
 
 export async function downloadMediaForUrl(
