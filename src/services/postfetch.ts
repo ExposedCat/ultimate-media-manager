@@ -12,7 +12,7 @@ import {
 import { APP_ENV } from "../config/env.ts";
 import type { PostCaptionMeta } from "./caption.ts";
 import { commentSections } from "./comment-sections.ts";
-import { isYoutubeBotCheck } from "./failure.ts";
+import { isRedditAccessDenied, isYoutubeBotCheck } from "./failure.ts";
 import {
 	type DownloadMediaFile,
 	type DownloadMediaResult,
@@ -31,10 +31,15 @@ export async function downloadWithPostfetch(
 	try {
 		return await downloadPostfetchAttempt(url, options, proxyFetch);
 	} catch (error) {
-		if (!proxyFetch || !isYoutubeBotCheck(error)) throw error;
-		// YouTube can block the shared WARP exit while the direct route works.
+		const reason = isYoutubeBotCheck(error)
+			? "YouTube bot check"
+			: isRedditAccessDenied(error)
+				? "Reddit access denied"
+				: undefined;
+		if (!proxyFetch || !reason) throw error;
+		// A shared WARP exit can be blocked while the direct route works.
 		// Resolve again and download with the same route: stream URLs can be IP-bound.
-		console.warn("[Postfetch] YouTube bot check via WARP; retrying directly", {
+		console.warn(`[Postfetch] ${reason} via WARP; retrying directly`, {
 			url,
 		});
 		return await downloadPostfetchAttempt(url, options, globalThis.fetch);

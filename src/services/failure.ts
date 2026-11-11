@@ -42,6 +42,10 @@ export function isYoutubeBotCheck(error: unknown): boolean {
 	);
 }
 
+export function isRedditAccessDenied(error: unknown): boolean {
+	return /^Reddit (?:auth|post) failed:\s*403\b/i.test(errorDescription(error));
+}
+
 function explicitErrorCode(error: unknown): string | null {
 	for (const key of ["error_code", "status", "statusCode", "code"]) {
 		const value = errorProperty(error, key);

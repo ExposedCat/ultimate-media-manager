@@ -48,6 +48,12 @@ async function resolvesText(url: string, expectedText: string): Promise<void> {
 const options = { sanitizeResources: false, sanitizeOps: false } as const;
 
 Deno.test({
+	name: "reddit share link downloads its original image when OAuth is blocked",
+	ignore: !runs("reddit"),
+	...options,
+}, () => downloads("https://www.reddit.com/r/teenagers/s/tsStUVox8L", "image"));
+
+Deno.test({
 	name: "reddit external link downloads its website preview",
 	ignore: !runs("reddit"),
 	...options,
