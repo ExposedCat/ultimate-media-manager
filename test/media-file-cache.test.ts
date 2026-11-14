@@ -93,3 +93,20 @@ Deno.test("preserves media order through nested quotations", () => {
 		},
 	);
 });
+
+Deno.test("cached captions are separate for each ordered language preference", () => {
+	const url = "https://x.com/i/status/language-cache";
+	setCachedMedia(url, { kind: "image", fileId: "russian" }, 1, ["ru", "en"]);
+	setCachedMedia(url, { kind: "image", fileId: "english" }, 1, ["en", "ru"]);
+	assertEquals(getCachedMedia(url, 1, ["ru", "en"]), {
+		kind: "image",
+		fileId: "russian",
+	});
+	assertEquals(getCachedMedia(url, 1, ["en", "ru"]), {
+		kind: "image",
+		fileId: "english",
+	});
+	assertEquals(getCachedMedia(url, 1), null);
+	deleteCachedMedia(url, 1, ["ru", "en"]);
+	deleteCachedMedia(url, 1, ["en", "ru"]);
+});

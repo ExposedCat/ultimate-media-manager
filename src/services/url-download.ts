@@ -16,6 +16,7 @@ import {
 	responseMediaKind,
 } from "./download-response.ts";
 import { classifyMediaSendFailure, getFailureCode } from "./failure.ts";
+import { responseLanguages } from "./languages.ts";
 import {
 	type CachedMedia,
 	deleteCachedMedia,
@@ -352,7 +353,7 @@ async function answerGuestQueryWithCachedMedia(
 		});
 		return true;
 	} catch (error) {
-		deleteCachedMedia(url, responseSlideshowDelay(ctx));
+		deleteCachedMedia(url, responseSlideshowDelay(ctx), responseLanguages(ctx));
 		console.warn(
 			"[GuestQuery] Cached media answer failed; removed cache entry",
 			{
@@ -555,7 +556,8 @@ export async function downloadMatchedUrl(
 			fallbackUrl: fallbackUrl ?? undefined,
 		};
 		const delay = responseSlideshowDelay(ctx);
-		const cachedMedia = comments > 0 ? null : getCachedMedia(url, delay);
+		const cachedMedia =
+			comments > 0 ? null : getCachedMedia(url, delay, responseLanguages(ctx));
 		if (cachedMedia) {
 			const attributionKind = responseMediaKind(type, cachedMedia);
 			const cachedBaseText = buildDownloadResponseBaseText(
@@ -613,7 +615,7 @@ export async function downloadMatchedUrl(
 					});
 					return finish(true);
 				} catch (error) {
-					deleteCachedMedia(url, delay);
+					deleteCachedMedia(url, delay, responseLanguages(ctx));
 					console.warn(
 						"[Download] Cached media send failed; removed cache entry",
 						{
@@ -681,6 +683,7 @@ export async function downloadMatchedUrl(
 							metadata: media.metadata,
 						},
 						delay,
+						responseLanguages(ctx),
 					);
 					console.info("[Download] Cached rich media file IDs", {
 						userId: ctx.from.id,

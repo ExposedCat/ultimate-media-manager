@@ -98,3 +98,18 @@ X and Reddit comments are supported by Postfetch 0.12.0 and newer. To test both 
 copies before a future release, run `deno task test:postfetch` (or
 `bash scripts/test-local-postfetch.sh /path/to/postfetch`). The local test command
 uses a temporary import configuration and test credentials.
+
+### Post languages
+
+`/settings` and `/lang` are ephemeral commands in group chats; their replies are
+visible only to the requesting user. Settings still apply to the whole chat.
+Private chats store preferences per user. `/settings` shows the enabled languages
+below the slideshow toggle and delay buttons.
+
+Use `/lang en,ru` to replace the entire ordered list, or `/lang` to see the short
+usage notice and current list. The default is `en`, including existing chats.
+For X text, enabled original languages are preserved. Otherwise the bot requests
+a translation to the first language, then English, then keeps the original if
+both requests fail. Quotes, parent posts and requested X replies follow the same
+rule. Video audio and other platforms are unchanged. Cached captions are kept
+separately for each ordered language list.

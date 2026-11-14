@@ -1,4 +1,4 @@
-import type { UpdateResult } from "mongodb";
+import type { UpdateFilter, UpdateResult } from "mongodb";
 
 import type {
 	Chat,
@@ -8,6 +8,7 @@ import type {
 } from "../types/database.ts";
 
 export const DEFAULT_SETTINGS: Settings = {
+	languages: ["en"],
 	slideshowDelay: 1,
 	cleanup: true,
 	captionReddit: true,
@@ -63,10 +64,9 @@ export function setChatSetting<K extends keyof Settings>(args: {
 	key: K;
 	value: Settings[K];
 }): Promise<UpdateResult> {
-	return args.db.chat.updateOne(
-		{ chatId: args.chatId },
-		{ $set: { [`settings.${args.key}`]: args.value } },
-	);
+	return args.db.chat.updateOne({ chatId: args.chatId }, {
+		$set: { [`settings.${args.key}`]: args.value },
+	} as UpdateFilter<Chat>);
 }
 
 export async function getUserSettings(args: {
@@ -111,8 +111,7 @@ export function setUserSetting<K extends keyof Settings>(args: {
 	key: K;
 	value: Settings[K];
 }): Promise<UpdateResult> {
-	return args.db.userSettings.updateOne(
-		{ userId: args.userId },
-		{ $set: { [`settings.${args.key}`]: args.value } },
-	);
+	return args.db.userSettings.updateOne({ userId: args.userId }, {
+		$set: { [`settings.${args.key}`]: args.value },
+	} as UpdateFilter<UserSettings>);
 }

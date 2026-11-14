@@ -4,12 +4,13 @@ import type { InputRichMessage } from "grammy/types";
 import { APP_ENV } from "../config/env.ts";
 import { escapeHtml } from "../helpers/html.ts";
 import { setChatSetting, setUserSetting } from "../services/chat.ts";
+import { enabledLanguages, parseLanguages } from "../services/languages.ts";
 import { slideshowDelay } from "../services/slideshow.ts";
 import type { CustomContext } from "../types/context.ts";
 import type { Settings } from "../types/database.ts";
 
 type SettingOption = {
-	key: Exclude<keyof Settings, "slideshowDelay">;
+	key: Exclude<keyof Settings, "slideshowDelay" | "languages">;
 	labelKey: string;
 	commandId: string;
 	adminOnly?: boolean;
@@ -114,7 +115,8 @@ function renderSettingsOptions(ctx: CustomContext, settings: Settings): string {
 		.join("\n");
 	const delay = slideshowDelay(settings);
 	const slider = `<p>${escapeHtml(ctx.i18n.t("option.slideshow"))} ${toggleButton(ctx, "sld", delay > 0)}</p>`;
-	if (delay === 0) return `${options}\n${slider}`;
+	const languages = `<p>${escapeHtml(ctx.i18n.t("languagesLine", { languages: enabledLanguages(settings).join(", ") }))}</p>`;
+	if (delay === 0) return `${options}\n${slider}\n${languages}`;
 	const delays = [1, 6]
 		.map((start) => {
 			const buttons = Array.from({ length: 5 }, (_, index) => {
@@ -124,7 +126,7 @@ function renderSettingsOptions(ctx: CustomContext, settings: Settings): string {
 			return `<tg-button-row>${buttons}</tg-button-row>`;
 		})
 		.join("\n");
-	return `${options}\n${slider}\n${delays}`;
+	return `${options}\n${slider}\n${delays}\n${languages}`;
 }
 
 function toggleButton(
@@ -143,12 +145,28 @@ function settingsMessage(
 		html: ctx.i18n.t("settings", {
 			options: renderSettingsOptions(ctx, settings),
 		}),
-		skip_entity_detection: true,
 	};
 }
 
 async function replySettings(ctx: CustomContext, settings: Settings) {
-	await ctx.replyWithRichMessage(settingsMessage(ctx, settings));
+	await ctx.replyWithRichMessage(
+		settingsMessage(ctx, settings),
+		settingsReplyExtra(ctx),
+	);
+}
+
+function settingsReplyExtra(ctx: CustomContext) {
+	return {
+		...(ctx.message?.ephemeral_message_id !== undefined && {
+			reply_parameters: {
+				ephemeral_message_id: ctx.message.ephemeral_message_id,
+			},
+		}),
+		...((ctx.chat?.type === "group" || ctx.chat?.type === "supergroup") &&
+			ctx.from && {
+				ephemeral_message_parameters: { receiver_user_id: ctx.from.id },
+			}),
+	};
 }
 
 function getSettingsTarget(ctx: CustomContext): SettingsTarget | null {
@@ -208,7 +226,7 @@ settingsController.callbackQuery(/^settings:/, async (ctx) => {
 	const toggle = data.match(/^settings:toggle:([a-z0-9]+)$/);
 	const delay = data.match(/^settings:delay:(10|[0-9])$/);
 	const option = toggle ? OPTION_BY_COMMAND_ID.get(toggle[1]) : undefined;
-	let key: keyof Settings;
+	let key: Exclude<keyof Settings, "languages">;
 	let value: boolean | number;
 	if (toggle?.[1] === "sld") {
 		key = "slideshowDelay";
@@ -245,7 +263,11 @@ settingsController.callbackQuery(/^settings:/, async (ctx) => {
 		}
 		saved = true;
 		try {
-			await ctx.editMessageText(settingsMessage(ctx, settings));
+			if (ctx.msg?.ephemeral_message_id !== undefined) {
+				await ctx.editEphemeralMessageText(settingsMessage(ctx, settings));
+			} else {
+				await ctx.editMessageText(settingsMessage(ctx, settings));
+			}
 		} catch (error) {
 			// Selecting an already-active delay needs only a callback acknowledgement.
 			if (
@@ -276,11 +298,41 @@ settingsController.command("settings", async (ctx) => {
 
 	const settingsTarget = getSettingsTarget(ctx);
 	if (!settingsTarget) {
-		await ctx.text("settingsGroupOnly");
+		await ctx.text("settingsGroupOnly", {}, settingsReplyExtra(ctx));
 		return;
 	}
 
 	await replySettings(ctx, settingsTarget.settings);
+});
+
+settingsController.command("lang", async (ctx) => {
+	const target = getSettingsTarget(ctx);
+	if (!target) {
+		await ctx.text("settingsGroupOnly", {}, settingsReplyExtra(ctx));
+		return;
+	}
+	const input = ctx.match.trim();
+	let settings = target.settings;
+	if (input) {
+		const languages = parseLanguages(input);
+		if (!languages) {
+			await ctx.text("languagesInvalid", {}, settingsReplyExtra(ctx));
+			return;
+		}
+		try {
+			await target.set("languages", languages);
+			settings = { ...settings, languages };
+			target.replace(settings);
+		} catch {
+			await ctx.text("settingsUpdateFailed", {}, settingsReplyExtra(ctx));
+			return;
+		}
+	}
+	await ctx.text(
+		"languagesNotice",
+		{ languages: enabledLanguages(settings).join(", ") },
+		settingsReplyExtra(ctx),
+	);
 });
 
 for (const command of SETTING_COMMANDS) {

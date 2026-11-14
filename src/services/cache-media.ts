@@ -1,6 +1,7 @@
 import { APP_ENV } from "../config/env.ts";
 import type { CustomContext } from "../types/context.ts";
 import type { DownloadedMedia } from "./download-media.ts";
+import { responseLanguages } from "./languages.ts";
 import {
 	type CachedMedia,
 	getCachedMedia,
@@ -19,7 +20,7 @@ export async function cacheDownloadedMedia(
 	const delay = responseSlideshowDelay(ctx);
 	const cacheUrl = media.metadata?.comments?.length ? undefined : sourceUrl;
 	if (cacheUrl) {
-		const cachedMedia = getCachedMedia(cacheUrl, delay);
+		const cachedMedia = getCachedMedia(cacheUrl, delay, responseLanguages(ctx));
 		if (cachedMedia) {
 			return cachedMedia;
 		}
@@ -45,7 +46,7 @@ export async function cacheDownloadedMedia(
 		metadata: media.metadata,
 	};
 	if (cacheUrl) {
-		setCachedMedia(cacheUrl, cachedWithMetadata, delay);
+		setCachedMedia(cacheUrl, cachedWithMetadata, delay, responseLanguages(ctx));
 	}
 	return cachedWithMetadata;
 }

@@ -6,6 +6,7 @@ import {
 	captionEnabled,
 } from "./caption.ts";
 import { type DownloadedMedia, downloadMediaForUrl } from "./download-media.ts";
+import { responseLanguages } from "./languages.ts";
 import type { CachedMedia } from "./media-file-cache.ts";
 import { buildSenderCredit } from "./rich-message.ts";
 import { getResponseSettings, responseSlideshowDelay } from "./slideshow.ts";
@@ -163,7 +164,11 @@ export async function buildDownloadResponse(
 
 	const { media, error, reason, metadata } = await downloadMediaForUrl(
 		data.url,
-		{ slideshowDelay: responseSlideshowDelay(ctx), comments: data.comments },
+		{
+			slideshowDelay: responseSlideshowDelay(ctx),
+			comments: data.comments,
+			languages: responseLanguages(ctx),
+		},
 	);
 
 	if (!media) {

@@ -1,6 +1,8 @@
 import type { Collection } from "mongodb";
 
 export type Settings = {
+	/** Allowed original X text languages, ordered by translation preference. */
+	languages: string[];
 	/** Seconds per slideshow item. Zero disables video conversion. */
 	slideshowDelay: number;
 	cleanup: boolean;

@@ -25,7 +25,11 @@ export const POSTFETCH_MAX_BYTES = 50_000_000;
 
 export async function downloadWithPostfetch(
 	url: string,
-	options: { slideshowDelay?: number; comments?: number } = {},
+	options: {
+		slideshowDelay?: number;
+		comments?: number;
+		languages?: string[];
+	} = {},
 	proxyFetch: typeof fetch | undefined = warpFetch,
 ): Promise<DownloadMediaResult | null> {
 	try {
@@ -48,7 +52,7 @@ export async function downloadWithPostfetch(
 
 async function downloadPostfetchAttempt(
 	url: string,
-	options: { slideshowDelay?: number; comments?: number },
+	options: { slideshowDelay?: number; comments?: number; languages?: string[] },
 	fetcher: typeof fetch | undefined,
 ): Promise<DownloadMediaResult | null> {
 	try {
@@ -56,6 +60,7 @@ async function downloadPostfetchAttempt(
 			...(fetcher ? { fetch: fetcher } : {}),
 			tryMaxBytes: POSTFETCH_MAX_BYTES,
 			comments: options.comments,
+			languages: options.languages,
 		};
 		const result = await postfetch(url, requestOptions);
 		const delay = slideshowDelay(options);

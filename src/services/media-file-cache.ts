@@ -61,24 +61,34 @@ export function normalizeMediaCacheUrl(url: string) {
 	}
 }
 
-function mediaCacheKey(url: string, slideshowDelay: number): string {
-	return JSON.stringify([normalizeMediaCacheUrl(url), slideshowDelay]);
+function mediaCacheKey(
+	url: string,
+	slideshowDelay: number,
+	languages: string[],
+): string {
+	return JSON.stringify([
+		normalizeMediaCacheUrl(url),
+		slideshowDelay,
+		languages,
+	]);
 }
 
 export function getCachedMedia(
 	url: string,
 	slideshowDelay = DEFAULT_SETTINGS.slideshowDelay,
+	languages = DEFAULT_SETTINGS.languages,
 ) {
-	return mediaCache.get(mediaCacheKey(url, slideshowDelay)) ?? null;
+	return mediaCache.get(mediaCacheKey(url, slideshowDelay, languages)) ?? null;
 }
 
 export function setCachedMedia(
 	url: string,
 	media: CachedMedia,
 	slideshowDelay = DEFAULT_SETTINGS.slideshowDelay,
+	languages = DEFAULT_SETTINGS.languages,
 ) {
 	const normalizedUrl = normalizeMediaCacheUrl(url);
-	const key = mediaCacheKey(url, slideshowDelay);
+	const key = mediaCacheKey(url, slideshowDelay, languages);
 
 	if (mediaCache.has(key)) {
 		mediaCache.delete(key);
@@ -96,8 +106,9 @@ export function setCachedMedia(
 export function deleteCachedMedia(
 	url: string,
 	slideshowDelay = DEFAULT_SETTINGS.slideshowDelay,
+	languages = DEFAULT_SETTINGS.languages,
 ) {
-	return mediaCache.delete(mediaCacheKey(url, slideshowDelay));
+	return mediaCache.delete(mediaCacheKey(url, slideshowDelay, languages));
 }
 
 export function getCachedMediaFromRichMessage(

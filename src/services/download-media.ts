@@ -43,7 +43,11 @@ function postfetchReason(error: unknown): string | undefined {
 
 export async function downloadMediaForUrl(
 	url: string,
-	options: { slideshowDelay?: number; comments?: number } = {},
+	options: {
+		slideshowDelay?: number;
+		comments?: number;
+		languages?: string[];
+	} = {},
 ): Promise<{
 	media: DownloadedMedia | null;
 	error?: string;

@@ -126,7 +126,13 @@ export async function startBot(database: Database) {
 		{ command: "download", description: "Download media from a replied link" },
 		{
 			command: "settings",
-			description: "Configure captions, slideshows and cleanup",
+			description: "Configure captions, slideshows, languages and cleanup",
+			is_ephemeral: true,
+		},
+		{
+			command: "lang",
+			description: "Set allowed post languages",
+			is_ephemeral: true,
 		},
 	]);
 

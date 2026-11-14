@@ -24,6 +24,7 @@ function settingsContext(
 	scope: "private" | "group" = "private",
 	failWrite = false,
 ) {
+	const extras: unknown[] = [];
 	const writes: { collection: string; filter: unknown; update: unknown }[] = [];
 	const replies: { key: string; options: string }[] = [];
 	const updateOne =
@@ -48,7 +49,13 @@ function settingsContext(
 						: { id: -42, type: "group", title: "Group" },
 				from: { id: 42, is_bot: false, first_name: "User" },
 				text: command,
-				entities: [{ type: "bot_command", offset: 0, length: command.length }],
+				entities: [
+					{
+						type: "bot_command",
+						offset: 0,
+						length: command.split(/\s+/)[0].length,
+					},
+				],
 			},
 		},
 		new Api("test"),
@@ -87,9 +94,16 @@ function settingsContext(
 	};
 	Object.assign(ctx, {
 		i18n: {
-			t: (key: string, values?: { seconds?: number; options?: string }) => {
+			t: (
+				key: string,
+				values?: { seconds?: number; options?: string; languages?: string },
+			) => {
 				if (key === "settings")
 					return `<h2>Chat settings</h2>${values?.options}`;
+				if (key === "languagesLine")
+					return `Languages: ${values?.languages} /lang`;
+				if (key === "languagesNotice")
+					return `Use /lang [lang1],[lang2],... to set allowed languages. Each call overrides list entirely.\nEnabled: ${values?.languages}`;
 				if (key === "enabled") return "Enabled";
 				if (key === "disabled") return "Disabled";
 				return values?.seconds !== undefined
@@ -98,15 +112,21 @@ function settingsContext(
 			},
 		},
 	});
-	ctx.text = ((key: string, values?: { options?: string }) => {
-		replies.push({ key, options: values?.options ?? "" });
+	ctx.text = ((
+		key: string,
+		values?: { options?: string; languages?: string },
+		extra?: unknown,
+	) => {
+		extras.push(extra);
+		replies.push({ key, options: values?.options ?? values?.languages ?? "" });
 		return Promise.resolve(ctx.message);
 	}) as CustomContext["text"];
-	ctx.replyWithRichMessage = ((message: InputRichMessage) => {
+	ctx.replyWithRichMessage = ((message: InputRichMessage, extra?: unknown) => {
+		extras.push(extra);
 		replies.push({ key: "settings", options: message.html ?? "" });
 		return Promise.resolve(ctx.message);
 	}) as CustomContext["replyWithRichMessage"];
-	return { ctx, writes, replies };
+	return { ctx, writes, replies, extras };
 }
 
 function callbackContext(
@@ -446,4 +466,104 @@ Deno.test("guest slideshow settings prefer the receiver, then the sender, then t
 	assertEquals(responseSlideshowDelay(ctx), 8);
 	ctx.objects.guestSenderUser = null;
 	assertEquals(responseSlideshowDelay(ctx), 1);
+});
+
+Deno.test("settings and language replies target the ephemeral sender in groups", async () => {
+	for (const command of ["/settings", "/lang"]) {
+		const { ctx, extras } = settingsContext(command, "group");
+		if (!ctx.message) throw new Error("Missing test message");
+		Object.assign(ctx.message, { message_id: 0, ephemeral_message_id: 17 });
+		await settingsController.middleware()(ctx, () => Promise.resolve());
+		assertEquals(extras[0], {
+			reply_parameters: { ephemeral_message_id: 17 },
+			ephemeral_message_parameters: { receiver_user_id: 42 },
+		});
+	}
+});
+
+Deno.test("settings callbacks edit ephemeral messages with the ephemeral API", async () => {
+	const { ctx, edits, answers } = callbackContext("settings:delay:3", "group");
+	if (!ctx.callbackQuery?.message) throw new Error("Missing callback message");
+	Object.assign(ctx.callbackQuery.message, {
+		message_id: 0,
+		ephemeral_message_id: 17,
+	});
+	let ephemeralEdit = false;
+	ctx.editEphemeralMessageText = (async (message: InputRichMessage) => {
+		ephemeralEdit = true;
+		assertStringIncludes(message.html ?? "", 'data="settings:delay:3"');
+		return true;
+	}) as CustomContext["editEphemeralMessageText"];
+	await settingsController.middleware()(ctx, () => Promise.resolve());
+	assertEquals(ephemeralEdit, true);
+	assertEquals(edits, []);
+	assertEquals(answers, [undefined]);
+});
+
+Deno.test("language commands replace the entire list, normalize and deduplicate in both scopes", async () => {
+	for (const scope of ["group", "private"] as const) {
+		const { ctx, writes, replies } = settingsContext(
+			"/lang@slider_test_bot RU, en,ru",
+			scope,
+		);
+		await settingsController.middleware()(ctx, () => Promise.resolve());
+		assertEquals(writes[0].update, {
+			$set: { "settings.languages": ["ru", "en"] },
+		});
+		assertEquals((ctx.objects.chat ?? ctx.objects.user)?.settings.languages, [
+			"ru",
+			"en",
+		]);
+		assertEquals(replies[0], { key: "languagesNotice", options: "ru, en" });
+		const { ctx: next, writes: nextWrites } = settingsContext(
+			"/lang de",
+			scope,
+		);
+		next.objects = ctx.objects;
+		await settingsController.middleware()(next, () => Promise.resolve());
+		assertEquals(nextWrites[0].update, {
+			$set: { "settings.languages": ["de"] },
+		});
+	}
+});
+
+Deno.test("language help and invalid lists never change settings", async () => {
+	for (const command of [
+		"/lang",
+		"/lang en,",
+		"/lang <b>",
+		"/lang en ru",
+		"/lang ,",
+	]) {
+		const { ctx, writes, replies } = settingsContext(command);
+		await settingsController.middleware()(ctx, () => Promise.resolve());
+		assertEquals(writes, []);
+		assertEquals(
+			replies[0].key,
+			command === "/lang" ? "languagesNotice" : "languagesInvalid",
+		);
+		assertEquals(ctx.objects.user?.settings.languages, ["en"]);
+	}
+});
+
+Deno.test("failed language writes preserve the list and report failure", async () => {
+	const { ctx, writes, replies } = settingsContext("/lang ru", "group", true);
+	await settingsController.middleware()(ctx, () => Promise.resolve());
+	assertEquals(writes, []);
+	assertEquals(ctx.objects.chat?.settings.languages, ["en"]);
+	assertEquals(replies[0].key, "settingsUpdateFailed");
+});
+
+Deno.test("language line follows the slideshow times and remains when slideshows are off", async () => {
+	for (const delay of [0, 3]) {
+		const { ctx, replies } = settingsContext("/settings");
+		if (!ctx.objects.user) throw new Error("Missing test user");
+		ctx.objects.user.settings.slideshowDelay = delay;
+		ctx.objects.user.settings.languages = ["en", "ru"];
+		await settingsController.middleware()(ctx, () => Promise.resolve());
+		assertEquals(
+			replies[0].options.endsWith("<p>Languages: en, ru /lang</p>"),
+			true,
+		);
+	}
 });
