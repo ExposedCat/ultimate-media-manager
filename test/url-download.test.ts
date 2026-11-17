@@ -10,6 +10,7 @@ import { cacheDownloadedMedia } from "../src/services/cache-media.ts";
 import { responseMediaKind } from "../src/services/download-response.ts";
 import {
 	deleteCachedMedia,
+	getCachedMedia,
 	setCachedMedia,
 } from "../src/services/media-file-cache.ts";
 import { downloadMatchedUrl } from "../src/services/url-download.ts";
@@ -41,6 +42,57 @@ function captionI18n() {
 		},
 	};
 }
+
+Deno.test("uncertain cached delivery stops without downloading or resending media", async () => {
+	for (const guest of [false, true]) {
+		for (const error of [
+			{ error_code: 504, description: "Gateway Timeout" },
+			{ error_code: 500, description: "Internal Server Error" },
+			new Error("Network request failed"),
+		]) {
+			const url = "https://x.com/example/status/uncertain-delivery";
+			const cached = { kind: "video" as const, fileId: "cached-video" };
+			setCachedMedia(url, cached);
+			let sends = 0;
+			let downloads = 0;
+			const originalFetch = globalThis.fetch;
+			globalThis.fetch = () => {
+				downloads++;
+				throw new Error("Unexpected download after uncertain delivery");
+			};
+			try {
+				const sent = await downloadMatchedUrl(
+					testContext({
+						i18n: captionI18n(),
+						guestMessage: guest ? {} : undefined,
+						replyWithRichMessage() {
+							sends++;
+							throw error;
+						},
+						answerGuestQuery(result: {
+							input_message_content?: { rich_message?: unknown };
+						}) {
+							if (result.input_message_content?.rich_message) {
+								sends++;
+								throw error;
+							}
+						},
+						reply() {},
+					}),
+					url,
+					twitterMatch,
+				);
+				assertEquals(sent, false);
+				assertEquals(sends, 1);
+				assertEquals(downloads, 0);
+				assertEquals(getCachedMedia(url), cached);
+			} finally {
+				globalThis.fetch = originalFetch;
+				deleteCachedMedia(url);
+			}
+		}
+	}
+});
 
 Deno.test("TikTok profiles are skipped before reacting or sending cached media", async () => {
 	const url = "http://www.tiktok.com/@best.location.agency";

@@ -15,7 +15,11 @@ import {
 	responseCaptionEnabled,
 	responseMediaKind,
 } from "./download-response.ts";
-import { classifyMediaSendFailure, getFailureCode } from "./failure.ts";
+import {
+	classifyMediaSendFailure,
+	getFailureCode,
+	isCachedMediaInvalid,
+} from "./failure.ts";
 import { responseLanguages } from "./languages.ts";
 import {
 	type CachedMedia,
@@ -353,6 +357,7 @@ async function answerGuestQueryWithCachedMedia(
 		});
 		return true;
 	} catch (error) {
+		if (!isCachedMediaInvalid(error)) throw error;
 		deleteCachedMedia(url, responseSlideshowDelay(ctx), responseLanguages(ctx));
 		console.warn(
 			"[GuestQuery] Cached media answer failed; removed cache entry",
@@ -615,6 +620,7 @@ export async function downloadMatchedUrl(
 					});
 					return finish(true);
 				} catch (error) {
+					if (!isCachedMediaInvalid(error)) throw error;
 					deleteCachedMedia(url, delay, responseLanguages(ctx));
 					console.warn(
 						"[Download] Cached media send failed; removed cache entry",

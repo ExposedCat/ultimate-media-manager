@@ -89,12 +89,51 @@ Deno.test("comment retries round down, skip duplicate counts and propagate the l
 					},
 					async (data) => {
 						counts.push(data.metadata?.comments?.length ?? 0);
-						throw new Error(`send failed at ${counts.at(-1)} comments`);
+						const error = new Error(`send failed at ${counts.at(-1)} comments`);
+						throw Object.assign(error, {
+							error_code: 400,
+							description: "Bad Request: can't parse entities",
+						});
 					},
 				),
 			Error,
 			"send failed at 0 comments",
 		);
 		assertEquals(counts, [...expected]);
+	}
+});
+
+Deno.test("comment fallback never resends after uncertain delivery or unrelated rejections", async () => {
+	for (const error of [
+		{ error_code: 504, description: "Gateway Timeout" },
+		{ error_code: 500, description: "Internal Server Error" },
+		{ error_code: 403, description: "Forbidden" },
+		{ error_code: 429, description: "Too Many Requests" },
+		{ error_code: 400, description: "Bad Request: VIDEO_FILE_INVALID" },
+		new Error("Network request failed"),
+	]) {
+		let attempts = 0;
+		let caught: unknown;
+		try {
+			await sendRichMessageWithFallback(
+				{
+					sourceType: "twitter",
+					baseHtml: "Sender",
+					captionEnabled: true,
+					media: [{ kind: "video", media: "video" }],
+					metadata: {
+						comments: Array.from({ length: 20 }, () => ({ text: "reply" })),
+					},
+				},
+				async () => {
+					attempts++;
+					throw error;
+				},
+			);
+		} catch (error) {
+			caught = error;
+		}
+		assertEquals(caught, error);
+		assertEquals(attempts, 1);
 	}
 });

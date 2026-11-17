@@ -73,6 +73,15 @@ export function getFailureCode(error: unknown): string {
 	return describedCode ?? "unknown";
 }
 
+export function isCachedMediaInvalid(error: unknown): boolean {
+	return (
+		getFailureCode(error) === "400" &&
+		/(?:wrong (?:remote )?file identifier|invalid file[_ ]id|file[_ ](?:id[_ ]invalid|reference[_ ]expired)|file identifier.*invalid)/i.test(
+			errorDescription(error),
+		)
+	);
+}
+
 function getErrorDetails(error: unknown): ErrorDetails {
 	return {
 		code: getFailureCode(error),

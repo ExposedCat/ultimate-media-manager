@@ -88,11 +88,15 @@ Replies use nested “Comments” / “More” disclosures: text comments share
 up to 750 characters per section; media comments occupy a section alone with their
 first attachment. Oversized comments stay intact. A single section is shown directly,
 and at most 10 sections are retained. Comment download failures leave the original post usable.
-If sending fails, UMM retries with 5%, 10%, then 50% fewer comments than the first
+If Telegram rejects the caption, UMM retries with 5%, 10%, then 50% fewer comments than the first
 attempt, then without comments. Counts are rounded down and duplicate counts are
 skipped. These retries reuse downloaded media and remove attachments belonging to
 omitted comments; they never download the post again.
 Requests for comments bypass the URL cache.
+
+Telegram rate-limit rejections are retried up to five times. Server and network
+errors stop delivery attempts because Telegram may already have sent the message.
+Cached media is downloaded again only when Telegram explicitly rejects its file ID.
 
 X and Reddit comments are supported by Postfetch 0.12.0 and newer. To test both working
 copies before a future release, run `deno task test:postfetch` (or

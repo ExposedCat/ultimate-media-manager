@@ -3,8 +3,34 @@ import { assertEquals } from "jsr:@std/assert@^1";
 import {
 	classifyMediaSendFailure,
 	getFailureCode,
+	isCachedMediaInvalid,
 	isYoutubeBotCheck,
 } from "../src/services/failure.ts";
+
+Deno.test("only explicit stale file-ID rejections allow a fresh upload", () => {
+	for (const description of [
+		"Bad Request: wrong file identifier/HTTP URL specified",
+		"Bad Request: wrong remote file identifier specified",
+		"Bad Request: FILE_REFERENCE_EXPIRED",
+		"Bad Request: FILE_ID_INVALID",
+		"Bad Request: invalid file id",
+	]) {
+		assertEquals(isCachedMediaInvalid({ error_code: 400, description }), true);
+		assertEquals(isCachedMediaInvalid({ error_code: 504, description }), false);
+	}
+	for (const description of [
+		"Gateway Timeout",
+		"Internal Server Error",
+		"Bad Request: can't parse entities",
+		"Bad Request: VIDEO_FILE_INVALID",
+	]) {
+		assertEquals(isCachedMediaInvalid({ error_code: 400, description }), false);
+	}
+	assertEquals(
+		isCachedMediaInvalid(new Error("Network request failed")),
+		false,
+	);
+});
 
 Deno.test("identifies YouTube bot checks without treating other login failures as bot checks", () => {
 	for (const apostrophe of ["'", "’"]) {

@@ -22,6 +22,12 @@ export async function sendRichMessageWithFallback<T, R>(
 		try {
 			return await send(data);
 		} catch (error) {
+			const failure = classifyMediaSendFailure(error);
+			// Reducing content is safe only after an explicit caption rejection.
+			// A timeout or server error can arrive after successful delivery.
+			if (failure.code !== "400" || failure.reason !== "captionInvalid") {
+				throw error;
+			}
 			if (comments > 0) {
 				console.warn(
 					"[RichMessage] Send failed; retrying with fewer comments",
@@ -33,10 +39,7 @@ export async function sendRichMessageWithFallback<T, R>(
 				);
 				continue;
 			}
-			if (
-				!data.captionEnabled ||
-				classifyMediaSendFailure(error).reason !== "captionInvalid"
-			) {
+			if (!data.captionEnabled) {
 				throw error;
 			}
 			console.warn("[RichMessage] Caption failed; retrying without it", {

@@ -1,4 +1,3 @@
-import { autoRetry } from "@grammyjs/auto-retry";
 import type { I18n } from "@grammyjs/i18n";
 import { type SpanDefinitions, openTelemetry } from "@grammyjs/opentelemetry";
 import { run } from "@grammyjs/runner";
@@ -19,6 +18,7 @@ import { createReplyWithTextFunc } from "../services/context.ts";
 import type { BotTelemetryEvents, CustomContext } from "../types/context.ts";
 import type { Chat, Database, UserSettings } from "../types/database.ts";
 import type { Bot } from "../types/telegram.ts";
+import { telegramApiRetry } from "./api-retry.ts";
 import { APP_ENV } from "./env.ts";
 import { initLocaleEngine } from "./locale-engine.ts";
 
@@ -111,11 +111,7 @@ export async function startBot(database: Database) {
 	const i18n = initLocaleEngine(localesPath);
 	const bot = new TelegramBot<CustomContext>(APP_ENV.TOKEN);
 
-	bot.api.config.use(
-		autoRetry({
-			maxRetryAttempts: 5,
-		}),
-	);
+	bot.api.config.use(telegramApiRetry());
 
 	setupMiddlewares(bot, i18n);
 	extendContext(bot, database);
