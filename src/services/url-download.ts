@@ -4,8 +4,8 @@ import type { CustomContext } from "../types/context.ts";
 import { cacheDownloadedMedia } from "./cache-media.ts";
 import {
 	type MessageLike,
+	commentsAfterUrl,
 	extractUrlsFromMessage,
-	replyLimitAfterUrl,
 } from "./context-message.ts";
 import {
 	type DownloadResponse,
@@ -550,7 +550,7 @@ export async function downloadMatchedUrl(
 
 		const comments =
 			type === "twitter" || type === "reddit"
-				? replyLimitAfterUrl(sourceMessage, inputUrl)
+				? commentsAfterUrl(sourceMessage, inputUrl)
 				: 0;
 		const responseData = {
 			comments,

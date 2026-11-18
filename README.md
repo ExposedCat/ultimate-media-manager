@@ -82,11 +82,11 @@ Licensed under the [GNU General Public License v3.0](LICENSE).
 
 ### X and Reddit comments
 
-Add a number after an X or Reddit link to request up to that many posts, including
-the linked post. For example, `https://x.com/paularambles/status/2097547797444911520 5`
-includes the linked post and up to four replies. The bot prefers the longest
-available chain of replies by the author and uses ordinary direct replies when
-there is no author chain.
+Add a number after an X or Reddit link to request up to that many replies.
+For example, `https://x.com/paularambles/status/2097547797444911520 5` requests
+the linked post plus up to five replies. The bot prefers the longest available
+chain of replies by the author and uses ordinary direct replies when there is no
+author chain.
 Replies use nested “Comments” / “More” disclosures: text comments share
 up to 750 characters per section; media comments occupy a section alone with their
 first attachment. Oversized comments stay intact. A single section is shown directly,

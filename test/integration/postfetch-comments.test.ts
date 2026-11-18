@@ -87,10 +87,11 @@ Deno.test("UMM parses the link count, bypasses the root cache, downloads reply m
 				assertEquals(await downloadMatchedUrl(ctx, url), true);
 				assertEquals(sent.length, 1);
 				const html = sent[0].html ?? "";
+				assertStringIncludes(html, "Root text");
 				assertStringIncludes(html, "Comments");
 				assertStringIncludes(html, "d".repeat(10000));
-				assertStringIncludes(html, "Root text");
-				assertEquals(html.includes("reply-5"), false);
+				assertStringIncludes(html, "reply-5");
+				assertEquals(html.includes("reply-6"), false);
 				assertEquals(sent[0].media?.length, 1);
 				assertEquals(
 					requests.some((request) => request.includes("comment-3.jpg")),
@@ -120,7 +121,7 @@ Deno.test("scheme-less X links download with comments and normalized attribution
 				from: { id: 42, first_name: "Tester" },
 				telemetry: { event() {} },
 				msg: {
-					text: `${inputUrl} 2`,
+					text: `${inputUrl} 1`,
 					entities: [{ type: "url", offset: 0, length: inputUrl.length }],
 				},
 				i18n: {
@@ -207,7 +208,7 @@ for (const guest of [false, true]) {
 					const ctx = {
 						from: { id: 42, first_name: "Tester" },
 						telemetry: { event() {} },
-						msg: { text: `${url} 21` },
+						msg: { text: `${url} 20` },
 						...(guest && { guestMessage: {} }),
 						i18n: {
 							t(key: string, values: Record<string, unknown>) {
@@ -340,7 +341,7 @@ Deno.test("Reddit link count fetches comment media and attributes the text post 
 		} as unknown as CustomContext;
 		assertEquals(await downloadMatchedUrl(ctx, redditUrl), true);
 		assertEquals(
-			requests.some((u) => u.includes("limit=4&depth=1&sort=top")),
+			requests.some((u) => u.includes("limit=5&depth=1&sort=top")),
 			true,
 		);
 		assertEquals(messages[0].media?.length, 1);
