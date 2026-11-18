@@ -135,8 +135,8 @@ export function isBotMentioned(
 	});
 }
 
-/** Read a nonnegative integer immediately after this link, including text links. */
-export function commentsAfterUrl(
+/** Convert the message count after a link into a reply limit. The linked post counts as the first message. */
+export function replyLimitAfterUrl(
 	message: MessageLike | null | undefined,
 	url: string,
 ): number {
@@ -155,5 +155,5 @@ export function commentsAfterUrl(
 		.slice(end)
 		.match(/^[ \t]+(\d+)(?=$|[\s,;!?)\]}`]|\.(?!\d))/);
 	const value = match ? Number(match[1]) : 0;
-	return Number.isSafeInteger(value) ? value : 0;
+	return Number.isSafeInteger(value) ? Math.max(0, value - 1) : 0;
 }

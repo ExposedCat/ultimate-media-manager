@@ -1,6 +1,6 @@
 import { assertEquals } from "jsr:@std/assert@^1";
 import { commentSections } from "../src/services/comment-sections.ts";
-import { commentsAfterUrl } from "../src/services/context-message.ts";
+import { replyLimitAfterUrl } from "../src/services/context-message.ts";
 
 Deno.test("comment groups honor the examples, oversized text and media boundaries", () => {
 	const group = (lengths: number[], mediaAt = -1) =>
@@ -19,29 +19,31 @@ Deno.test("comment groups honor the examples, oversized text and media boundarie
 	assertEquals(group([750, 1]), [[750], [1]]);
 });
 
-Deno.test("link comment counts support punctuation, captions, text links, and independent URLs", () => {
+Deno.test("link message counts include the post and support punctuation, captions, and text links", () => {
 	const url = "https://x.com/paularambles/status/2097547797444911520?s=20";
 	assertEquals(
-		commentsAfterUrl({ text: `Check this: ${url} 5, cool?` }, url),
-		5,
+		replyLimitAfterUrl({ text: `Check this: ${url} 5, cool?` }, url),
+		4,
 	);
-	assertEquals(commentsAfterUrl({ caption: `${url} 12` }, url), 12);
+	assertEquals(replyLimitAfterUrl({ caption: `${url} 12` }, url), 11);
 	assertEquals(
-		commentsAfterUrl(
+		replyLimitAfterUrl(
 			{
 				text: "😀 click 3!",
 				entities: [{ type: "text_link", offset: 3, length: 5, url }],
 			},
 			url,
 		),
-		3,
+		2,
 	);
 	const other = "https://x.com/other/status/123";
 	const message = { text: `${url} 5 and ${other} 2` };
-	assertEquals(commentsAfterUrl(message, url), 5);
-	assertEquals(commentsAfterUrl(message, other), 2);
+	assertEquals(replyLimitAfterUrl(message, url), 4);
+	assertEquals(replyLimitAfterUrl(message, other), 1);
 	for (const suffix of [
 		"",
+		" 0",
+		" 1",
 		" later 5",
 		" -2",
 		" 1.5",
@@ -49,6 +51,6 @@ Deno.test("link comment counts support punctuation, captions, text links, and in
 		" 1e3",
 		" 999999999999999999999",
 	]) {
-		assertEquals(commentsAfterUrl({ text: url + suffix }, url), 0);
+		assertEquals(replyLimitAfterUrl({ text: url + suffix }, url), 0);
 	}
 });
