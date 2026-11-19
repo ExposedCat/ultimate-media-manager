@@ -39,6 +39,89 @@ const origins: MessageOrigin[] = [
 	},
 ];
 
+Deno.test("automatic YouTube video downloads use @vid attribution and normal cleanup", async () => {
+	const url = "https://www.youtube.com/watch?v=abcdefghijk";
+	const bot = new Bot<CustomContext>("test");
+	setupControllers(bot);
+	setCachedMedia(url, { kind: "video", fileId: "cached-video" });
+	try {
+		for (const { username, text, cleanup, failSend, expected } of [
+			{
+				username: "vid",
+				text: url,
+				cleanup: true,
+				expected: ["setMessageReaction", "sendRichMessage", "deleteMessage"],
+			},
+			{
+				username: "VID",
+				text: url,
+				cleanup: false,
+				expected: ["setMessageReaction", "sendRichMessage"],
+			},
+			{
+				username: "vid",
+				text: `Watch this ${url}`,
+				cleanup: true,
+				expected: ["setMessageReaction", "sendRichMessage"],
+			},
+			{
+				username: "vid",
+				text: url,
+				cleanup: true,
+				failSend: true,
+				expected: ["setMessageReaction", "sendRichMessage", "sendMessage"],
+			},
+			{ username: "other_bot", text: url, cleanup: true, expected: [] },
+			{ username: undefined, text: `@vid ${url}`, cleanup: true, expected: [] },
+		]) {
+			const calls: string[] = [];
+			const api = new Api("test", {
+				fetch: async (input: URL | string) => {
+					const method = String(input).split("/").pop() ?? "";
+					calls.push(method);
+					if (failSend && method === "sendRichMessage") {
+						return Response.json({
+							ok: false,
+							error_code: 403,
+							description: "Forbidden",
+						});
+					}
+					return Response.json({ ok: true, result: true });
+				},
+			});
+			const ctx = new Context(
+				{
+					update_id: 1,
+					message: {
+						message_id: 2,
+						date: 0,
+						chat: { id: -42, type: "group", title: "Group" },
+						from: { id: 42, is_bot: false, first_name: "User" },
+						via_bot: username
+							? { id: 43, first_name: "Inline bot", is_bot: true, username }
+							: undefined,
+						text,
+						entities: [
+							{ type: "url", offset: text.indexOf(url), length: url.length },
+						],
+					},
+				},
+				api,
+				botInfo,
+			) as CustomContext;
+			Object.assign(ctx, {
+				i18n: { t: (key: string) => key },
+				telemetry: { event() {} },
+				objects: { chat: { settings: { cleanup } } },
+			});
+			await bot.middleware()(ctx, () => Promise.resolve());
+			assertEquals(calls, expected);
+		}
+	} finally {
+		deleteCachedMedia(url);
+	}
+});
+
 for (const origin of origins) {
 	for (const reply of [false, true]) {
 		Deno.test(`/download handles ${origin.type} forwards ${reply ? "in replies" : "directly"}`, async () => {

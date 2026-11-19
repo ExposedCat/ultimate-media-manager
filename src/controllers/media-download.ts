@@ -5,6 +5,7 @@ import {
 	isStandaloneUrlMessage,
 	shouldIgnoreForwardedMessage,
 } from "../services/context-message.ts";
+import { matchDownloadCommandInput, matchInput } from "../services/sources.ts";
 import { downloadMatchedUrl } from "../services/url-download.ts";
 import type { CustomContext } from "../types/context.ts";
 
@@ -17,6 +18,10 @@ mediaDownloadController.on(
 		}
 
 		const urls = extractUrlsFromMessage(ctx.message);
+		const matcher =
+			ctx.message.via_bot?.username?.toLowerCase() === "vid"
+				? matchDownloadCommandInput
+				: matchInput;
 		console.info("[AutoDownload] Processing message URLs", {
 			userId: ctx.from.id,
 			chatId: ctx.chat.id,
@@ -34,7 +39,7 @@ mediaDownloadController.on(
 				messageId: ctx.message.message_id,
 				url,
 			});
-			const sent = await downloadMatchedUrl(ctx, url, undefined, ctx.message);
+			const sent = await downloadMatchedUrl(ctx, url, matcher, ctx.message);
 			if (sent) {
 				somethingSent = true;
 				if (!shouldCleanup && isStandaloneUrlMessage(ctx.message, url)) {
@@ -59,8 +64,12 @@ mediaDownloadController.on(
 					chatId: ctx.chat.id,
 					messageId: ctx.message.message_id,
 				});
-			} catch {
-				// ignore
+			} catch (error) {
+				console.warn("[AutoDownload] Failed to delete source message", {
+					chatId: ctx.chat.id,
+					messageId: ctx.message.message_id,
+					error,
+				});
 			}
 		}
 	},

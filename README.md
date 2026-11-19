@@ -15,7 +15,7 @@ See social media posts right in the Telegram Messenger.
 - Media downloading
   - Instagram
   - TikTok
-  - YouTube Shorts
+  - YouTube Shorts and YouTube videos shared through the `@vid` inline bot
   - Facebook
   - LinkedIn
   - Reddit
